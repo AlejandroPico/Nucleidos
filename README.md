@@ -1,25 +1,19 @@
-# Tabla de nucleidos — visor interactivo v5
+# Tabla de nucleidos — visor interactivo v6
 
-Versión estática en HTML, CSS y JavaScript.
+Versión de pulido visual y funcional:
 
-## Cambios de la versión 5
-
-- Eliminada la burbuja de datos al pasar el ratón.
-- Las celdas centran símbolo y nombre del elemento de forma más equilibrada.
-- Padding interno reajustado para que la parte inferior no quede pegada al borde.
-- Sustituidos los rótulos sueltos de ejes por una placa compacta N/Z.
-- Eliminado el aviso visual de zona superior a Z=118.
-- La leyenda funciona ahora como centro de capas y filtros:
-  - Desintegración.
-  - Estabilidad.
-  - Vida media aproximada.
-- Las categorías de la leyenda son clicables y actúan como filtros.
-- El menú hamburguesa queda reservado para búsqueda, vista, modo oscuro, ejes, animación y datos externos.
+- celdas centradas dentro de su hueco de cuadrícula;
+- nombre del elemento visible dentro de cada celda;
+- padding interno reajustado para mantener equilibrio visual;
+- panel de capas simplificado y compacto;
+- ficha de nucleido corregida para abrirse al seleccionar una celda;
+- eliminados tooltip flotante y aviso de zona superior a Z > 118;
+- ejes N/Z rediseñados como indicadores compactos.
 
 ## Uso
 
-Abre `index.html` en un navegador moderno. La rueda del ratón hace zoom, el arrastre mueve la tabla y el clic sobre un nucleido abre la ficha de detalle.
+Abre `index.html` en un navegador moderno. La rueda del ratón hace zoom, el arrastre mueve el escenario y un clic sobre cualquier nucleido abre la ficha informativa.
 
 ## Datos
 
-La aplicación incluye una malla interna de demostración. Para datos evaluados completos se puede usar el botón de carga IAEA o importar un CSV compatible.
+La aplicación incluye una malla interna de demostración. Para datos evaluados completos, importa un CSV o usa la carga de IAEA LiveChart si el navegador permite la petición directa.

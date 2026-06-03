@@ -11,9 +11,9 @@
   --tile-border: rgba(10, 10, 10, 0.08);
   --accent: #5d5af6;
   --accent-2: #7b61ff;
-  --cell-w: 66px;
-  --cell-h: 54px;
-  --gap: 7px;
+  --cell-w: 82px;
+  --cell-h: 72px;
+  --gap: 10px;
   --axis: 28px;
   --chart-w: 10000px;
   --chart-h: 5000px;
@@ -530,12 +530,12 @@ body.dark .primary-stats div, body.dark .detail-grid div { background: rgba(255,
 
 /* v4 visual polish */
 :root {
-  --cell-w: 76px;
-  --cell-h: 62px;
-  --gap: 8px;
+  --cell-w: 82px;
+  --cell-h: 72px;
+  --gap: 10px;
   --axis: 54px;
-  --tile-step-x: 84px;
-  --tile-step-y: 70px;
+  --tile-step-x: 92px;
+  --tile-step-y: 82px;
 }
 
 .chart {
@@ -898,4 +898,126 @@ body.dark .legend-toggle:hover { background: rgba(255,255,255,.05); }
 @media (max-width: 720px) {
   .axis-corner { min-width: 108px; font-size: 10px; padding: 7px 8px; }
   .legend-modes { grid-template-columns: 1fr; }
+}
+
+
+/* v6 refinement: compact layer popover, centered cell slots, cleaner axes */
+.popover-head,
+.legend-note { display: none !important; }
+.legend-popover {
+  width: min(282px, calc(100vw - 36px));
+  padding: 10px;
+  border-radius: 18px;
+}
+.legend-modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin: 0 0 8px;
+}
+.legend-mode-btn {
+  min-height: 28px;
+  padding: 6px 6px;
+  border-radius: 11px;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .02em;
+  background: rgba(255,255,255,.42);
+}
+.legend-mode-btn.active {
+  background: rgba(24,24,24,.88);
+  color: #fff;
+}
+body.dark .legend-mode-btn.active { background: rgba(241,242,244,.92); color: #101116; }
+.legend { gap: 5px; }
+.legend-toggle {
+  min-height: 26px;
+  border-radius: 10px;
+  padding: 5px 6px;
+}
+.legend-popover .legend-item { font-size: 11px; }
+.legend-popover .legend-swatch { width: 14px; height: 14px; border-radius: 5px; }
+.axis-corner {
+  min-width: auto;
+  padding: 6px;
+  border-radius: 18px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  background: rgba(255,255,255,.48);
+}
+.axis-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.52);
+  border: 1px solid var(--line);
+}
+.axis-pill strong { font-size: 12px; color: var(--ink); line-height: 1; }
+.axis-pill em { font-style: normal; font-size: 9px; color: var(--muted); line-height: 1; }
+body.dark .axis-pill { background: rgba(255,255,255,.06); }
+.nuclide-cell { transform-origin: center center; }
+
+
+/* v6 final override: balanced content inside each nuclide cell */
+.nuclide-cell {
+  display: grid !important;
+  grid-template-rows: 12px minmax(0, 1fr) 13px !important;
+  align-items: stretch !important;
+  justify-items: stretch !important;
+  padding: 7px !important;
+  gap: 3px !important;
+  transform-origin: center center;
+}
+.cell-top {
+  flex: initial !important;
+  height: 12px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+.cell-main {
+  flex: initial !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: minmax(20px, auto) minmax(9px, auto) !important;
+  align-content: center !important;
+  justify-items: center !important;
+  gap: 3px !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+.cell-symbol {
+  align-self: end !important;
+  justify-self: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  font-size: 23px !important;
+  line-height: .92 !important;
+}
+.cell-name {
+  display: block !important;
+  align-self: start !important;
+  justify-self: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 1px !important;
+  font-size: 8px !important;
+  line-height: 1.05 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.cell-bottom {
+  flex: initial !important;
+  min-height: 13px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: end !important;
+  justify-content: space-between !important;
 }

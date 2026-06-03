@@ -1,8 +1,8 @@
 'use strict';
 
-const CELL_W = 76;
-const CELL_H = 62;
-const GAP = 8;
+const CELL_W = 82;
+const CELL_H = 72;
+const GAP = 10;
 const AXIS = 54;
 const OFFICIAL_Z_MAX = 118;
 const DEFAULT_Z_MAX = 130;
@@ -272,8 +272,8 @@ function renderChart() {
     el.type = 'button';
     el.dataset.key = `${n.z}-${n.n}`;
     el.dataset.decay = n.decay;
-    el.style.left = `${AXIS + n.n * TILE_STEP_X}px`;
-    el.style.top = `${AXIS + (Z_MAX - n.z) * TILE_STEP_Y}px`;
+    el.style.left = `${AXIS + n.n * TILE_STEP_X + (TILE_STEP_X - CELL_W) / 2}px`;
+    el.style.top = `${AXIS + (Z_MAX - n.z) * TILE_STEP_Y + (TILE_STEP_Y - CELL_H) / 2}px`;
     el.style.setProperty('--cell-color', getCellColor(n));
     const cellLabel = `${n.element}-${n.a} · Z=${n.z} · N=${n.n}`;
     el.setAttribute('aria-label', cellLabel);
@@ -281,14 +281,10 @@ function renderChart() {
       <div class="cell-top"><span>${n.a}</span><span>N${n.n}</span></div>
       <div class="cell-main">
         <div class="cell-symbol">${escapeHtml(n.symbol)}</div>
-        <div class="cell-name">${escapeHtml(shortElementName(n.element))}</div>
+        <div class="cell-name">${escapeHtml(displayElementName(n.element))}</div>
       </div>
       <div class="cell-bottom"><span>Z${n.z}</span><span class="decay-badge">${DECAY_LABELS[n.decay] || n.decay}</span></div>
     `;
-    el.addEventListener('click', (event) => {
-      event.stopPropagation();
-      selectNuclide(n, el);
-    });
     fragment.appendChild(el);
   }
   chart.appendChild(fragment);
@@ -302,8 +298,8 @@ function renderAxes() {
   const corner = document.createElement('div');
   corner.className = 'axis-corner';
   corner.innerHTML = `
-    <span><strong>N</strong> → neutrones</span>
-    <span><strong>Z</strong> ↑ protones</span>
+    <span class="axis-pill"><strong>N</strong><em>neutrones →</em></span>
+    <span class="axis-pill"><strong>Z</strong><em>protones ↑</em></span>
   `;
   corner.style.left = `${Math.max(8, AXIS - 48)}px`;
   corner.style.top = `${Math.max(8, AXIS - 46)}px`;
@@ -313,7 +309,7 @@ function renderAxes() {
     const label = document.createElement('div');
     label.className = 'axis-label x';
     label.textContent = N;
-    label.style.left = `${AXIS + N * TILE_STEP_X + CELL_W / 2}px`;
+    label.style.left = `${AXIS + N * TILE_STEP_X + TILE_STEP_X / 2}px`;
     label.style.top = `${AXIS - 28}px`;
     frag.appendChild(label);
   }
@@ -322,7 +318,7 @@ function renderAxes() {
     label.className = 'axis-label y';
     label.textContent = Z;
     label.style.left = `${AXIS - 10}px`;
-    label.style.top = `${AXIS + (Z_MAX - Z) * TILE_STEP_Y + CELL_H / 2}px`;
+    label.style.top = `${AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y / 2}px`;
     frag.appendChild(label);
   }
   chart.appendChild(frag);
@@ -562,15 +558,20 @@ function zoomAt(clientX, clientY, deltaY) {
   updateTransform();
 }
 
+function displayElementName(name) {
+  const clean = String(name || '').replace(/ · .+$/, '').trim();
+  return clean || '—';
+}
+
 function shortElementName(name) {
-  return String(name || '').replace(/ · .+$/, '').slice(0, 12);
+  return displayElementName(name).slice(0, 12);
 }
 
 function updateCursorHud(event) {
   const chartX = (event.clientX - state.tx) / state.scale;
   const chartY = (event.clientY - state.ty) / state.scale;
-  const N = Math.round((chartX - AXIS - CELL_W / 2) / TILE_STEP_X);
-  const Z = Z_MAX - Math.round((chartY - AXIS - CELL_H / 2) / TILE_STEP_Y);
+  const N = Math.round((chartX - AXIS - TILE_STEP_X / 2) / TILE_STEP_X);
+  const Z = Z_MAX - Math.round((chartY - AXIS - TILE_STEP_Y / 2) / TILE_STEP_Y);
   if (N >= 0 && N <= N_MAX && Z >= 1 && Z <= Z_MAX) {
     cursorHud.textContent = `Z ${Z} · N ${N}`;
     cursorHud.classList.add('visible');
@@ -591,8 +592,8 @@ function toggleLegendPopover(event) {
 }
 
 function centerOnNuclide(n, zoomMultiplier = 7) {
-  const x = AXIS + n.n * TILE_STEP_X + CELL_W / 2;
-  const y = AXIS + (Z_MAX - n.z) * TILE_STEP_Y + CELL_H / 2;
+  const x = AXIS + n.n * TILE_STEP_X + TILE_STEP_X / 2;
+  const y = AXIS + (Z_MAX - n.z) * TILE_STEP_Y + TILE_STEP_Y / 2;
   state.scale = Math.max(state.fitScale, Math.min(state.fitScale * zoomMultiplier, 1.35));
   state.tx = window.innerWidth / 2 - x * state.scale;
   state.ty = window.innerHeight / 2 - y * state.scale;
@@ -635,7 +636,17 @@ function bindEvents() {
     state.dragging = false;
     state.dragStart = null;
     viewport.classList.remove('dragging');
-    if (wasClick && !target.closest?.('.nuclide-cell')) closeNuclideCard();
+
+    if (!wasClick) return;
+
+    const cell = target?.closest?.('.nuclide-cell');
+    if (cell) {
+      const n = state.byKey.get(cell.dataset.key);
+      if (n) selectNuclide(n, cell);
+      return;
+    }
+
+    closeNuclideCard();
   });
 
   viewport.addEventListener('pointercancel', () => {
