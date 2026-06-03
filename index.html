@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tabla interactiva de nucleídos</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Física nuclear · tabla de nucleídos</p>
+      <h1>Tabla interactiva de nucleídos</h1>
+      <p class="subtitle">Cuadrícula Z/N con hover, selección por clic, panel de detalle, filtros y carga de CSV nuclear.</p>
+    </div>
+    <div class="header-actions">
+      <button id="loadIaeaBtn" class="primary">Cargar datos IAEA</button>
+      <label class="file-button" for="csvFile">Importar CSV</label>
+      <input id="csvFile" type="file" accept=".csv,text/csv" />
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="controls-card" aria-label="Controles de visualización">
+      <div class="control-row">
+        <label>
+          Buscar nucleído o elemento
+          <input id="searchInput" type="search" placeholder="Ej.: U-235, 235U, Uranio, Z=92, N=143" />
+        </label>
+        <label>
+          Colorear por
+          <select id="colorMode">
+            <option value="decay">Modo de desintegración</option>
+            <option value="stability">Estabilidad</option>
+            <option value="halfLife">Vida media</option>
+          </select>
+        </label>
+        <label>
+          Filtro
+          <select id="filterMode">
+            <option value="all">Todos</option>
+            <option value="stable">Solo estables</option>
+            <option value="radioactive">Solo radiactivos</option>
+            <option value="alpha">Alfa</option>
+            <option value="betaMinus">Beta −</option>
+            <option value="betaPlusEc">Beta + / captura electrónica</option>
+            <option value="unknown">Sin clasificar</option>
+          </select>
+        </label>
+        <label class="range-label">
+          Zoom
+          <input id="zoomRange" type="range" min="14" max="42" value="24" />
+        </label>
+        <label class="check-label">
+          <input id="labelsToggle" type="checkbox" checked />
+          Etiquetas en celdas
+        </label>
+      </div>
+      <div class="stats-row">
+        <span id="datasetStatus" class="status-chip">Dataset de demostración cargado</span>
+        <span id="nuclideCount">0 nucleídos</span>
+        <span id="visibleCount">0 visibles</span>
+        <span id="extentInfo">Z/N: —</span>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <section class="chart-card" aria-label="Tabla de nucleídos">
+        <div class="chart-toolbar">
+          <div class="legend" id="legend"></div>
+          <div class="hint">Eje horizontal: neutrones N · eje vertical: protones Z · clic para ver detalle</div>
+        </div>
+        <div id="chartViewport" class="chart-viewport" tabindex="0">
+          <div id="chartCanvas" class="chart-canvas" aria-label="Cuadrícula de nucleídos"></div>
+        </div>
+      </section>
+
+      <aside class="detail-card" aria-label="Detalle del nucleído seleccionado">
+        <div id="detailEmpty" class="detail-empty">
+          <h2>Selecciona una celda</h2>
+          <p>Al hacer clic sobre un nucleído aparecerán aquí sus datos: Z, N, A, elemento, masa atómica, vida media, modos de desintegración, abundancia, spin/paridad, energía de estado, enlaces y campos crudos importados.</p>
+        </div>
+        <article id="detailPanel" class="detail-panel hidden"></article>
+      </aside>
+    </section>
+
+    <section class="info-grid">
+      <article class="info-card">
+        <h2>Cómo usar datos completos</h2>
+        <p>La web puede funcionar con el CSV de estados fundamentales de IAEA LiveChart. Pulsa <strong>Cargar datos IAEA</strong>. Si el navegador bloquea la petición por CORS, descarga el CSV desde la API de IAEA y usa <strong>Importar CSV</strong>.</p>
+        <code>https://nds.iaea.org/relnsd/v1/data?fields=ground_states&amp;nuclides=all</code>
+      </article>
+      <article class="info-card">
+        <h2>Campos esperados</h2>
+        <p>El normalizador acepta columnas habituales como <code>z</code>, <code>n</code>, <code>symbol</code>, <code>element</code>, <code>half_life_sec</code>, <code>half_life</code>, <code>unit_hl</code>, <code>decay_1</code>, <code>decay_1_%</code>, <code>atomic_mass</code>, <code>mass_excess</code>, <code>abundance</code>, <code>jp</code>, <code>energy</code> y conserva cualquier columna extra en el panel de detalle.</p>
+      </article>
+    </section>
+  </main>
+
+  <template id="detailTemplate">
+    <header class="detail-header">
+      <div>
+        <p class="eyebrow">Nucleído seleccionado</p>
+        <h2 data-field="title"></h2>
+        <p data-field="subtitle" class="detail-subtitle"></p>
+      </div>
+      <button id="closeDetail" class="ghost" aria-label="Cerrar detalle">×</button>
+    </header>
+    <div data-field="badges" class="badge-row"></div>
+    <dl class="detail-grid" data-field="mainFacts"></dl>
+    <section class="detail-section">
+      <h3>Desintegración y vida media</h3>
+      <div data-field="decayBlock"></div>
+    </section>
+    <section class="detail-section">
+      <h3>Enlaces útiles</h3>
+      <div data-field="links" class="links-list"></div>
+    </section>
+    <section class="detail-section">
+      <details>
+        <summary>Ver todos los campos disponibles del registro</summary>
+        <div data-field="rawFields" class="raw-fields"></div>
+      </details>
+    </section>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+z,n,symbol,is_stable,half_life_sec,decay_1,decay_1_pct,atomic_mass,mass_excess,abundance,jp,energy,note
+1,0,H,TRUE,,,,1.007825,7288.97,0.999855,1/2+,0,Protio
+1,1,H,TRUE,,,,2.014102,13135.72,0.000145,1+,0,Deuterio
+1,2,H,FALSE,388800000,B-,100,3.016049,14949.81,,1/2+,0,Tritio
+6,6,C,TRUE,,,,12,0,0.9893,0+,0,Carbono-12
+6,8,C,FALSE,180800000000,B-,100,14.003242,3019.89,,0+,0,Carbono-14
+92,143,U,FALSE,2.22e16,A,100,235.043929,40914.1,0.0072,7/2-,0,Uranio-235
+92,146,U,FALSE,1.41e17,A,100,238.050788,47307.7,0.992745,0+,0,Uranio-238
