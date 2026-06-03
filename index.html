@@ -25,13 +25,13 @@
 
     <div id="legendPopover" class="legend-popover" aria-hidden="true">
       <div class="popover-head">
-        <strong>Leyenda</strong>
-        <span id="legendModeLabel">Modo actual</span>
+        <strong>Capas</strong>
+        <span id="legendModeLabel">Desintegración</span>
       </div>
-      <div id="legend" class="legend"></div>
+      <div id="legendModes" class="legend-modes" aria-label="Modo de color de la tabla"></div>
+      <div id="legend" class="legend" aria-label="Filtros visibles"></div>
+      <p class="legend-note">Pulsa una capa para cambiar el color. Pulsa una categoría para mostrarla u ocultarla.</p>
     </div>
-
-    <div id="hoverTooltip" class="hover-tooltip" aria-hidden="true"></div>
 
     <div id="cursorHud" class="cursor-hud" aria-live="polite">Z — · N —</div>
 
@@ -72,31 +72,6 @@
           <input id="animationToggle" type="checkbox" checked />
         </label>
       </div>
-
-      <details class="menu-section" open>
-        <summary>Color de celdas</summary>
-        <div class="radio-list">
-          <label><input type="radio" name="colorMode" value="decay" checked /> Por modo de desintegración</label>
-          <label><input type="radio" name="colorMode" value="stability" /> Por estabilidad</label>
-          <label><input type="radio" name="colorMode" value="halflife" /> Por vida media aproximada</label>
-        </div>
-      </details>
-
-      <details class="menu-section" open>
-        <summary>Filtros</summary>
-        <div class="filter-grid">
-          <label><input type="checkbox" class="filterToggle" value="stable" checked /> Estables</label>
-          <label><input type="checkbox" class="filterToggle" value="beta-" checked /> β−</label>
-          <label><input type="checkbox" class="filterToggle" value="beta+/EC" checked /> β+/EC</label>
-          <label><input type="checkbox" class="filterToggle" value="alpha" checked /> α</label>
-          <label><input type="checkbox" class="filterToggle" value="sf" checked /> Fisión espontánea</label>
-          <label><input type="checkbox" class="filterToggle" value="p" checked /> Emisión protón</label>
-          <label><input type="checkbox" class="filterToggle" value="n" checked /> Emisión neutrón</label>
-          <label><input type="checkbox" class="filterToggle" value="it" checked /> Transición isomérica</label>
-          <label><input type="checkbox" class="filterToggle" value="cluster" checked /> Clúster</label>
-          <label><input type="checkbox" class="filterToggle" value="unknown" checked /> Otros / sin clasificar</label>
-        </div>
-      </details>
 
       <details class="menu-section">
         <summary>Datos externos</summary>

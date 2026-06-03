@@ -97,7 +97,11 @@ const state = {
   selected: null,
   selectedEl: null,
   colorMode: 'decay',
-  filters: new Set(['stable','beta-','beta+/EC','alpha','sf','p','n','it','cluster','unknown']),
+  modeFilters: {
+    decay: new Set(['stable','beta-','beta+/EC','alpha','sf','p','n','it','cluster','unknown']),
+    stability: new Set(['stable','radioactive','unknown']),
+    halflife: new Set(['stable','long','medium','short','unknown'])
+  },
   scale: 1,
   tx: 0,
   ty: 0,
@@ -115,7 +119,7 @@ const zoomHud = document.getElementById('zoomHud');
 const legendButton = document.getElementById('legendButton');
 const legendPopover = document.getElementById('legendPopover');
 const legendModeLabel = document.getElementById('legendModeLabel');
-const hoverTooltip = document.getElementById('hoverTooltip');
+const legendModes = document.getElementById('legendModes');
 const cursorHud = document.getElementById('cursorHud');
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
@@ -245,7 +249,7 @@ function buildGenericNote(Z, N, decay, center) {
 
 function elementInfo(Z) {
   if (ELEMENTS[Z]) return ELEMENTS[Z];
-  return [systematicSymbol(Z), `Elemento ${Z} · hipotético/no confirmado`];
+  return [systematicSymbol(Z), `Elemento ${Z}`];
 }
 
 function systematicSymbol(Z) {
@@ -271,21 +275,20 @@ function renderChart() {
     el.style.left = `${AXIS + n.n * TILE_STEP_X}px`;
     el.style.top = `${AXIS + (Z_MAX - n.z) * TILE_STEP_Y}px`;
     el.style.setProperty('--cell-color', getCellColor(n));
-    el.title = `${n.element}-${n.a} · Z=${n.z} · N=${n.n}`;
-    el.setAttribute('aria-label', el.title);
+    const cellLabel = `${n.element}-${n.a} · Z=${n.z} · N=${n.n}`;
+    el.setAttribute('aria-label', cellLabel);
     el.innerHTML = `
       <div class="cell-top"><span>${n.a}</span><span>N${n.n}</span></div>
-      <div class="cell-symbol">${escapeHtml(n.symbol)}</div>
-      <div class="cell-name">${escapeHtml(shortElementName(n.element))}</div>
+      <div class="cell-main">
+        <div class="cell-symbol">${escapeHtml(n.symbol)}</div>
+        <div class="cell-name">${escapeHtml(shortElementName(n.element))}</div>
+      </div>
       <div class="cell-bottom"><span>Z${n.z}</span><span class="decay-badge">${DECAY_LABELS[n.decay] || n.decay}</span></div>
     `;
     el.addEventListener('click', (event) => {
       event.stopPropagation();
       selectNuclide(n, el);
     });
-    el.addEventListener('pointerenter', (event) => showHoverTooltip(n, event));
-    el.addEventListener('pointermove', (event) => moveHoverTooltip(event));
-    el.addEventListener('pointerleave', hideHoverTooltip);
     fragment.appendChild(el);
   }
   chart.appendChild(fragment);
@@ -295,28 +298,16 @@ function renderChart() {
 
 function renderAxes() {
   const frag = document.createDocumentFragment();
-  const xTitle = document.createElement('div');
-  xTitle.className = 'axis-title';
-  xTitle.textContent = 'N · Neutrones';
-  xTitle.style.left = `${AXIS + 16}px`;
-  xTitle.style.top = '4px';
-  frag.appendChild(xTitle);
 
-  const yTitle = document.createElement('div');
-  yTitle.className = 'axis-title';
-  yTitle.textContent = 'Z · Protones';
-  yTitle.style.left = '4px';
-  yTitle.style.top = `${AXIS + 20}px`;
-  frag.appendChild(yTitle);
-
-  if (Z_MAX > OFFICIAL_Z_MAX) {
-    const future = document.createElement('div');
-    future.className = 'future-zone-label';
-    future.textContent = 'Z > 118 · zona reservada para datos importados / superpesados hipotéticos';
-    future.style.left = `${AXIS + 18}px`;
-    future.style.top = `${AXIS + (Z_MAX - OFFICIAL_Z_MAX) * TILE_STEP_Y - 34}px`;
-    frag.appendChild(future);
-  }
+  const corner = document.createElement('div');
+  corner.className = 'axis-corner';
+  corner.innerHTML = `
+    <span><strong>N</strong> → neutrones</span>
+    <span><strong>Z</strong> ↑ protones</span>
+  `;
+  corner.style.left = `${Math.max(8, AXIS - 48)}px`;
+  corner.style.top = `${Math.max(8, AXIS - 46)}px`;
+  frag.appendChild(corner);
 
   for (let N = 0; N <= N_MAX; N += 10) {
     const label = document.createElement('div');
@@ -337,17 +328,33 @@ function renderAxes() {
   chart.appendChild(frag);
 }
 
+function stabilityCategory(n) {
+  if (!n || !n.decay || n.decay === 'unknown') return 'unknown';
+  return n.decay === 'stable' ? 'stable' : 'radioactive';
+}
+
+function halflifeCategory(n) {
+  const h = String(n?.half_life || '').toLowerCase();
+  if (!n || !n.decay || n.decay === 'unknown') return 'unknown';
+  if (n.decay === 'stable' || h.includes('estable')) return 'stable';
+  if (h.includes('larga') || h.includes('año') || h.includes('10')) return 'long';
+  if (h.includes('media') || h.includes('día') || h.includes('hora')) return 'medium';
+  if (h.includes('corta') || h.includes('ms') || h.includes('µs') || h.includes('us') || h.includes('ns') || /\b[0-9,.]+\s*s\b/.test(h)) return 'short';
+  return 'unknown';
+}
+
+function categoryForMode(n, mode = state.colorMode) {
+  if (mode === 'stability') return stabilityCategory(n);
+  if (mode === 'halflife') return halflifeCategory(n);
+  return n?.decay || 'unknown';
+}
+
 function getCellColor(n) {
   if (state.colorMode === 'stability') {
-    return PALETTES.stability[n.decay === 'stable' ? 'stable' : 'radioactive'] || PALETTES.stability.unknown;
+    return PALETTES.stability[stabilityCategory(n)] || PALETTES.stability.unknown;
   }
   if (state.colorMode === 'halflife') {
-    const h = String(n.half_life || '').toLowerCase();
-    if (n.decay === 'stable' || h.includes('estable')) return PALETTES.halflife.stable;
-    if (h.includes('larga') || h.includes('año') || h.includes('10')) return PALETTES.halflife.long;
-    if (h.includes('media') || h.includes('día') || h.includes('hora')) return PALETTES.halflife.medium;
-    if (h.includes('corta') || h.includes('s') || h.includes('ms')) return PALETTES.halflife.short;
-    return PALETTES.halflife.unknown;
+    return PALETTES.halflife[halflifeCategory(n)] || PALETTES.halflife.unknown;
   }
   return PALETTES.decay[n.decay] || PALETTES.decay.unknown;
 }
@@ -357,38 +364,74 @@ function applyColorMode() {
     const n = state.byKey.get(el.dataset.key);
     if (n) el.style.setProperty('--cell-color', getCellColor(n));
   });
+  applyFilters();
   renderLegend();
 }
 
 function applyFilters() {
+  const active = state.modeFilters[state.colorMode] || new Set();
   document.querySelectorAll('.nuclide-cell').forEach(el => {
-    const decay = el.dataset.decay || 'unknown';
-    el.classList.toggle('dimmed', !state.filters.has(decay));
+    const n = state.byKey.get(el.dataset.key);
+    const category = categoryForMode(n);
+    el.classList.toggle('dimmed', !active.has(category));
   });
 }
 
 function renderLegend() {
   legend.innerHTML = '';
+  if (legendModes) legendModes.innerHTML = '';
+
   const modeNames = { decay: 'Desintegración', stability: 'Estabilidad', halflife: 'Vida media' };
+  const modeOrder = ['decay', 'stability', 'halflife'];
   if (legendModeLabel) legendModeLabel.textContent = modeNames[state.colorMode] || 'Modo actual';
+
+  for (const mode of modeOrder) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `legend-mode-btn${mode === state.colorMode ? ' active' : ''}`;
+    btn.textContent = modeNames[mode];
+    btn.addEventListener('click', () => {
+      state.colorMode = mode;
+      applyColorMode();
+    });
+    legendModes?.appendChild(btn);
+  }
+
   let entries;
   if (state.colorMode === 'stability') {
     entries = [
-      ['stable', 'Estable'],
-      ['radioactive', 'Radiactivo'],
-      ['unknown', 'Sin clasificar']
-    ].map(([key, label]) => [PALETTES.stability[key], label]);
+      { key: 'stable', color: PALETTES.stability.stable, label: 'Estable' },
+      { key: 'radioactive', color: PALETTES.stability.radioactive, label: 'Radiactivo' },
+      { key: 'unknown', color: PALETTES.stability.unknown, label: 'Sin clasificar' }
+    ];
   } else if (state.colorMode === 'halflife') {
     entries = [
-      ['stable', 'Estable'], ['long', 'Vida larga'], ['medium', 'Vida media'], ['short', 'Vida corta'], ['unknown', 'Desconocido']
-    ].map(([key, label]) => [PALETTES.halflife[key], label]);
+      { key: 'stable', color: PALETTES.halflife.stable, label: 'Estable' },
+      { key: 'long', color: PALETTES.halflife.long, label: 'Vida larga' },
+      { key: 'medium', color: PALETTES.halflife.medium, label: 'Vida media' },
+      { key: 'short', color: PALETTES.halflife.short, label: 'Vida corta' },
+      { key: 'unknown', color: PALETTES.halflife.unknown, label: 'Desconocido' }
+    ];
   } else {
-    entries = Object.entries(PALETTES.decay).map(([key, color]) => [color, DECAY_LABELS[key] || key]);
+    entries = Object.entries(PALETTES.decay).map(([key, color]) => ({ key, color, label: DECAY_LABELS[key] || key }));
   }
-  for (const [color, label] of entries) {
-    const item = document.createElement('div');
-    item.className = 'legend-item';
-    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span><span>${label}</span>`;
+
+  const active = state.modeFilters[state.colorMode] || new Set();
+  for (const entry of entries) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = `legend-item legend-toggle${active.has(entry.key) ? ' active' : ' muted'}`;
+    item.innerHTML = `<span class="legend-swatch" style="background:${entry.color}"></span><span>${entry.label}</span>`;
+    item.addEventListener('click', () => {
+      const set = state.modeFilters[state.colorMode];
+      if (set.has(entry.key)) {
+        if (set.size > 1) set.delete(entry.key);
+      } else {
+        set.add(entry.key);
+      }
+      applyFilters();
+      renderLegend();
+    });
     legend.appendChild(item);
   }
 }
@@ -523,29 +566,6 @@ function shortElementName(name) {
   return String(name || '').replace(/ · .+$/, '').slice(0, 12);
 }
 
-function showHoverTooltip(n, event) {
-  hoverTooltip.innerHTML = `<strong>${escapeHtml(n.element)}-${n.a}</strong><span>${escapeHtml(n.symbol)} · Z=${n.z} · N=${n.n} · ${escapeHtml(DECAY_LABELS[n.decay] || n.decay)}</span>`;
-  hoverTooltip.classList.add('open');
-  hoverTooltip.setAttribute('aria-hidden', 'false');
-  moveHoverTooltip(event);
-}
-
-function moveHoverTooltip(event) {
-  const pad = 16;
-  const rect = hoverTooltip.getBoundingClientRect();
-  let x = event.clientX + 16;
-  let y = event.clientY + 16;
-  if (x + rect.width + pad > window.innerWidth) x = event.clientX - rect.width - 16;
-  if (y + rect.height + pad > window.innerHeight) y = event.clientY - rect.height - 16;
-  hoverTooltip.style.left = `${Math.max(pad, x)}px`;
-  hoverTooltip.style.top = `${Math.max(pad, y)}px`;
-}
-
-function hideHoverTooltip() {
-  hoverTooltip.classList.remove('open');
-  hoverTooltip.setAttribute('aria-hidden', 'true');
-}
-
 function updateCursorHud(event) {
   const chartX = (event.clientX - state.tx) / state.scale;
   const chartY = (event.clientY - state.ty) / state.scale;
@@ -583,7 +603,6 @@ function bindEvents() {
   viewport.addEventListener('pointermove', updateCursorHud);
   viewport.addEventListener('pointerleave', () => {
     cursorHud.classList.remove('visible');
-    hideHoverTooltip();
   });
 
   viewport.addEventListener('wheel', (event) => {
@@ -638,21 +657,6 @@ function bindEvents() {
   searchButton.addEventListener('click', runSearch);
   searchInput.addEventListener('keydown', event => {
     if (event.key === 'Enter') runSearch();
-  });
-
-  document.querySelectorAll('input[name="colorMode"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      state.colorMode = radio.value;
-      applyColorMode();
-    });
-  });
-
-  document.querySelectorAll('.filterToggle').forEach(input => {
-    input.addEventListener('change', () => {
-      if (input.checked) state.filters.add(input.value);
-      else state.filters.delete(input.value);
-      applyFilters();
-    });
   });
 
   darkModeToggle.addEventListener('change', () => {
