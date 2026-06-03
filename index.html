@@ -3,148 +3,176 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tabla de nucleídos</title>
+  <title>Nucleidos — visor interactivo</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main id="viewport" class="viewport" aria-label="Visor interactivo de tabla de nucleídos">
-    <section id="world" class="world" aria-label="Cuadrícula Z por N">
-      <div id="grid" class="grid" aria-hidden="true"></div>
-      <div id="axisLayer" class="axis-layer" aria-hidden="true"></div>
-      <div id="nuclideLayer" class="nuclide-layer"></div>
+  <main id="app" aria-label="Visor interactivo de tabla de nucleidos">
+    <section id="viewport" class="viewport" aria-label="Escenario de nucleidos">
+      <div id="chart" class="chart" aria-label="Cuadrícula de nucleidos"></div>
     </section>
 
-    <button id="menuButton" class="hamburger" type="button" aria-label="Abrir menú" aria-controls="sideMenu" aria-expanded="false">
-      <span></span>
-      <span></span>
-      <span></span>
+    <button id="menuButton" class="floating-button menu-button" aria-label="Abrir menú" title="Menú">
+      <span></span><span></span><span></span>
     </button>
 
-    <aside id="sideMenu" class="side-menu" aria-label="Menú de opciones">
-      <header class="side-menu__header">
+    <div class="hud hud-left" aria-hidden="true">
+      <div class="hud-pill">Rueda: zoom</div>
+      <div class="hud-pill">Arrastrar: mover</div>
+      <div class="hud-pill">Clic vacío: cerrar ficha</div>
+    </div>
+
+    <div id="zoomHud" class="zoom-hud" aria-live="polite">100%</div>
+
+    <aside id="sideMenu" class="side-menu" aria-label="Menú de configuración" aria-hidden="true">
+      <div class="side-head">
         <div>
-          <strong>Tabla de nucleídos</strong>
-          <small>Visor Z/N a pantalla completa</small>
+          <p class="eyebrow">Nucleidos</p>
+          <h1>Configuración</h1>
         </div>
-        <button id="closeMenuButton" class="icon-button" type="button" aria-label="Cerrar menú">×</button>
-      </header>
-
-      <div class="side-menu__content">
-        <details open>
-          <summary>Vista</summary>
-          <div class="control-group">
-            <label for="searchInput">Buscar nucleído</label>
-            <div class="inline-control">
-              <input id="searchInput" type="search" placeholder="Ej.: Ca-40, 40Ca, U-235, Z=20 N=20" autocomplete="off" />
-              <button id="searchButton" type="button">Ir</button>
-            </div>
-          </div>
-
-          <div class="control-group">
-            <label for="colorMode">Colorear por</label>
-            <select id="colorMode">
-              <option value="decay">Modo de desintegración</option>
-              <option value="stability">Estabilidad</option>
-              <option value="halfLife">Vida media</option>
-            </select>
-          </div>
-
-          <div class="control-group control-row">
-            <button id="fitButton" type="button">Ver tabla completa</button>
-            <button id="resetButton" type="button">Centrar</button>
-          </div>
-
-          <p class="hint">Rueda del ratón: zoom hacia la posición del cursor. Arrastra el fondo: desplazar la tabla. Clic en zona vacía: cerrar ficha.</p>
-        </details>
-
-        <details>
-          <summary>Filtros</summary>
-          <div class="check-list" id="filterList">
-            <label><input type="checkbox" value="stable" checked /> Estables</label>
-            <label><input type="checkbox" value="alpha" checked /> Alfa</label>
-            <label><input type="checkbox" value="beta-" checked /> Beta −</label>
-            <label><input type="checkbox" value="beta+" checked /> Beta +</label>
-            <label><input type="checkbox" value="ec" checked /> Captura electrónica</label>
-            <label><input type="checkbox" value="sf" checked /> Fisión espontánea</label>
-            <label><input type="checkbox" value="it" checked /> Transición isomérica</label>
-            <label><input type="checkbox" value="unknown" checked /> Desconocido / mixto</label>
-          </div>
-        </details>
-
-        <details>
-          <summary>Datos</summary>
-          <div class="control-group">
-            <label for="csvInput">Importar CSV local</label>
-            <input id="csvInput" type="file" accept=".csv,text/csv" />
-          </div>
-
-          <div class="control-group">
-            <button id="loadSampleButton" type="button">Recargar muestra interna</button>
-            <button id="downloadTemplateButton" type="button">Descargar plantilla CSV</button>
-          </div>
-
-          <div class="control-group">
-            <label for="remoteCsvUrl">CSV remoto</label>
-            <input id="remoteCsvUrl" type="url" value="https://www-nds.iaea.org/relnsd/v0/data?fields=ground_states&nuclides=all" />
-            <button id="loadRemoteButton" type="button">Cargar datos IAEA</button>
-          </div>
-
-          <p class="hint">Si el navegador bloquea la descarga por CORS, abre la URL, guarda el CSV y vuelve a importarlo desde este menú.</p>
-        </details>
-
-        <details>
-          <summary>Leyenda cromática</summary>
-          <div class="legend">
-            <span><i class="legend-dot stable"></i>Estable</span>
-            <span><i class="legend-dot alpha"></i>Alfa</span>
-            <span><i class="legend-dot beta-minus"></i>Beta −</span>
-            <span><i class="legend-dot beta-plus"></i>Beta +</span>
-            <span><i class="legend-dot ec"></i>Captura e−</span>
-            <span><i class="legend-dot sf"></i>Fisión espontánea</span>
-            <span><i class="legend-dot it"></i>Isómero / IT</span>
-            <span><i class="legend-dot unknown"></i>Otro / sin dato</span>
-          </div>
-        </details>
-
-        <details>
-          <summary>Campos esperados</summary>
-          <div class="field-categories">
-            <h4>Identidad nuclear</h4>
-            <p>Z, N, A, símbolo, elemento, nombre del nucleído, estado fundamental/isómero.</p>
-            <h4>Masa y composición</h4>
-            <p>Masa atómica, exceso de masa, defecto de masa, peso atómico del elemento, abundancia isotópica.</p>
-            <h4>Estabilidad y desintegración</h4>
-            <p>Estable/radiactivo, vida media, modo de desintegración, productos hijos, branching ratios, Q-values.</p>
-            <h4>Estructura nuclear</h4>
-            <p>Spin-paridad, niveles excitados, energía de enlace, energía por nucleón, números mágicos.</p>
-            <h4>Neutrónica y aplicaciones</h4>
-            <p>Secciones eficaces, capturas, fisión, uso en reactores, medicina nuclear, datación, trazadores.</p>
-            <h4>Referencias</h4>
-            <p>Wikipedia, ENSDF, IAEA LiveChart, NNDC NuDat u otras bases evaluadas.</p>
-          </div>
-        </details>
-
-        <details>
-          <summary>Cómo navegar</summary>
-          <ul class="compact-list">
-            <li>Horizontal: número de neutrones, N.</li>
-            <li>Vertical: número de protones, Z.</li>
-            <li>Cada celda ocupada representa un nucleído.</li>
-            <li>El popup inferior derecho muestra la ficha del nucleído seleccionado.</li>
-            <li>La página no usa scroll vertical: todo se controla con menú, zoom y desplazamiento del escenario.</li>
-          </ul>
-        </details>
+        <button id="closeMenu" class="icon-button" aria-label="Cerrar menú">×</button>
       </div>
+
+      <div class="menu-section">
+        <label class="field-label" for="searchInput">Buscar nucleido</label>
+        <div class="search-row">
+          <input id="searchInput" type="search" placeholder="Ca-40, 40Ca, Z=20, N=20..." autocomplete="off" />
+          <button id="searchButton" class="compact-button">Ir</button>
+        </div>
+        <p class="hint">Puedes buscar por símbolo, número másico, protones o neutrones.</p>
+      </div>
+
+      <div class="menu-section grid-two">
+        <button id="resetViewButton" class="menu-action">Ver tabla completa</button>
+        <button id="fitWidthButton" class="menu-action">Ajustar anchura</button>
+      </div>
+
+      <div class="menu-section">
+        <label class="toggle-row">
+          <span>Modo oscuro</span>
+          <input id="darkModeToggle" type="checkbox" />
+        </label>
+        <label class="toggle-row">
+          <span>Mostrar ejes N/Z</span>
+          <input id="axesToggle" type="checkbox" checked />
+        </label>
+        <label class="toggle-row">
+          <span>Animación atómica</span>
+          <input id="animationToggle" type="checkbox" checked />
+        </label>
+      </div>
+
+      <details class="menu-section" open>
+        <summary>Color de celdas</summary>
+        <div class="radio-list">
+          <label><input type="radio" name="colorMode" value="decay" checked /> Por modo de desintegración</label>
+          <label><input type="radio" name="colorMode" value="stability" /> Por estabilidad</label>
+          <label><input type="radio" name="colorMode" value="halflife" /> Por vida media aproximada</label>
+        </div>
+      </details>
+
+      <details class="menu-section" open>
+        <summary>Filtros</summary>
+        <div class="filter-grid">
+          <label><input type="checkbox" class="filterToggle" value="stable" checked /> Estables</label>
+          <label><input type="checkbox" class="filterToggle" value="beta-" checked /> β−</label>
+          <label><input type="checkbox" class="filterToggle" value="beta+/EC" checked /> β+/EC</label>
+          <label><input type="checkbox" class="filterToggle" value="alpha" checked /> α</label>
+          <label><input type="checkbox" class="filterToggle" value="sf" checked /> Fisión esp.</label>
+          <label><input type="checkbox" class="filterToggle" value="unknown" checked /> Otros</label>
+        </div>
+      </details>
+
+      <details class="menu-section">
+        <summary>Datos externos</summary>
+        <p class="small-copy">La tabla arranca con una malla generada para probar la interfaz. Para datos evaluados completos, importa CSV o carga desde IAEA si el navegador lo permite.</p>
+        <button id="loadIaeaButton" class="menu-action full">Cargar datos IAEA LiveChart</button>
+        <label class="file-button">
+          Importar CSV local
+          <input id="csvInput" type="file" accept=".csv,text/csv" hidden />
+        </label>
+        <p id="dataStatus" class="status-line">Datos internos de demostración cargados.</p>
+      </details>
+
+      <details class="menu-section">
+        <summary>Leyenda</summary>
+        <div id="legend" class="legend"></div>
+      </details>
+
+      <details class="menu-section">
+        <summary>Campos esperados</summary>
+        <ul class="field-list">
+          <li><code>z</code>, <code>n</code>, <code>a</code>, <code>symbol</code>, <code>element</code></li>
+          <li><code>half_life</code>, <code>decay</code>, <code>abundance</code>, <code>atomic_mass</code></li>
+          <li><code>spin</code>, <code>parity</code>, <code>q_value</code>, <code>mass_excess</code></li>
+          <li><code>source</code>, <code>notes</code>, <code>wikipedia</code></li>
+        </ul>
+      </details>
+
+      <details class="menu-section">
+        <summary>Notas de uso</summary>
+        <p class="small-copy">Esta versión imita el planteamiento visual de ficha grande con información + modelo 3D, pero el código, assets y composición son originales. La simulación atómica es un modelo educativo tipo Bohr, no una representación cuántica real de orbitales.</p>
+      </details>
     </aside>
 
-    <div id="menuBackdrop" class="menu-backdrop" hidden></div>
+    <div id="scrim" class="scrim" aria-hidden="true"></div>
 
-    <article id="detailPopup" class="detail-popup" aria-live="polite" aria-label="Detalle de nucleído">
-      <button id="closePopupButton" class="popup-close" type="button" aria-label="Cerrar detalle">×</button>
-      <div id="detailContent"></div>
+    <article id="nuclideCard" class="nuclide-card" aria-label="Ficha del nucleido" aria-hidden="true">
+      <button id="closeCard" class="icon-button close-card" aria-label="Cerrar ficha">×</button>
+      <section class="card-info">
+        <div class="identity-row">
+          <div class="mass-stack">
+            <span id="detailA">40</span>
+            <span id="detailZ">20</span>
+          </div>
+          <div>
+            <div class="symbol-line"><span id="detailSymbol">Ca</span><span id="detailName">Calcio</span></div>
+            <p id="detailSubtitle" class="detail-subtitle">Calcio-40 · N=20</p>
+          </div>
+        </div>
+
+        <div class="primary-stats">
+          <div><span>Estado</span><strong id="detailState">Estable</strong></div>
+          <div><span>Vida media</span><strong id="detailHalfLife">Estable</strong></div>
+          <div><span>Abundancia</span><strong id="detailAbundance">96,94%</strong></div>
+          <div><span>Masa</span><strong id="detailMass">39,96259098 u</strong></div>
+        </div>
+
+        <div class="detail-grid">
+          <div><span>Protones</span><strong id="detailProtons">20</strong></div>
+          <div><span>Neutrones</span><strong id="detailNeutrons">20</strong></div>
+          <div><span>Electrones</span><strong id="detailElectrons">20</strong></div>
+          <div><span>Spin/paridad</span><strong id="detailSpin">0+</strong></div>
+          <div><span>Q / energía</span><strong id="detailQ">—</strong></div>
+          <div><span>Origen</span><strong id="detailSource">Interno</strong></div>
+        </div>
+
+        <div class="info-block">
+          <h2>Peculiaridades</h2>
+          <p id="detailNotes">Selecciona una celda para ver la información.</p>
+        </div>
+
+        <div class="link-row">
+          <a id="wikiLink" href="#" target="_blank" rel="noopener">Wikipedia</a>
+          <a id="liveChartLink" href="#" target="_blank" rel="noopener">LiveChart</a>
+        </div>
+      </section>
+
+      <section class="atom-panel">
+        <div class="atom-toolbar">
+          <div>
+            <p class="eyebrow">Modelo visual</p>
+            <h2 id="atomTitle">Átomo neutro</h2>
+          </div>
+          <div id="shellText" class="shell-text">2 · 8 · 8 · 2</div>
+        </div>
+        <canvas id="atomCanvas" width="900" height="620" aria-label="Simulación atómica visual"></canvas>
+        <div class="atom-footer">
+          <span id="nucleusText">20 p⁺ · 20 n⁰</span>
+          <span>Representación esquemática, no orbital real</span>
+        </div>
+      </section>
     </article>
-
-    <div id="statusBar" class="status-bar">Muestra interna cargada · rueda para zoom · arrastra para desplazar</div>
   </main>
 
   <script src="app.js"></script>

@@ -1,62 +1,42 @@
-# Tabla de nucleídos — visor web fullscreen
+# Tabla de nucleidos — visor interactivo v3
 
-Versión 2 del prototipo: una página web estática en HTML, CSS y JavaScript para representar una tabla de nucleídos como un escenario navegable a pantalla completa.
+Versión estática en HTML, CSS y JavaScript.
 
-## Objetivo visual de esta versión
+## Cambios de esta versión
 
-- La cuadrícula ocupa el 100% de la ventana.
-- La página no tiene scroll vertical.
-- La rueda del ratón se usa únicamente para hacer zoom hacia la posición del cursor.
-- El desplazamiento por el escenario se hace arrastrando el fondo con el ratón.
-- Todas las funciones secundarias están dentro del menú hamburguesa.
-- Al hacer clic en un nucleído aparece una ficha flotante en la esquina inferior derecha.
-- La ficha se cierra con su botón `×`, con `Esc` o haciendo clic en una zona vacía de la tabla.
+- La cuadrícula ocupa el 100% de la pantalla.
+- La página no tiene scroll vertical ni horizontal del documento.
+- El gráfico tiene anchura/altura internas fijas y se ajusta inicialmente para ver la tabla completa.
+- La rueda del ratón hace zoom centrado en el cursor.
+- Se puede arrastrar el escenario para desplazarse por la tabla.
+- Las casillas son más grandes y muestran A, Z, N, símbolo y modo resumido.
+- Al clicar una celda se abre una ficha grande con transición suave.
+- La ficha incluye información del nucleido y una simulación atómica esquemática en canvas.
+- El menú hamburguesa contiene búsqueda, filtros, colores, importación CSV/IAEA, leyenda, notas y modo oscuro.
 
-## Archivos
+## Uso
 
-- `index.html`: estructura principal.
-- `styles.css`: interfaz fullscreen, menú lateral, cuadrícula, popup y animaciones.
-- `app.js`: lógica de zoom, desplazamiento, carga CSV, renderizado y panel de detalle.
-- `sample_nuclides.csv`: muestra de datos incluida para pruebas.
-
-## Uso básico
-
-Abre `index.html` directamente en el navegador.
+Abre `index.html` directamente en un navegador moderno.
 
 Controles:
 
 - Rueda del ratón: zoom.
-- Arrastrar fondo: mover la tabla.
-- Clic en un nucleído: abrir ficha.
+- Arrastrar fondo: mover tabla.
+- Clic en una celda: abrir ficha.
 - Clic en zona vacía: cerrar ficha.
-- Botón hamburguesa: abrir menú.
-- `Esc`: cerrar menú y ficha.
+- Esc: cerrar ficha o menú.
 
-## Datos completos
+## Sobre los datos
 
-Este prototipo incluye una muestra interna para que funcione sin instalación. Para una tabla de nucleídos completa, importa un CSV con datos reales.
+Esta versión incluye una malla interna de demostración para validar la interfaz. No debe tratarse como una base nuclear evaluada completa. Para datos científicos reales, usa la importación CSV o la carga desde IAEA LiveChart si tu navegador permite la petición.
 
-Campos recomendados:
+Campos recomendados para CSV:
 
-```csv
-z,n,a,symbol,name,nuclide,mass_u,atomic_weight,half_life,half_life_seconds,decay_mode,abundance,spin_parity,binding_energy_per_nucleon_kev,mass_excess_kev,q_alpha_kev,neutron_capture_cross_section_barns,notes,wikipedia_url
-```
+- `z`, `n`, `a`, `symbol`, `element`
+- `half_life`, `decay`, `abundance`, `atomic_mass`
+- `spin`, `parity`, `q_value`, `mass_excess`
+- `source`, `notes`, `wikipedia`
 
-También se aceptan nombres de columna alternativos como `Z`, `N`, `mass_number`, `element`, `halflife`, `decay_1`, etc.
+## Nota visual
 
-## Fuentes recomendadas para completar la tabla
-
-- IAEA LiveChart of Nuclides: permite descargar datos nucleares en CSV.
-- NNDC NuDat / ENSDF: base evaluada de datos nucleares.
-
-La opción “Cargar datos IAEA” está dentro del menú. Si el navegador bloquea la petición remota por CORS, abre la URL, guarda el CSV y luego impórtalo desde “Importar CSV local”.
-
-## Siguiente evolución lógica
-
-La siguiente versión debería incorporar:
-
-1. Dataset nuclear completo preprocesado.
-2. Renderizado optimizado por Canvas/WebGL para miles de nucleídos con mejor rendimiento.
-3. Zoom semántico: mostrar más texto dentro de la celda cuando el zoom sea alto.
-4. Capas visuales: estabilidad, cadenas de desintegración, números mágicos, isóbaros, isótonos e isótopos.
-5. Panel lateral avanzado con gráficos de desintegración, productos hijo y branching ratios.
+La interfaz está inspirada en aplicaciones educativas de tabla periódica con ficha grande y visualización atómica, pero no copia código, imágenes, marcas ni assets externos. La simulación del átomo es una representación educativa tipo Bohr, no una visualización cuántica real.
