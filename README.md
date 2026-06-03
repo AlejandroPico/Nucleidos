@@ -1,43 +1,62 @@
-# Tabla interactiva de nucleídos
+# Tabla de nucleídos — visor web fullscreen
 
-Web estática en HTML, CSS y JavaScript para visualizar una tabla de nucleídos en una cuadrícula Z/N.
+Versión 2 del prototipo: una página web estática en HTML, CSS y JavaScript para representar una tabla de nucleídos como un escenario navegable a pantalla completa.
+
+## Objetivo visual de esta versión
+
+- La cuadrícula ocupa el 100% de la ventana.
+- La página no tiene scroll vertical.
+- La rueda del ratón se usa únicamente para hacer zoom hacia la posición del cursor.
+- El desplazamiento por el escenario se hace arrastrando el fondo con el ratón.
+- Todas las funciones secundarias están dentro del menú hamburguesa.
+- Al hacer clic en un nucleído aparece una ficha flotante en la esquina inferior derecha.
+- La ficha se cierra con su botón `×`, con `Esc` o haciendo clic en una zona vacía de la tabla.
 
 ## Archivos
 
-- `index.html`: estructura de la interfaz.
-- `styles.css`: diseño visual, layout, hover y responsive.
-- `app.js`: renderizado de la tabla, parser CSV, normalización de campos, filtros, búsqueda y panel de detalle.
-- `sample_nuclides.csv`: CSV mínimo de ejemplo para probar la importación.
+- `index.html`: estructura principal.
+- `styles.css`: interfaz fullscreen, menú lateral, cuadrícula, popup y animaciones.
+- `app.js`: lógica de zoom, desplazamiento, carga CSV, renderizado y panel de detalle.
+- `sample_nuclides.csv`: muestra de datos incluida para pruebas.
 
-## Uso rápido
+## Uso básico
 
-Abre `index.html` en un navegador moderno. La web carga una muestra interna para comprobar la interfaz.
+Abre `index.html` directamente en el navegador.
+
+Controles:
+
+- Rueda del ratón: zoom.
+- Arrastrar fondo: mover la tabla.
+- Clic en un nucleído: abrir ficha.
+- Clic en zona vacía: cerrar ficha.
+- Botón hamburguesa: abrir menú.
+- `Esc`: cerrar menú y ficha.
 
 ## Datos completos
 
-Para una tabla científicamente útil, importa un CSV nuclear evaluado. La web está preparada para el CSV de IAEA LiveChart:
+Este prototipo incluye una muestra interna para que funcione sin instalación. Para una tabla de nucleídos completa, importa un CSV con datos reales.
 
-```text
-https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all
+Campos recomendados:
+
+```csv
+z,n,a,symbol,name,nuclide,mass_u,atomic_weight,half_life,half_life_seconds,decay_mode,abundance,spin_parity,binding_energy_per_nucleon_kev,mass_excess_kev,q_alpha_kev,neutron_capture_cross_section_barns,notes,wikipedia_url
 ```
 
-Opciones:
+También se aceptan nombres de columna alternativos como `Z`, `N`, `mass_number`, `element`, `halflife`, `decay_1`, etc.
 
-1. Pulsa **Cargar datos IAEA**. Puede fallar si el navegador bloquea la petición por CORS.
-2. Descarga el CSV manualmente desde la URL anterior y usa **Importar CSV**.
-3. También puedes arrastrar el CSV sobre el área de la tabla.
+## Fuentes recomendadas para completar la tabla
 
-## Columnas reconocidas
+- IAEA LiveChart of Nuclides: permite descargar datos nucleares en CSV.
+- NNDC NuDat / ENSDF: base evaluada de datos nucleares.
 
-El normalizador acepta, entre otros, estos campos:
+La opción “Cargar datos IAEA” está dentro del menú. Si el navegador bloquea la petición remota por CORS, abre la URL, guarda el CSV y luego impórtalo desde “Importar CSV local”.
 
-- `z`, `n`, `a`, `symbol`, `element`, `nuclide`
-- `half_life_sec`, `half_life`, `unit_hl`
-- `decay_1`, `decay_1_%`, `decay_2`, `decay_2_%`
-- `atomic_mass`, `mass_excess`, `abundance`, `jp`, `energy`, `radius`
+## Siguiente evolución lógica
 
-Cualquier campo extra se conserva y aparece en el panel de detalle dentro de “Ver todos los campos disponibles del registro”.
+La siguiente versión debería incorporar:
 
-## Nota científica
-
-La muestra incluida sirve para validar la interfaz, no para uso científico. Para datos evaluados, usa IAEA LiveChart o NNDC NuDat/ENSDF.
+1. Dataset nuclear completo preprocesado.
+2. Renderizado optimizado por Canvas/WebGL para miles de nucleídos con mejor rendimiento.
+3. Zoom semántico: mostrar más texto dentro de la celda cuando el zoom sea alto.
+4. Capas visuales: estabilidad, cadenas de desintegración, números mágicos, isóbaros, isótonos e isótopos.
+5. Panel lateral avanzado con gráficos de desintegración, productos hijo y branching ratios.

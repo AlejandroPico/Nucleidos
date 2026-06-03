@@ -1,8 +1,70 @@
-z,n,symbol,is_stable,half_life_sec,decay_1,decay_1_pct,atomic_mass,mass_excess,abundance,jp,energy,note
-1,0,H,TRUE,,,,1.007825,7288.97,0.999855,1/2+,0,Protio
-1,1,H,TRUE,,,,2.014102,13135.72,0.000145,1+,0,Deuterio
-1,2,H,FALSE,388800000,B-,100,3.016049,14949.81,,1/2+,0,Tritio
-6,6,C,TRUE,,,,12,0,0.9893,0+,0,Carbono-12
-6,8,C,FALSE,180800000000,B-,100,14.003242,3019.89,,0+,0,Carbono-14
-92,143,U,FALSE,2.22e16,A,100,235.043929,40914.1,0.0072,7/2-,0,Uranio-235
-92,146,U,FALSE,1.41e17,A,100,238.050788,47307.7,0.992745,0+,0,Uranio-238
+z,n,a,symbol,name,nuclide,mass_u,atomic_weight,half_life,half_life_seconds,decay_mode,abundance,spin_parity,binding_energy_per_nucleon_kev,mass_excess_kev,q_alpha_kev,neutron_capture_cross_section_barns,notes,wikipedia_url
+1,0,1,H,Hidrógeno,H-1,1.007825,1.008,Estable,,stable,99.985%,1/2+,0,7288.97,,0.3326,Protio; núcleo formado por un único protón.,https://es.wikipedia.org/wiki/Hidr%C3%B3geno
+1,1,2,H,Hidrógeno,H-2,2.014102,1.008,Estable,,stable,0.015%,1+,1112.28,13135.7,,0.000519,Deuterio; isótopo estable usado en agua pesada.,https://es.wikipedia.org/wiki/Deuterio
+1,2,3,H,Hidrógeno,H-3,3.016049,1.008,12.32 años,388800000,beta-,,1/2+,2827.27,14949.8,,0.000001,Tritio; emisor beta usado como trazador y en fusión.,https://es.wikipedia.org/wiki/Tritio
+2,1,3,He,Helio,He-3,3.016029,4.002602,Estable,,stable,0.000137%,1/2+,2572.68,14931.2,,5330,Interesante en criogenia y detectores de neutrones.,https://es.wikipedia.org/wiki/Helio-3
+2,2,4,He,Helio,He-4,4.002603,4.002602,Estable,,stable,99.999863%,0+,7073.92,2424.9,,0,Partícula alfa; núcleo extraordinariamente ligado.,https://es.wikipedia.org/wiki/Helio-4
+3,3,6,Li,Litio,Li-6,6.015123,6.94,Estable,,stable,7.59%,1+,5332.33,14086.9,,940,Usado en producción de tritio y detectores.,https://es.wikipedia.org/wiki/Litio
+3,4,7,Li,Litio,Li-7,7.016004,6.94,Estable,,stable,92.41%,3/2-,5606.44,14907.1,,0.045,Isótopo natural mayoritario del litio.,https://es.wikipedia.org/wiki/Litio
+4,5,9,Be,Berilio,Be-9,9.012183,9.012183,Estable,,stable,100%,3/2-,6462.67,11348.5,,0.0076,Único isótopo estable del berilio.,https://es.wikipedia.org/wiki/Berilio
+5,5,10,B,Boro,B-10,10.012937,10.81,Estable,,stable,19.9%,3+,6475.08,12050.6,,3837,Alta captura neutrónica; útil en control de reactores.,https://es.wikipedia.org/wiki/Boro-10
+5,6,11,B,Boro,B-11,11.009305,10.81,Estable,,stable,80.1%,3/2-,6927.73,8667.7,,0.0055,Isótopo natural mayoritario del boro.,https://es.wikipedia.org/wiki/Boro
+6,6,12,C,Carbono,C-12,12,12.011,Estable,,stable,98.93%,0+,7680.14,0,,0.0035,Referencia exacta de la unidad de masa atómica.,https://es.wikipedia.org/wiki/Carbono-12
+6,7,13,C,Carbono,C-13,13.003355,12.011,Estable,,stable,1.07%,1/2-,7469.85,3125,,0.00137,Usado en RMN y estudios isotópicos.,https://es.wikipedia.org/wiki/Carbono-13
+6,8,14,C,Carbono,C-14,14.003242,12.011,5730 años,180800000000,beta-,,0+,7520.32,3019.9,,0.0009,Datación radiocarbónica.,https://es.wikipedia.org/wiki/Carbono-14
+7,7,14,N,Nitrógeno,N-14,14.003074,14.007,Estable,,stable,99.632%,1+,7475.61,2863.4,,1.83,Isótopo natural mayoritario del nitrógeno.,https://es.wikipedia.org/wiki/Nitr%C3%B3geno
+7,8,15,N,Nitrógeno,N-15,15.000109,14.007,Estable,,stable,0.368%,1/2-,7699.46,101.4,,0.000024,Isótopo estable usado como trazador.,https://es.wikipedia.org/wiki/Nitr%C3%B3geno-15
+8,8,16,O,Oxígeno,O-16,15.994915,15.999,Estable,,stable,99.757%,0+,7976.21,-4737,,0.00019,Isótopo dominante del oxígeno.,https://es.wikipedia.org/wiki/Ox%C3%ADgeno
+8,9,17,O,Oxígeno,O-17,16.999132,15.999,Estable,,stable,0.038%,5/2+,7750.73,-809,,0.235,Isótopo estable poco abundante.,https://es.wikipedia.org/wiki/Ox%C3%ADgeno
+8,10,18,O,Oxígeno,O-18,17.999160,15.999,Estable,,stable,0.205%,0+,7767.10,-782,,0.00016,Usado en climatología isotópica.,https://es.wikipedia.org/wiki/Ox%C3%ADgeno-18
+9,10,19,F,Flúor,F-19,18.998403,18.998403,Estable,,stable,100%,1/2+,7779.02,-1487,,0.0096,Único isótopo estable del flúor.,https://es.wikipedia.org/wiki/Fl%C3%BAor
+10,10,20,Ne,Neón,Ne-20,19.992440,20.1797,Estable,,stable,90.48%,0+,8032.24,-7041,,0.039,Isótopo mayoritario del neón.,https://es.wikipedia.org/wiki/Ne%C3%B3n
+11,12,23,Na,Sodio,Na-23,22.989770,22.989769,Estable,,stable,100%,3/2+,8111.49,-9529,,0.53,Único isótopo estable del sodio.,https://es.wikipedia.org/wiki/Sodio
+12,12,24,Mg,Magnesio,Mg-24,23.985042,24.305,Estable,,stable,78.99%,0+,8260.71,-13933,,0.05,Isótopo natural mayoritario del magnesio.,https://es.wikipedia.org/wiki/Magnesio
+13,14,27,Al,Aluminio,Al-27,26.981538,26.981538,Estable,,stable,100%,5/2+,8331.56,-17196,,0.231,Único isótopo estable del aluminio.,https://es.wikipedia.org/wiki/Aluminio
+14,14,28,Si,Silicio,Si-28,27.976927,28.085,Estable,,stable,92.23%,0+,8447.74,-21493,,0.177,Isótopo dominante del silicio.,https://es.wikipedia.org/wiki/Silicio
+15,16,31,P,Fósforo,P-31,30.973762,30.973762,Estable,,stable,100%,1/2+,8481.20,-24440,,0.172,Único isótopo estable del fósforo.,https://es.wikipedia.org/wiki/F%C3%B3sforo
+16,16,32,S,Azufre,S-32,31.972071,32.06,Estable,,stable,94.99%,0+,8493.13,-26016,,0.53,Isótopo mayoritario del azufre.,https://es.wikipedia.org/wiki/Azufre
+17,18,35,Cl,Cloro,Cl-35,34.968853,35.45,Estable,,stable,75.78%,3/2+,8520.28,-29143,,44.1,Uno de los dos isótopos estables del cloro.,https://es.wikipedia.org/wiki/Cloro
+18,22,40,Ar,Argón,Ar-40,39.962383,39.948,Estable,,stable,99.604%,0+,8595.25,-35040,,0.66,Producto radiogénico de K-40; dominante en la atmósfera.,https://es.wikipedia.org/wiki/Arg%C3%B3n
+19,20,39,K,Potasio,K-39,38.963707,39.0983,Estable,,stable,93.258%,3/2+,8556.34,-33808,,2.1,Isótopo mayoritario del potasio.,https://es.wikipedia.org/wiki/Potasio
+19,21,40,K,Potasio,K-40,39.963999,39.0983,1.248e9 años,39390000000000000,beta-/ec,0.0117%,4-,8551.0,-33535,,30.0,Radionúclido natural relevante en geocronología.,https://es.wikipedia.org/wiki/Potasio-40
+20,20,40,Ca,Calcio,Ca-40,39.962591,40.078,Estable,,stable,96.941%,0+,8551.3,-34135,,0.41,Isótopo doblemente mágico aproximado: Z=20 y N=20.,https://es.wikipedia.org/wiki/Calcio
+20,22,42,Ca,Calcio,Ca-42,41.958618,40.078,Estable,,stable,0.647%,0+,8616.6,-38547,,0.68,Isótopo estable minoritario del calcio.,https://es.wikipedia.org/wiki/Calcio
+20,23,43,Ca,Calcio,Ca-43,42.958767,40.078,Estable,,stable,0.135%,7/2-,8600.3,-38408,,6.2,Único calcio estable con spin nuclear semientero abundante natural.,https://es.wikipedia.org/wiki/Calcio
+20,24,44,Ca,Calcio,Ca-44,43.955482,40.078,Estable,,stable,2.086%,0+,8658.2,-41469,,0.88,Isótopo estable usado en estudios geoquímicos.,https://es.wikipedia.org/wiki/Calcio
+20,26,46,Ca,Calcio,Ca-46,45.953689,40.078,Estable,,stable,0.004%,0+,8668.9,-43135,,0.74,Isótopo estable extremadamente escaso.,https://es.wikipedia.org/wiki/Calcio
+20,28,48,Ca,Calcio,Ca-48,47.952522,40.078,Estable/2β muy lento,,stable,0.187%,0+,8666.7,-44224,,1.09,Núcleo doblemente mágico; candidato en estudios de doble beta.,https://es.wikipedia.org/wiki/Calcio-48
+21,24,45,Sc,Escandio,Sc-45,44.955908,44.955908,Estable,,stable,100%,7/2-,8618.0,-41072,,27.2,Único isótopo estable del escandio.,https://es.wikipedia.org/wiki/Escandio
+22,26,48,Ti,Titanio,Ti-48,47.947942,47.867,Estable,,stable,73.72%,0+,8723.3,-48491,,7.84,Isótopo natural mayoritario del titanio.,https://es.wikipedia.org/wiki/Titanio
+23,28,51,V,Vanadio,V-51,50.943957,50.9415,Estable,,stable,99.75%,7/2-,8742.0,-52204,,4.9,Isótopo natural mayoritario del vanadio.,https://es.wikipedia.org/wiki/Vanadio
+24,28,52,Cr,Cromo,Cr-52,51.940506,51.9961,Estable,,stable,83.79%,0+,8775.9,-55418,,0.76,Isótopo mayoritario del cromo.,https://es.wikipedia.org/wiki/Cromo
+25,30,55,Mn,Manganeso,Mn-55,54.938044,54.938044,Estable,,stable,100%,5/2-,8765.0,-57711,,13.3,Único isótopo estable del manganeso.,https://es.wikipedia.org/wiki/Manganeso
+26,28,54,Fe,Hierro,Fe-54,53.939609,55.845,Estable,,stable,5.845%,0+,8790.3,-56255,,2.25,Isótopo estable del hierro.,https://es.wikipedia.org/wiki/Hierro
+26,30,56,Fe,Hierro,Fe-56,55.934936,55.845,Estable,,stable,91.754%,0+,8790.4,-60606,,2.59,Uno de los núcleos con mayor energía de enlace por nucleón.,https://es.wikipedia.org/wiki/Hierro-56
+26,31,57,Fe,Hierro,Fe-57,56.935393,55.845,Estable,,stable,2.119%,1/2-,8770.2,-60181,,2.48,Usado en espectroscopía Mössbauer.,https://es.wikipedia.org/wiki/Hierro-57
+26,32,58,Fe,Hierro,Fe-58,57.933274,55.845,Estable,,stable,0.282%,0+,8792.2,-62155,,1.28,Isótopo estable minoritario del hierro.,https://es.wikipedia.org/wiki/Hierro
+27,32,59,Co,Cobalto,Co-59,58.933194,58.933194,Estable,,stable,100%,7/2-,8768.0,-62229,,37.2,Único isótopo estable del cobalto.,https://es.wikipedia.org/wiki/Cobalto
+27,33,60,Co,Cobalto,Co-60,59.933817,58.933194,5.27 años,166000000,beta-,,5+,8765.0,-61649,,2.0,Fuente gamma importante en radioterapia e industria.,https://es.wikipedia.org/wiki/Cobalto-60
+28,30,58,Ni,Níquel,Ni-58,57.935342,58.6934,Estable,,stable,68.077%,0+,8732.0,-60225,,4.6,Isótopo mayoritario del níquel.,https://es.wikipedia.org/wiki/N%C3%ADquel
+28,32,60,Ni,Níquel,Ni-60,59.930786,58.6934,Estable,,stable,26.223%,0+,8780.8,-64472,,2.9,Isótopo estable del níquel.,https://es.wikipedia.org/wiki/N%C3%ADquel
+29,34,63,Cu,Cobre,Cu-63,62.929598,63.546,Estable,,stable,69.15%,3/2-,8752.0,-65579,,4.5,Isótopo mayoritario del cobre.,https://es.wikipedia.org/wiki/Cobre
+30,34,64,Zn,Zinc,Zn-64,63.929142,65.38,Estable,,stable,49.17%,0+,8736.0,-66000,,0.76,Isótopo natural mayoritario del zinc.,https://es.wikipedia.org/wiki/Zinc
+36,48,84,Kr,Kriptón,Kr-84,83.911497,83.798,Estable,,stable,56.99%,0+,8718.0,-82431,,0.113,Isótopo estable mayoritario del kriptón.,https://es.wikipedia.org/wiki/Kript%C3%B3n
+38,52,90,Sr,Estroncio,Sr-90,89.907738,87.62,28.8 años,908000000,beta-,,0+,8695.0,-85894,,1.2,Producto de fisión de larga vida; relevancia radiológica.,https://es.wikipedia.org/wiki/Estroncio-90
+43,56,99,Tc,Tecnecio,Tc-99,98.906250,98,2.11e5 años,6650000000000,beta-,,9/2+,8550.0,-87323,,20,Radionúclido de fisión; sin isótopos estables.,https://es.wikipedia.org/wiki/Tecnecio-99
+53,78,131,I,Yodo,I-131,130.906124,126.90447,8.02 días,693000,beta-,,7/2+,8420.0,-87600,,6.2,Radioisótopo médico y de accidentes nucleares.,https://es.wikipedia.org/wiki/Yodo-131
+54,78,132,Xe,Xenón,Xe-132,131.904154,131.293,Estable,,stable,26.91%,0+,8425.0,-89280,,0.45,Isótopo estable del xenón.,https://es.wikipedia.org/wiki/Xen%C3%B3n
+55,82,137,Cs,Cesio,Cs-137,136.907089,132.90545,30.05 años,948000000,beta-,,7/2+,8390.0,-86700,,0.11,Producto de fisión; emisor gamma vía Ba-137m.,https://es.wikipedia.org/wiki/Cesio-137
+56,82,138,Ba,Bario,Ba-138,137.905247,137.327,Estable,,stable,71.7%,0+,8380.0,-88000,,0.40,Isótopo estable mayoritario del bario.,https://es.wikipedia.org/wiki/Bario
+74,110,184,W,Wolframio,W-184,183.950931,183.84,Estable,,stable,30.64%,0+,7950.0,-45710,,1.7,Isótopo estable del wolframio.,https://es.wikipedia.org/wiki/Wolframio
+79,118,197,Au,Oro,Au-197,196.966569,196.96657,Estable,,stable,100%,3/2+,7916.0,-31145,,98.7,Único isótopo estable del oro.,https://es.wikipedia.org/wiki/Oro
+82,126,208,Pb,Plomo,Pb-208,207.976652,207.2,Estable,,stable,52.4%,0+,7867.0,-21749,,0.23,Núcleo doblemente mágico: Z=82 y N=126.,https://es.wikipedia.org/wiki/Plomo-208
+83,126,209,Bi,Bismuto,Bi-209,208.980399,208.9804,1.9e19 años,5.99e26,alpha,100%,9/2-,7848.0,-18258,3137,0.033,Extremadamente longevo; antes considerado estable.,https://es.wikipedia.org/wiki/Bismuto-209
+86,136,222,Rn,Radón,Rn-222,222.017578,222,3.8235 días,330350,alpha,,0+,7690.0,16373,5590,,Gas radiactivo natural de la cadena del uranio.,https://es.wikipedia.org/wiki/Rad%C3%B3n-222
+88,138,226,Ra,Radio,Ra-226,226.025410,226,1600 años,50460000000,alpha,,0+,7660.0,23669,4871,,Radioisótopo histórico; cadena de desintegración del U-238.,https://es.wikipedia.org/wiki/Radio-226
+90,142,232,Th,Torio,Th-232,232.038055,232.0377,1.405e10 años,443000000000000000,alpha,100%,0+,7615.0,35444,4082,7.4,Isótopo primordial del torio; ciclo Th-U.,https://es.wikipedia.org/wiki/Torio-232
+92,143,235,U,Uranio,U-235,235.043930,238.02891,7.04e8 años,22200000000000000,alpha,0.720%,7/2-,7590.0,40920,4679,98.3,Fisible con neutrones térmicos; clave en reactores y armas.,https://es.wikipedia.org/wiki/Uranio-235
+92,146,238,U,Uranio,U-238,238.050788,238.02891,4.468e9 años,141000000000000000,alpha,99.274%,0+,7570.0,47307,4269,2.68,Isótopo natural mayoritario del uranio; fértil a Pu-239.,https://es.wikipedia.org/wiki/Uranio-238
+94,145,239,Pu,Plutonio,Pu-239,239.052163,244,24110 años,760000000000,alpha,,1/2+,7560.0,48710,5245,1017,Fisible; producido en reactores a partir de U-238.,https://es.wikipedia.org/wiki/Plutonio-239
+94,150,244,Pu,Plutonio,Pu-244,244.064205,244,8.08e7 años,2550000000000000,alpha/sf,,0+,7510.0,59799,4665,,Radionúclido muy longevo; interés cosmoquímico.,https://es.wikipedia.org/wiki/Plutonio-244

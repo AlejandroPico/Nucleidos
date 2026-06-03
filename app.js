@@ -1,929 +1,796 @@
 'use strict';
 
-const IAEA_GROUND_STATES_URL = 'https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all';
-
 const ELEMENTS = [
-  { z: 1, symbol: 'H', name: 'Hidrógeno', english: 'Hydrogen', atomicWeight: '1.008', category: 'No metal' },
-  { z: 2, symbol: 'He', name: 'Helio', english: 'Helium', atomicWeight: '4.0026', category: 'Gas noble' },
-  { z: 3, symbol: 'Li', name: 'Litio', english: 'Lithium', atomicWeight: '6.94', category: 'Metal alcalino' },
-  { z: 4, symbol: 'Be', name: 'Berilio', english: 'Beryllium', atomicWeight: '9.0122', category: 'Alcalinotérreo' },
-  { z: 5, symbol: 'B', name: 'Boro', english: 'Boron', atomicWeight: '10.81', category: 'Metaloide' },
-  { z: 6, symbol: 'C', name: 'Carbono', english: 'Carbon', atomicWeight: '12.011', category: 'No metal' },
-  { z: 7, symbol: 'N', name: 'Nitrógeno', english: 'Nitrogen', atomicWeight: '14.007', category: 'No metal' },
-  { z: 8, symbol: 'O', name: 'Oxígeno', english: 'Oxygen', atomicWeight: '15.999', category: 'No metal' },
-  { z: 9, symbol: 'F', name: 'Flúor', english: 'Fluorine', atomicWeight: '18.998', category: 'Halógeno' },
-  { z: 10, symbol: 'Ne', name: 'Neón', english: 'Neon', atomicWeight: '20.180', category: 'Gas noble' },
-  { z: 11, symbol: 'Na', name: 'Sodio', english: 'Sodium', atomicWeight: '22.990', category: 'Metal alcalino' },
-  { z: 12, symbol: 'Mg', name: 'Magnesio', english: 'Magnesium', atomicWeight: '24.305', category: 'Alcalinotérreo' },
-  { z: 13, symbol: 'Al', name: 'Aluminio', english: 'Aluminium', atomicWeight: '26.982', category: 'Metal postransición' },
-  { z: 14, symbol: 'Si', name: 'Silicio', english: 'Silicon', atomicWeight: '28.085', category: 'Metaloide' },
-  { z: 15, symbol: 'P', name: 'Fósforo', english: 'Phosphorus', atomicWeight: '30.974', category: 'No metal' },
-  { z: 16, symbol: 'S', name: 'Azufre', english: 'Sulfur', atomicWeight: '32.06', category: 'No metal' },
-  { z: 17, symbol: 'Cl', name: 'Cloro', english: 'Chlorine', atomicWeight: '35.45', category: 'Halógeno' },
-  { z: 18, symbol: 'Ar', name: 'Argón', english: 'Argon', atomicWeight: '39.948', category: 'Gas noble' },
-  { z: 19, symbol: 'K', name: 'Potasio', english: 'Potassium', atomicWeight: '39.098', category: 'Metal alcalino' },
-  { z: 20, symbol: 'Ca', name: 'Calcio', english: 'Calcium', atomicWeight: '40.078', category: 'Alcalinotérreo' },
-  { z: 21, symbol: 'Sc', name: 'Escandio', english: 'Scandium', atomicWeight: '44.956', category: 'Metal de transición' },
-  { z: 22, symbol: 'Ti', name: 'Titanio', english: 'Titanium', atomicWeight: '47.867', category: 'Metal de transición' },
-  { z: 23, symbol: 'V', name: 'Vanadio', english: 'Vanadium', atomicWeight: '50.942', category: 'Metal de transición' },
-  { z: 24, symbol: 'Cr', name: 'Cromo', english: 'Chromium', atomicWeight: '51.996', category: 'Metal de transición' },
-  { z: 25, symbol: 'Mn', name: 'Manganeso', english: 'Manganese', atomicWeight: '54.938', category: 'Metal de transición' },
-  { z: 26, symbol: 'Fe', name: 'Hierro', english: 'Iron', atomicWeight: '55.845', category: 'Metal de transición' },
-  { z: 27, symbol: 'Co', name: 'Cobalto', english: 'Cobalt', atomicWeight: '58.933', category: 'Metal de transición' },
-  { z: 28, symbol: 'Ni', name: 'Níquel', english: 'Nickel', atomicWeight: '58.693', category: 'Metal de transición' },
-  { z: 29, symbol: 'Cu', name: 'Cobre', english: 'Copper', atomicWeight: '63.546', category: 'Metal de transición' },
-  { z: 30, symbol: 'Zn', name: 'Zinc', english: 'Zinc', atomicWeight: '65.38', category: 'Metal de transición' },
-  { z: 31, symbol: 'Ga', name: 'Galio', english: 'Gallium', atomicWeight: '69.723', category: 'Metal postransición' },
-  { z: 32, symbol: 'Ge', name: 'Germanio', english: 'Germanium', atomicWeight: '72.630', category: 'Metaloide' },
-  { z: 33, symbol: 'As', name: 'Arsénico', english: 'Arsenic', atomicWeight: '74.922', category: 'Metaloide' },
-  { z: 34, symbol: 'Se', name: 'Selenio', english: 'Selenium', atomicWeight: '78.971', category: 'No metal' },
-  { z: 35, symbol: 'Br', name: 'Bromo', english: 'Bromine', atomicWeight: '79.904', category: 'Halógeno' },
-  { z: 36, symbol: 'Kr', name: 'Criptón', english: 'Krypton', atomicWeight: '83.798', category: 'Gas noble' },
-  { z: 37, symbol: 'Rb', name: 'Rubidio', english: 'Rubidium', atomicWeight: '85.468', category: 'Metal alcalino' },
-  { z: 38, symbol: 'Sr', name: 'Estroncio', english: 'Strontium', atomicWeight: '87.62', category: 'Alcalinotérreo' },
-  { z: 39, symbol: 'Y', name: 'Itrio', english: 'Yttrium', atomicWeight: '88.906', category: 'Metal de transición' },
-  { z: 40, symbol: 'Zr', name: 'Circonio', english: 'Zirconium', atomicWeight: '91.224', category: 'Metal de transición' },
-  { z: 41, symbol: 'Nb', name: 'Niobio', english: 'Niobium', atomicWeight: '92.906', category: 'Metal de transición' },
-  { z: 42, symbol: 'Mo', name: 'Molibdeno', english: 'Molybdenum', atomicWeight: '95.95', category: 'Metal de transición' },
-  { z: 43, symbol: 'Tc', name: 'Tecnecio', english: 'Technetium', atomicWeight: '[98]', category: 'Metal de transición' },
-  { z: 44, symbol: 'Ru', name: 'Rutenio', english: 'Ruthenium', atomicWeight: '101.07', category: 'Metal de transición' },
-  { z: 45, symbol: 'Rh', name: 'Rodio', english: 'Rhodium', atomicWeight: '102.91', category: 'Metal de transición' },
-  { z: 46, symbol: 'Pd', name: 'Paladio', english: 'Palladium', atomicWeight: '106.42', category: 'Metal de transición' },
-  { z: 47, symbol: 'Ag', name: 'Plata', english: 'Silver', atomicWeight: '107.87', category: 'Metal de transición' },
-  { z: 48, symbol: 'Cd', name: 'Cadmio', english: 'Cadmium', atomicWeight: '112.41', category: 'Metal de transición' },
-  { z: 49, symbol: 'In', name: 'Indio', english: 'Indium', atomicWeight: '114.82', category: 'Metal postransición' },
-  { z: 50, symbol: 'Sn', name: 'Estaño', english: 'Tin', atomicWeight: '118.71', category: 'Metal postransición' },
-  { z: 51, symbol: 'Sb', name: 'Antimonio', english: 'Antimony', atomicWeight: '121.76', category: 'Metaloide' },
-  { z: 52, symbol: 'Te', name: 'Telurio', english: 'Tellurium', atomicWeight: '127.60', category: 'Metaloide' },
-  { z: 53, symbol: 'I', name: 'Yodo', english: 'Iodine', atomicWeight: '126.90', category: 'Halógeno' },
-  { z: 54, symbol: 'Xe', name: 'Xenón', english: 'Xenon', atomicWeight: '131.29', category: 'Gas noble' },
-  { z: 55, symbol: 'Cs', name: 'Cesio', english: 'Caesium', atomicWeight: '132.91', category: 'Metal alcalino' },
-  { z: 56, symbol: 'Ba', name: 'Bario', english: 'Barium', atomicWeight: '137.33', category: 'Alcalinotérreo' },
-  { z: 57, symbol: 'La', name: 'Lantano', english: 'Lanthanum', atomicWeight: '138.91', category: 'Lantánido' },
-  { z: 58, symbol: 'Ce', name: 'Cerio', english: 'Cerium', atomicWeight: '140.12', category: 'Lantánido' },
-  { z: 59, symbol: 'Pr', name: 'Praseodimio', english: 'Praseodymium', atomicWeight: '140.91', category: 'Lantánido' },
-  { z: 60, symbol: 'Nd', name: 'Neodimio', english: 'Neodymium', atomicWeight: '144.24', category: 'Lantánido' },
-  { z: 61, symbol: 'Pm', name: 'Prometio', english: 'Promethium', atomicWeight: '[145]', category: 'Lantánido' },
-  { z: 62, symbol: 'Sm', name: 'Samario', english: 'Samarium', atomicWeight: '150.36', category: 'Lantánido' },
-  { z: 63, symbol: 'Eu', name: 'Europio', english: 'Europium', atomicWeight: '151.96', category: 'Lantánido' },
-  { z: 64, symbol: 'Gd', name: 'Gadolinio', english: 'Gadolinium', atomicWeight: '157.25', category: 'Lantánido' },
-  { z: 65, symbol: 'Tb', name: 'Terbio', english: 'Terbium', atomicWeight: '158.93', category: 'Lantánido' },
-  { z: 66, symbol: 'Dy', name: 'Disprosio', english: 'Dysprosium', atomicWeight: '162.50', category: 'Lantánido' },
-  { z: 67, symbol: 'Ho', name: 'Holmio', english: 'Holmium', atomicWeight: '164.93', category: 'Lantánido' },
-  { z: 68, symbol: 'Er', name: 'Erbio', english: 'Erbium', atomicWeight: '167.26', category: 'Lantánido' },
-  { z: 69, symbol: 'Tm', name: 'Tulio', english: 'Thulium', atomicWeight: '168.93', category: 'Lantánido' },
-  { z: 70, symbol: 'Yb', name: 'Iterbio', english: 'Ytterbium', atomicWeight: '173.05', category: 'Lantánido' },
-  { z: 71, symbol: 'Lu', name: 'Lutecio', english: 'Lutetium', atomicWeight: '174.97', category: 'Lantánido' },
-  { z: 72, symbol: 'Hf', name: 'Hafnio', english: 'Hafnium', atomicWeight: '178.49', category: 'Metal de transición' },
-  { z: 73, symbol: 'Ta', name: 'Tántalo', english: 'Tantalum', atomicWeight: '180.95', category: 'Metal de transición' },
-  { z: 74, symbol: 'W', name: 'Wolframio', english: 'Tungsten', atomicWeight: '183.84', category: 'Metal de transición' },
-  { z: 75, symbol: 'Re', name: 'Renio', english: 'Rhenium', atomicWeight: '186.21', category: 'Metal de transición' },
-  { z: 76, symbol: 'Os', name: 'Osmio', english: 'Osmium', atomicWeight: '190.23', category: 'Metal de transición' },
-  { z: 77, symbol: 'Ir', name: 'Iridio', english: 'Iridium', atomicWeight: '192.22', category: 'Metal de transición' },
-  { z: 78, symbol: 'Pt', name: 'Platino', english: 'Platinum', atomicWeight: '195.08', category: 'Metal de transición' },
-  { z: 79, symbol: 'Au', name: 'Oro', english: 'Gold', atomicWeight: '196.97', category: 'Metal de transición' },
-  { z: 80, symbol: 'Hg', name: 'Mercurio', english: 'Mercury', atomicWeight: '200.59', category: 'Metal de transición' },
-  { z: 81, symbol: 'Tl', name: 'Talio', english: 'Thallium', atomicWeight: '204.38', category: 'Metal postransición' },
-  { z: 82, symbol: 'Pb', name: 'Plomo', english: 'Lead', atomicWeight: '207.2', category: 'Metal postransición' },
-  { z: 83, symbol: 'Bi', name: 'Bismuto', english: 'Bismuth', atomicWeight: '208.98', category: 'Metal postransición' },
-  { z: 84, symbol: 'Po', name: 'Polonio', english: 'Polonium', atomicWeight: '[209]', category: 'Metaloide' },
-  { z: 85, symbol: 'At', name: 'Astato', english: 'Astatine', atomicWeight: '[210]', category: 'Halógeno' },
-  { z: 86, symbol: 'Rn', name: 'Radón', english: 'Radon', atomicWeight: '[222]', category: 'Gas noble' },
-  { z: 87, symbol: 'Fr', name: 'Francio', english: 'Francium', atomicWeight: '[223]', category: 'Metal alcalino' },
-  { z: 88, symbol: 'Ra', name: 'Radio', english: 'Radium', atomicWeight: '[226]', category: 'Alcalinotérreo' },
-  { z: 89, symbol: 'Ac', name: 'Actinio', english: 'Actinium', atomicWeight: '[227]', category: 'Actínido' },
-  { z: 90, symbol: 'Th', name: 'Torio', english: 'Thorium', atomicWeight: '232.04', category: 'Actínido' },
-  { z: 91, symbol: 'Pa', name: 'Protactinio', english: 'Protactinium', atomicWeight: '231.04', category: 'Actínido' },
-  { z: 92, symbol: 'U', name: 'Uranio', english: 'Uranium', atomicWeight: '238.03', category: 'Actínido' },
-  { z: 93, symbol: 'Np', name: 'Neptunio', english: 'Neptunium', atomicWeight: '[237]', category: 'Actínido' },
-  { z: 94, symbol: 'Pu', name: 'Plutonio', english: 'Plutonium', atomicWeight: '[244]', category: 'Actínido' },
-  { z: 95, symbol: 'Am', name: 'Americio', english: 'Americium', atomicWeight: '[243]', category: 'Actínido' },
-  { z: 96, symbol: 'Cm', name: 'Curio', english: 'Curium', atomicWeight: '[247]', category: 'Actínido' },
-  { z: 97, symbol: 'Bk', name: 'Berkelio', english: 'Berkelium', atomicWeight: '[247]', category: 'Actínido' },
-  { z: 98, symbol: 'Cf', name: 'Californio', english: 'Californium', atomicWeight: '[251]', category: 'Actínido' },
-  { z: 99, symbol: 'Es', name: 'Einstenio', english: 'Einsteinium', atomicWeight: '[252]', category: 'Actínido' },
-  { z: 100, symbol: 'Fm', name: 'Fermio', english: 'Fermium', atomicWeight: '[257]', category: 'Actínido' },
-  { z: 101, symbol: 'Md', name: 'Mendelevio', english: 'Mendelevium', atomicWeight: '[258]', category: 'Actínido' },
-  { z: 102, symbol: 'No', name: 'Nobelio', english: 'Nobelium', atomicWeight: '[259]', category: 'Actínido' },
-  { z: 103, symbol: 'Lr', name: 'Lawrencio', english: 'Lawrencium', atomicWeight: '[266]', category: 'Actínido' },
-  { z: 104, symbol: 'Rf', name: 'Rutherfordio', english: 'Rutherfordium', atomicWeight: '[267]', category: 'Metal de transición' },
-  { z: 105, symbol: 'Db', name: 'Dubnio', english: 'Dubnium', atomicWeight: '[268]', category: 'Metal de transición' },
-  { z: 106, symbol: 'Sg', name: 'Seaborgio', english: 'Seaborgium', atomicWeight: '[269]', category: 'Metal de transición' },
-  { z: 107, symbol: 'Bh', name: 'Bohrio', english: 'Bohrium', atomicWeight: '[270]', category: 'Metal de transición' },
-  { z: 108, symbol: 'Hs', name: 'Hassio', english: 'Hassium', atomicWeight: '[277]', category: 'Metal de transición' },
-  { z: 109, symbol: 'Mt', name: 'Meitnerio', english: 'Meitnerium', atomicWeight: '[278]', category: 'Desconocido' },
-  { z: 110, symbol: 'Ds', name: 'Darmstadtio', english: 'Darmstadtium', atomicWeight: '[281]', category: 'Desconocido' },
-  { z: 111, symbol: 'Rg', name: 'Roentgenio', english: 'Roentgenium', atomicWeight: '[282]', category: 'Desconocido' },
-  { z: 112, symbol: 'Cn', name: 'Copernicio', english: 'Copernicium', atomicWeight: '[285]', category: 'Metal de transición' },
-  { z: 113, symbol: 'Nh', name: 'Nihonio', english: 'Nihonium', atomicWeight: '[286]', category: 'Desconocido' },
-  { z: 114, symbol: 'Fl', name: 'Flerovio', english: 'Flerovium', atomicWeight: '[289]', category: 'Desconocido' },
-  { z: 115, symbol: 'Mc', name: 'Moscovio', english: 'Moscovium', atomicWeight: '[290]', category: 'Desconocido' },
-  { z: 116, symbol: 'Lv', name: 'Livermorio', english: 'Livermorium', atomicWeight: '[293]', category: 'Desconocido' },
-  { z: 117, symbol: 'Ts', name: 'Teneso', english: 'Tennessine', atomicWeight: '[294]', category: 'Desconocido' },
-  { z: 118, symbol: 'Og', name: 'Oganesón', english: 'Oganesson', atomicWeight: '[294]', category: 'Gas noble' }
+  null,
+  ['H', 'Hidrógeno'], ['He', 'Helio'], ['Li', 'Litio'], ['Be', 'Berilio'], ['B', 'Boro'], ['C', 'Carbono'], ['N', 'Nitrógeno'], ['O', 'Oxígeno'], ['F', 'Flúor'], ['Ne', 'Neón'],
+  ['Na', 'Sodio'], ['Mg', 'Magnesio'], ['Al', 'Aluminio'], ['Si', 'Silicio'], ['P', 'Fósforo'], ['S', 'Azufre'], ['Cl', 'Cloro'], ['Ar', 'Argón'], ['K', 'Potasio'], ['Ca', 'Calcio'],
+  ['Sc', 'Escandio'], ['Ti', 'Titanio'], ['V', 'Vanadio'], ['Cr', 'Cromo'], ['Mn', 'Manganeso'], ['Fe', 'Hierro'], ['Co', 'Cobalto'], ['Ni', 'Níquel'], ['Cu', 'Cobre'], ['Zn', 'Zinc'],
+  ['Ga', 'Galio'], ['Ge', 'Germanio'], ['As', 'Arsénico'], ['Se', 'Selenio'], ['Br', 'Bromo'], ['Kr', 'Kriptón'], ['Rb', 'Rubidio'], ['Sr', 'Estroncio'], ['Y', 'Itrio'], ['Zr', 'Circonio'],
+  ['Nb', 'Niobio'], ['Mo', 'Molibdeno'], ['Tc', 'Tecnecio'], ['Ru', 'Rutenio'], ['Rh', 'Rodio'], ['Pd', 'Paladio'], ['Ag', 'Plata'], ['Cd', 'Cadmio'], ['In', 'Indio'], ['Sn', 'Estaño'],
+  ['Sb', 'Antimonio'], ['Te', 'Telurio'], ['I', 'Yodo'], ['Xe', 'Xenón'], ['Cs', 'Cesio'], ['Ba', 'Bario'], ['La', 'Lantano'], ['Ce', 'Cerio'], ['Pr', 'Praseodimio'], ['Nd', 'Neodimio'],
+  ['Pm', 'Prometio'], ['Sm', 'Samario'], ['Eu', 'Europio'], ['Gd', 'Gadolinio'], ['Tb', 'Terbio'], ['Dy', 'Disprosio'], ['Ho', 'Holmio'], ['Er', 'Erbio'], ['Tm', 'Tulio'], ['Yb', 'Iterbio'],
+  ['Lu', 'Lutecio'], ['Hf', 'Hafnio'], ['Ta', 'Tántalo'], ['W', 'Wolframio'], ['Re', 'Renio'], ['Os', 'Osmio'], ['Ir', 'Iridio'], ['Pt', 'Platino'], ['Au', 'Oro'], ['Hg', 'Mercurio'],
+  ['Tl', 'Talio'], ['Pb', 'Plomo'], ['Bi', 'Bismuto'], ['Po', 'Polonio'], ['At', 'Astato'], ['Rn', 'Radón'], ['Fr', 'Francio'], ['Ra', 'Radio'], ['Ac', 'Actinio'], ['Th', 'Torio'],
+  ['Pa', 'Protactinio'], ['U', 'Uranio'], ['Np', 'Neptunio'], ['Pu', 'Plutonio'], ['Am', 'Americio'], ['Cm', 'Curio'], ['Bk', 'Berkelio'], ['Cf', 'Californio'], ['Es', 'Einstenio'], ['Fm', 'Fermio'],
+  ['Md', 'Mendelevio'], ['No', 'Nobelio'], ['Lr', 'Lawrencio'], ['Rf', 'Rutherfordio'], ['Db', 'Dubnio'], ['Sg', 'Seaborgio'], ['Bh', 'Bohrio'], ['Hs', 'Hassio'], ['Mt', 'Meitnerio'], ['Ds', 'Darmstadtio'],
+  ['Rg', 'Roentgenio'], ['Cn', 'Copernicio'], ['Nh', 'Nihonio'], ['Fl', 'Flerovio'], ['Mc', 'Moscovio'], ['Lv', 'Livermorio'], ['Ts', 'Teneso'], ['Og', 'Oganesón']
 ];
 
-const ELEMENT_BY_Z = new Map(ELEMENTS.map(e => [e.z, e]));
-const ELEMENT_BY_SYMBOL = new Map(ELEMENTS.map(e => [e.symbol.toLowerCase(), e]));
+const SAMPLE_CSV = `z,n,a,symbol,name,nuclide,mass_u,atomic_weight,half_life,half_life_seconds,decay_mode,abundance,spin_parity,binding_energy_per_nucleon_kev,mass_excess_kev,q_alpha_kev,neutron_capture_cross_section_barns,notes,wikipedia_url
+1,0,1,H,Hidrógeno,H-1,1.007825,1.008,Estable,,stable,99.985%,1/2+,0,7288.97,,0.3326,Protio; núcleo formado por un único protón.,https://es.wikipedia.org/wiki/Hidr%C3%B3geno
+1,1,2,H,Hidrógeno,H-2,2.014102,1.008,Estable,,stable,0.015%,1+,1112.28,13135.7,,0.000519,Deuterio; isótopo estable usado en agua pesada.,https://es.wikipedia.org/wiki/Deuterio
+1,2,3,H,Hidrógeno,H-3,3.016049,1.008,12.32 años,388800000,beta-,,1/2+,2827.27,14949.8,,0.000001,Tritio; emisor beta usado como trazador y en fusión.,https://es.wikipedia.org/wiki/Tritio
+2,1,3,He,Helio,He-3,3.016029,4.002602,Estable,,stable,0.000137%,1/2+,2572.68,14931.2,,5330,Interesante en criogenia y detectores de neutrones.,https://es.wikipedia.org/wiki/Helio-3
+2,2,4,He,Helio,He-4,4.002603,4.002602,Estable,,stable,99.999863%,0+,7073.92,2424.9,,0,Partícula alfa; núcleo extraordinariamente ligado.,https://es.wikipedia.org/wiki/Helio-4
+3,3,6,Li,Litio,Li-6,6.015123,6.94,Estable,,stable,7.59%,1+,5332.33,14086.9,,940,Usado en producción de tritio y detectores.,https://es.wikipedia.org/wiki/Litio
+3,4,7,Li,Litio,Li-7,7.016004,6.94,Estable,,stable,92.41%,3/2-,5606.44,14907.1,,0.045,Isótopo natural mayoritario del litio.,https://es.wikipedia.org/wiki/Litio
+4,5,9,Be,Berilio,Be-9,9.012183,9.012183,Estable,,stable,100%,3/2-,6462.67,11348.5,,0.0076,Único isótopo estable del berilio.,https://es.wikipedia.org/wiki/Berilio
+5,5,10,B,Boro,B-10,10.012937,10.81,Estable,,stable,19.9%,3+,6475.08,12050.6,,3837,Alta captura neutrónica; útil en control de reactores.,https://es.wikipedia.org/wiki/Boro-10
+5,6,11,B,Boro,B-11,11.009305,10.81,Estable,,stable,80.1%,3/2-,6927.73,8667.7,,0.0055,Isótopo natural mayoritario del boro.,https://es.wikipedia.org/wiki/Boro
+6,6,12,C,Carbono,C-12,12,12.011,Estable,,stable,98.93%,0+,7680.14,0,,0.0035,Referencia exacta de la unidad de masa atómica.,https://es.wikipedia.org/wiki/Carbono-12
+6,7,13,C,Carbono,C-13,13.003355,12.011,Estable,,stable,1.07%,1/2-,7469.85,3125,,0.00137,Usado en RMN y estudios isotópicos.,https://es.wikipedia.org/wiki/Carbono-13
+6,8,14,C,Carbono,C-14,14.003242,12.011,5730 años,180800000000,beta-,,0+,7520.32,3019.9,,0.0009,Datación radiocarbónica.,https://es.wikipedia.org/wiki/Carbono-14
+7,7,14,N,Nitrógeno,N-14,14.003074,14.007,Estable,,stable,99.632%,1+,7475.61,2863.4,,1.83,Isótopo natural mayoritario del nitrógeno.,https://es.wikipedia.org/wiki/Nitr%C3%B3geno
+7,8,15,N,Nitrógeno,N-15,15.000109,14.007,Estable,,stable,0.368%,1/2-,7699.46,101.4,,0.000024,Isótopo estable usado como trazador.,https://es.wikipedia.org/wiki/Nitr%C3%B3geno-15
+8,8,16,O,Oxígeno,O-16,15.994915,15.999,Estable,,stable,99.757%,0+,7976.21,-4737,,0.00019,Isótopo dominante del oxígeno.,https://es.wikipedia.org/wiki/Ox%C3%ADgeno
+8,9,17,O,Oxígeno,O-17,16.999132,15.999,Estable,,stable,0.038%,5/2+,7750.73,-809,,0.235,Isótopo estable poco abundante.,https://es.wikipedia.org/wiki/Ox%C3%ADgeno
+8,10,18,O,Oxígeno,O-18,17.999160,15.999,Estable,,stable,0.205%,0+,7767.10,-782,,0.00016,Usado en climatología isotópica.,https://es.wikipedia.org/wiki/Ox%C3%ADgeno-18
+9,10,19,F,Flúor,F-19,18.998403,18.998403,Estable,,stable,100%,1/2+,7779.02,-1487,,0.0096,Único isótopo estable del flúor.,https://es.wikipedia.org/wiki/Fl%C3%BAor
+10,10,20,Ne,Neón,Ne-20,19.992440,20.1797,Estable,,stable,90.48%,0+,8032.24,-7041,,0.039,Isótopo mayoritario del neón.,https://es.wikipedia.org/wiki/Ne%C3%B3n
+11,12,23,Na,Sodio,Na-23,22.989770,22.989769,Estable,,stable,100%,3/2+,8111.49,-9529,,0.53,Único isótopo estable del sodio.,https://es.wikipedia.org/wiki/Sodio
+12,12,24,Mg,Magnesio,Mg-24,23.985042,24.305,Estable,,stable,78.99%,0+,8260.71,-13933,,0.05,Isótopo natural mayoritario del magnesio.,https://es.wikipedia.org/wiki/Magnesio
+13,14,27,Al,Aluminio,Al-27,26.981538,26.981538,Estable,,stable,100%,5/2+,8331.56,-17196,,0.231,Único isótopo estable del aluminio.,https://es.wikipedia.org/wiki/Aluminio
+14,14,28,Si,Silicio,Si-28,27.976927,28.085,Estable,,stable,92.23%,0+,8447.74,-21493,,0.177,Isótopo dominante del silicio.,https://es.wikipedia.org/wiki/Silicio
+15,16,31,P,Fósforo,P-31,30.973762,30.973762,Estable,,stable,100%,1/2+,8481.20,-24440,,0.172,Único isótopo estable del fósforo.,https://es.wikipedia.org/wiki/F%C3%B3sforo
+16,16,32,S,Azufre,S-32,31.972071,32.06,Estable,,stable,94.99%,0+,8493.13,-26016,,0.53,Isótopo mayoritario del azufre.,https://es.wikipedia.org/wiki/Azufre
+17,18,35,Cl,Cloro,Cl-35,34.968853,35.45,Estable,,stable,75.78%,3/2+,8520.28,-29143,,44.1,Uno de los dos isótopos estables del cloro.,https://es.wikipedia.org/wiki/Cloro
+18,22,40,Ar,Argón,Ar-40,39.962383,39.948,Estable,,stable,99.604%,0+,8595.25,-35040,,0.66,Producto radiogénico de K-40; dominante en la atmósfera.,https://es.wikipedia.org/wiki/Arg%C3%B3n
+19,20,39,K,Potasio,K-39,38.963707,39.0983,Estable,,stable,93.258%,3/2+,8556.34,-33808,,2.1,Isótopo mayoritario del potasio.,https://es.wikipedia.org/wiki/Potasio
+19,21,40,K,Potasio,K-40,39.963999,39.0983,1.248e9 años,39390000000000000,beta-/ec,0.0117%,4-,8551.0,-33535,,30.0,Radionúclido natural relevante en geocronología.,https://es.wikipedia.org/wiki/Potasio-40
+20,20,40,Ca,Calcio,Ca-40,39.962591,40.078,Estable,,stable,96.941%,0+,8551.3,-34135,,0.41,Isótopo doblemente mágico aproximado: Z=20 y N=20.,https://es.wikipedia.org/wiki/Calcio
+20,22,42,Ca,Calcio,Ca-42,41.958618,40.078,Estable,,stable,0.647%,0+,8616.6,-38547,,0.68,Isótopo estable minoritario del calcio.,https://es.wikipedia.org/wiki/Calcio
+20,23,43,Ca,Calcio,Ca-43,42.958767,40.078,Estable,,stable,0.135%,7/2-,8600.3,-38408,,6.2,Único calcio estable con spin nuclear semientero abundante natural.,https://es.wikipedia.org/wiki/Calcio
+20,24,44,Ca,Calcio,Ca-44,43.955482,40.078,Estable,,stable,2.086%,0+,8658.2,-41469,,0.88,Isótopo estable usado en estudios geoquímicos.,https://es.wikipedia.org/wiki/Calcio
+20,26,46,Ca,Calcio,Ca-46,45.953689,40.078,Estable,,stable,0.004%,0+,8668.9,-43135,,0.74,Isótopo estable extremadamente escaso.,https://es.wikipedia.org/wiki/Calcio
+20,28,48,Ca,Calcio,Ca-48,47.952522,40.078,Estable/2β muy lento,,stable,0.187%,0+,8666.7,-44224,,1.09,Núcleo doblemente mágico; candidato en estudios de doble beta.,https://es.wikipedia.org/wiki/Calcio-48
+21,24,45,Sc,Escandio,Sc-45,44.955908,44.955908,Estable,,stable,100%,7/2-,8618.0,-41072,,27.2,Único isótopo estable del escandio.,https://es.wikipedia.org/wiki/Escandio
+22,26,48,Ti,Titanio,Ti-48,47.947942,47.867,Estable,,stable,73.72%,0+,8723.3,-48491,,7.84,Isótopo natural mayoritario del titanio.,https://es.wikipedia.org/wiki/Titanio
+23,28,51,V,Vanadio,V-51,50.943957,50.9415,Estable,,stable,99.75%,7/2-,8742.0,-52204,,4.9,Isótopo natural mayoritario del vanadio.,https://es.wikipedia.org/wiki/Vanadio
+24,28,52,Cr,Cromo,Cr-52,51.940506,51.9961,Estable,,stable,83.79%,0+,8775.9,-55418,,0.76,Isótopo mayoritario del cromo.,https://es.wikipedia.org/wiki/Cromo
+25,30,55,Mn,Manganeso,Mn-55,54.938044,54.938044,Estable,,stable,100%,5/2-,8765.0,-57711,,13.3,Único isótopo estable del manganeso.,https://es.wikipedia.org/wiki/Manganeso
+26,28,54,Fe,Hierro,Fe-54,53.939609,55.845,Estable,,stable,5.845%,0+,8790.3,-56255,,2.25,Isótopo estable del hierro.,https://es.wikipedia.org/wiki/Hierro
+26,30,56,Fe,Hierro,Fe-56,55.934936,55.845,Estable,,stable,91.754%,0+,8790.4,-60606,,2.59,Uno de los núcleos con mayor energía de enlace por nucleón.,https://es.wikipedia.org/wiki/Hierro-56
+26,31,57,Fe,Hierro,Fe-57,56.935393,55.845,Estable,,stable,2.119%,1/2-,8770.2,-60181,,2.48,Usado en espectroscopía Mössbauer.,https://es.wikipedia.org/wiki/Hierro-57
+26,32,58,Fe,Hierro,Fe-58,57.933274,55.845,Estable,,stable,0.282%,0+,8792.2,-62155,,1.28,Isótopo estable minoritario del hierro.,https://es.wikipedia.org/wiki/Hierro
+27,32,59,Co,Cobalto,Co-59,58.933194,58.933194,Estable,,stable,100%,7/2-,8768.0,-62229,,37.2,Único isótopo estable del cobalto.,https://es.wikipedia.org/wiki/Cobalto
+27,33,60,Co,Cobalto,Co-60,59.933817,58.933194,5.27 años,166000000,beta-,,5+,8765.0,-61649,,2.0,Fuente gamma importante en radioterapia e industria.,https://es.wikipedia.org/wiki/Cobalto-60
+28,30,58,Ni,Níquel,Ni-58,57.935342,58.6934,Estable,,stable,68.077%,0+,8732.0,-60225,,4.6,Isótopo mayoritario del níquel.,https://es.wikipedia.org/wiki/N%C3%ADquel
+28,32,60,Ni,Níquel,Ni-60,59.930786,58.6934,Estable,,stable,26.223%,0+,8780.8,-64472,,2.9,Isótopo estable del níquel.,https://es.wikipedia.org/wiki/N%C3%ADquel
+29,34,63,Cu,Cobre,Cu-63,62.929598,63.546,Estable,,stable,69.15%,3/2-,8752.0,-65579,,4.5,Isótopo mayoritario del cobre.,https://es.wikipedia.org/wiki/Cobre
+30,34,64,Zn,Zinc,Zn-64,63.929142,65.38,Estable,,stable,49.17%,0+,8736.0,-66000,,0.76,Isótopo natural mayoritario del zinc.,https://es.wikipedia.org/wiki/Zinc
+36,48,84,Kr,Kriptón,Kr-84,83.911497,83.798,Estable,,stable,56.99%,0+,8718.0,-82431,,0.113,Isótopo estable mayoritario del kriptón.,https://es.wikipedia.org/wiki/Kript%C3%B3n
+38,52,90,Sr,Estroncio,Sr-90,89.907738,87.62,28.8 años,908000000,beta-,,0+,8695.0,-85894,,1.2,Producto de fisión de larga vida; relevancia radiológica.,https://es.wikipedia.org/wiki/Estroncio-90
+43,56,99,Tc,Tecnecio,Tc-99,98.906250,98,2.11e5 años,6650000000000,beta-,,9/2+,8550.0,-87323,,20,Radionúclido de fisión; sin isótopos estables.,https://es.wikipedia.org/wiki/Tecnecio-99
+53,78,131,I,Yodo,I-131,130.906124,126.90447,8.02 días,693000,beta-,,7/2+,8420.0,-87600,,6.2,Radioisótopo médico y de accidentes nucleares.,https://es.wikipedia.org/wiki/Yodo-131
+54,78,132,Xe,Xenón,Xe-132,131.904154,131.293,Estable,,stable,26.91%,0+,8425.0,-89280,,0.45,Isótopo estable del xenón.,https://es.wikipedia.org/wiki/Xen%C3%B3n
+55,82,137,Cs,Cesio,Cs-137,136.907089,132.90545,30.05 años,948000000,beta-,,7/2+,8390.0,-86700,,0.11,Producto de fisión; emisor gamma vía Ba-137m.,https://es.wikipedia.org/wiki/Cesio-137
+56,82,138,Ba,Bario,Ba-138,137.905247,137.327,Estable,,stable,71.7%,0+,8380.0,-88000,,0.40,Isótopo estable mayoritario del bario.,https://es.wikipedia.org/wiki/Bario
+74,110,184,W,Wolframio,W-184,183.950931,183.84,Estable,,stable,30.64%,0+,7950.0,-45710,,1.7,Isótopo estable del wolframio.,https://es.wikipedia.org/wiki/Wolframio
+79,118,197,Au,Oro,Au-197,196.966569,196.96657,Estable,,stable,100%,3/2+,7916.0,-31145,,98.7,Único isótopo estable del oro.,https://es.wikipedia.org/wiki/Oro
+82,126,208,Pb,Plomo,Pb-208,207.976652,207.2,Estable,,stable,52.4%,0+,7867.0,-21749,,0.23,Núcleo doblemente mágico: Z=82 y N=126.,https://es.wikipedia.org/wiki/Plomo-208
+83,126,209,Bi,Bismuto,Bi-209,208.980399,208.9804,1.9e19 años,5.99e26,alpha,100%,9/2-,7848.0,-18258,3137,0.033,Extremadamente longevo; antes considerado estable.,https://es.wikipedia.org/wiki/Bismuto-209
+86,136,222,Rn,Radón,Rn-222,222.017578,222,3.8235 días,330350,alpha,,0+,7690.0,16373,5590,,Gas radiactivo natural de la cadena del uranio.,https://es.wikipedia.org/wiki/Rad%C3%B3n-222
+88,138,226,Ra,Radio,Ra-226,226.025410,226,1600 años,50460000000,alpha,,0+,7660.0,23669,4871,,Radioisótopo histórico; cadena de desintegración del U-238.,https://es.wikipedia.org/wiki/Radio-226
+90,142,232,Th,Torio,Th-232,232.038055,232.0377,1.405e10 años,443000000000000000,alpha,100%,0+,7615.0,35444,4082,7.4,Isótopo primordial del torio; ciclo Th-U.,https://es.wikipedia.org/wiki/Torio-232
+92,143,235,U,Uranio,U-235,235.043930,238.02891,7.04e8 años,22200000000000000,alpha,0.720%,7/2-,7590.0,40920,4679,98.3,Fisible con neutrones térmicos; clave en reactores y armas.,https://es.wikipedia.org/wiki/Uranio-235
+92,146,238,U,Uranio,U-238,238.050788,238.02891,4.468e9 años,141000000000000000,alpha,99.274%,0+,7570.0,47307,4269,2.68,Isótopo natural mayoritario del uranio; fértil a Pu-239.,https://es.wikipedia.org/wiki/Uranio-238
+94,145,239,Pu,Plutonio,Pu-239,239.052163,244,24110 años,760000000000,alpha,,1/2+,7560.0,48710,5245,1017,Fisible; producido en reactores a partir de U-238.,https://es.wikipedia.org/wiki/Plutonio-239
+94,150,244,Pu,Plutonio,Pu-244,244.064205,244,8.08e7 años,2550000000000000,alpha/sf,,0+,7510.0,59799,4665,,Radionúclido muy longevo; interés cosmoquímico.,https://es.wikipedia.org/wiki/Plutonio-244`
+;
 
-const CURATED_NUCLIDES = [
-  ['H', 1, true, null, null, 'Protio, isótopo dominante del hidrógeno.'],
-  ['H', 2, true, null, null, 'Deuterio; contiene un protón y un neutrón.'],
-  ['H', 3, false, 388800000, 'B-', 'Tritio; radioisótopo beta usado como trazador.'],
-  ['He', 3, true, null, null, 'Helio-3; raro y de interés en criogenia y física nuclear.'],
-  ['He', 4, true, null, null, 'Helio-4; núcleo alfa.'],
-  ['Li', 6, true, null, null, 'Litio-6; relevante en tecnología nuclear.'],
-  ['Li', 7, true, null, null, 'Litio-7; isótopo natural mayoritario.'],
-  ['Be', 9, true, null, null, 'Berilio-9; único isótopo estable del berilio.'],
-  ['B', 10, true, null, null, 'Boro-10; alta sección eficaz de captura neutrónica.'],
-  ['B', 11, true, null, null, 'Boro-11; isótopo estable mayoritario.'],
-  ['C', 12, true, null, null, 'Carbono-12; referencia histórica de la unidad de masa atómica.'],
-  ['C', 13, true, null, null, 'Carbono-13; útil en RMN.'],
-  ['C', 14, false, 180800000000, 'B-', 'Carbono-14; datación radiocarbónica.'],
-  ['N', 14, true, null, null, 'Nitrógeno-14; isótopo natural dominante.'],
-  ['N', 15, true, null, null, 'Nitrógeno-15; estable y usado como trazador.'],
-  ['O', 16, true, null, null, 'Oxígeno-16; isótopo dominante.'],
-  ['O', 17, true, null, null, 'Oxígeno-17; estable, poco abundante.'],
-  ['O', 18, true, null, null, 'Oxígeno-18; usado en hidrología e investigación climática.'],
-  ['F', 18, false, 6586, 'B+ / EC', 'Flúor-18; emisor de positrones usado en PET.'],
-  ['Ne', 20, true, null, null, 'Neón-20; estable.'],
-  ['Na', 22, false, 82100000, 'B+ / EC', 'Sodio-22; fuente de positrones.'],
-  ['Na', 23, true, null, null, 'Sodio-23; único isótopo estable del sodio.'],
-  ['Mg', 24, true, null, null, 'Magnesio-24; estable.'],
-  ['Al', 26, false, 22600000000000, 'B+ / EC', 'Aluminio-26; radionucleido cosmogénico.'],
-  ['Al', 27, true, null, null, 'Aluminio-27; único estable del aluminio.'],
-  ['Si', 28, true, null, null, 'Silicio-28; isótopo estable dominante.'],
-  ['P', 31, true, null, null, 'Fósforo-31; único estable.'],
-  ['P', 32, false, 1230000, 'B-', 'Fósforo-32; trazador beta.'],
-  ['S', 32, true, null, null, 'Azufre-32; estable.'],
-  ['Cl', 35, true, null, null, 'Cloro-35; estable.'],
-  ['Cl', 37, true, null, null, 'Cloro-37; estable.'],
-  ['Ar', 40, true, null, null, 'Argón-40; estable, producto de decaimiento del K-40.'],
-  ['K', 40, false, 3.94e16, 'B- / EC', 'Potasio-40; contribuye a la radiactividad natural.'],
-  ['Ca', 40, true, null, null, 'Calcio-40; estable.'],
-  ['Sc', 45, true, null, null, 'Escandio-45; único estable.'],
-  ['Ti', 48, true, null, null, 'Titanio-48; estable.'],
-  ['V', 51, true, null, null, 'Vanadio-51; prácticamente estable.'],
-  ['Cr', 52, true, null, null, 'Cromo-52; estable.'],
-  ['Mn', 55, true, null, null, 'Manganeso-55; único estable.'],
-  ['Fe', 56, true, null, null, 'Hierro-56; muy abundante y ligado a alta energía de enlace por nucleón.'],
-  ['Co', 59, true, null, null, 'Cobalto-59; único estable.'],
-  ['Co', 60, false, 166300000, 'B-', 'Cobalto-60; fuente gamma industrial y médica.'],
-  ['Ni', 58, true, null, null, 'Níquel-58; estable.'],
-  ['Cu', 63, true, null, null, 'Cobre-63; estable.'],
-  ['Zn', 64, true, null, null, 'Zinc-64; estable.'],
-  ['Ga', 67, false, 281000, 'EC', 'Galio-67; usado en medicina nuclear.'],
-  ['Ge', 76, true, null, null, 'Germanio-76; relevante en búsquedas de doble beta.'],
-  ['As', 75, true, null, null, 'Arsénico-75; único estable.'],
-  ['Se', 80, true, null, null, 'Selenio-80; estable.'],
-  ['Br', 79, true, null, null, 'Bromo-79; estable.'],
-  ['Kr', 86, true, null, null, 'Criptón-86; estable.'],
-  ['Rb', 87, false, 1.56e18, 'B-', 'Rubidio-87; vida media muy larga, geocronología.'],
-  ['Sr', 90, false, 908000000, 'B-', 'Estroncio-90; producto de fisión.'],
-  ['Y', 89, true, null, null, 'Itrio-89; único estable.'],
-  ['Zr', 90, true, null, null, 'Circonio-90; estable.'],
-  ['Nb', 93, true, null, null, 'Niobio-93; único estable.'],
-  ['Mo', 99, false, 238000, 'B-', 'Molibdeno-99; generador de Tc-99m.'],
-  ['Tc', 99, false, 6.66e12, 'B-', 'Tecnecio-99; producto de fisión de vida larga.'],
-  ['Ru', 102, true, null, null, 'Rutenio-102; estable.'],
-  ['Rh', 103, true, null, null, 'Rodio-103; único estable.'],
-  ['Pd', 106, true, null, null, 'Paladio-106; estable.'],
-  ['Ag', 107, true, null, null, 'Plata-107; estable.'],
-  ['Cd', 114, true, null, null, 'Cadmio-114; estable.'],
-  ['In', 111, false, 242000, 'EC', 'Indio-111; diagnóstico en medicina nuclear.'],
-  ['Sn', 120, true, null, null, 'Estaño-120; estable.'],
-  ['Sb', 121, true, null, null, 'Antimonio-121; estable.'],
-  ['Te', 130, true, null, null, 'Telurio-130; estable observacionalmente, candidato doble beta.'],
-  ['I', 127, true, null, null, 'Yodo-127; único estable.'],
-  ['I', 131, false, 693000, 'B-', 'Yodo-131; medicina nuclear y producto de fisión.'],
-  ['Xe', 135, false, 32900, 'B-', 'Xenón-135; fuerte absorbente neutrónico en reactores.'],
-  ['Cs', 133, true, null, null, 'Cesio-133; define el segundo en el SI mediante transición hiperfina.'],
-  ['Cs', 137, false, 948000000, 'B-', 'Cesio-137; producto de fisión, emisor gamma vía Ba-137m.'],
-  ['Ba', 137, true, null, null, 'Bario-137; estable.'],
-  ['La', 139, true, null, null, 'Lantano-139; estable.'],
-  ['Ce', 140, true, null, null, 'Cerio-140; estable.'],
-  ['Pr', 141, true, null, null, 'Praseodimio-141; único estable.'],
-  ['Nd', 144, false, 7.2e22, 'A', 'Neodimio-144; decaimiento alfa extremadamente lento.'],
-  ['Pm', 147, false, 82700000, 'B-', 'Prometio-147; radioisótopo beta.'],
-  ['Sm', 152, true, null, null, 'Samario-152; estable.'],
-  ['Eu', 153, true, null, null, 'Europio-153; estable.'],
-  ['Gd', 157, true, null, null, 'Gadolinio-157; gran captura de neutrones térmicos.'],
-  ['Tb', 159, true, null, null, 'Terbio-159; único estable.'],
-  ['Dy', 164, true, null, null, 'Disprosio-164; estable.'],
-  ['Ho', 165, true, null, null, 'Holmio-165; único estable.'],
-  ['Er', 166, true, null, null, 'Erbio-166; estable.'],
-  ['Tm', 169, true, null, null, 'Tulio-169; único estable.'],
-  ['Yb', 174, true, null, null, 'Iterbio-174; estable.'],
-  ['Lu', 175, true, null, null, 'Lutecio-175; estable.'],
-  ['Hf', 180, true, null, null, 'Hafnio-180; estable.'],
-  ['Ta', 181, true, null, null, 'Tántalo-181; estable.'],
-  ['W', 184, true, null, null, 'Wolframio-184; estable.'],
-  ['Re', 187, false, 1.38e18, 'B-', 'Renio-187; vida media muy larga.'],
-  ['Os', 192, true, null, null, 'Osmio-192; estable.'],
-  ['Ir', 193, true, null, null, 'Iridio-193; estable.'],
-  ['Pt', 195, true, null, null, 'Platino-195; estable.'],
-  ['Au', 197, true, null, null, 'Oro-197; único estable.'],
-  ['Hg', 202, true, null, null, 'Mercurio-202; estable.'],
-  ['Tl', 205, true, null, null, 'Talio-205; estable.'],
-  ['Pb', 208, true, null, null, 'Plomo-208; doblemente mágico.'],
-  ['Bi', 209, false, 6.01e26, 'A', 'Bismuto-209; alfa con vida media extraordinariamente larga.'],
-  ['Po', 210, false, 11960000, 'A', 'Polonio-210; emisor alfa.'],
-  ['At', 211, false, 26000, 'A', 'Astato-211; radioisótopo de interés terapéutico.'],
-  ['Rn', 222, false, 330000, 'A', 'Radón-222; gas noble radiactivo de la cadena del uranio.'],
-  ['Fr', 223, false, 1320, 'B-', 'Francio-223; muy radiactivo.'],
-  ['Ra', 226, false, 5.05e10, 'A', 'Radio-226; cadena del uranio.'],
-  ['Ac', 227, false, 687000000, 'B- / A', 'Actinio-227; actínido radiactivo.'],
-  ['Th', 232, false, 4.43e17, 'A', 'Torio-232; radionucleido primordial.'],
-  ['Pa', 231, false, 1.03e12, 'A', 'Protactinio-231; cadena del uranio-actinio.'],
-  ['U', 235, false, 2.22e16, 'A', 'Uranio-235; fisible con neutrones térmicos.'],
-  ['U', 238, false, 1.41e17, 'A', 'Uranio-238; isótopo natural mayoritario.'],
-  ['Np', 237, false, 6.76e13, 'A', 'Neptunio-237; actínido de vida larga.'],
-  ['Pu', 239, false, 7.61e11, 'A', 'Plutonio-239; fisible.'],
-  ['Am', 241, false, 1.36e10, 'A', 'Americio-241; detectores de humo y fuentes alfa.'],
-  ['Cm', 244, false, 5.71e8, 'A', 'Curio-244; emisor alfa.'],
-  ['Cf', 252, false, 83400000, 'A / SF', 'Californio-252; fuente intensa de neutrones por fisión espontánea.'],
-  ['Og', 294, false, 0.0007, 'A / SF', 'Oganesón-294; superpesado, vida media muy corta.']
-];
+const CSV_TEMPLATE = `z,n,a,symbol,name,nuclide,mass_u,atomic_weight,half_life,half_life_seconds,decay_mode,abundance,spin_parity,binding_energy_per_nucleon_kev,mass_excess_kev,q_alpha_kev,neutron_capture_cross_section_barns,notes,wikipedia_url
+20,20,40,Ca,Calcio,Ca-40,39.962591,40.078,Estable,,stable,96.941%,0+,8551.3,-34135,,0.41,Ejemplo de nucleído estable,https://es.wikipedia.org/wiki/Calcio
+92,143,235,U,Uranio,U-235,235.043930,238.02891,7.04e8 años,22200000000000000,alpha,0.720%,7/2-,7590,40920,4679,98.3,Ejemplo de nucleído fisible,https://es.wikipedia.org/wiki/Uranio-235`;
 
-function curatedToRecords() {
-  const records = CURATED_NUCLIDES.map(([symbol, a, stable, halfLifeSec, decay, note]) => {
-    const element = ELEMENT_BY_SYMBOL.get(symbol.toLowerCase());
-    return {
-      id: `${symbol}-${a}`,
-      z: element.z,
-      n: a - element.z,
+const state = {
+  nuclides: [],
+  cellMap: new Map(),
+  selectedKey: null,
+  transform: { x: 0, y: 0, scale: 1 },
+  maxZ: 118,
+  maxN: 183,
+  colorMode: 'decay',
+  filters: new Set(['stable', 'alpha', 'beta-', 'beta+', 'ec', 'sf', 'it', 'unknown']),
+  dragging: false,
+  dragStart: { x: 0, y: 0 },
+  dragOrigin: { x: 0, y: 0 },
+  moved: false
+};
+
+const els = {
+  viewport: document.getElementById('viewport'),
+  world: document.getElementById('world'),
+  grid: document.getElementById('grid'),
+  axisLayer: document.getElementById('axisLayer'),
+  nuclideLayer: document.getElementById('nuclideLayer'),
+  menuButton: document.getElementById('menuButton'),
+  closeMenuButton: document.getElementById('closeMenuButton'),
+  sideMenu: document.getElementById('sideMenu'),
+  menuBackdrop: document.getElementById('menuBackdrop'),
+  detailPopup: document.getElementById('detailPopup'),
+  detailContent: document.getElementById('detailContent'),
+  closePopupButton: document.getElementById('closePopupButton'),
+  statusBar: document.getElementById('statusBar'),
+  searchInput: document.getElementById('searchInput'),
+  searchButton: document.getElementById('searchButton'),
+  colorMode: document.getElementById('colorMode'),
+  fitButton: document.getElementById('fitButton'),
+  resetButton: document.getElementById('resetButton'),
+  csvInput: document.getElementById('csvInput'),
+  loadSampleButton: document.getElementById('loadSampleButton'),
+  downloadTemplateButton: document.getElementById('downloadTemplateButton'),
+  remoteCsvUrl: document.getElementById('remoteCsvUrl'),
+  loadRemoteButton: document.getElementById('loadRemoteButton'),
+  filterList: document.getElementById('filterList')
+};
+
+function getCellSize() {
+  return Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) || 18;
+}
+
+function keyFor(z, n) {
+  return `${z}:${n}`;
+}
+
+function field(row, aliases, fallback = '') {
+  for (const alias of aliases) {
+    if (row[alias] !== undefined && row[alias] !== null && String(row[alias]).trim() !== '') return String(row[alias]).trim();
+    const lower = Object.keys(row).find(k => k.toLowerCase() === alias.toLowerCase());
+    if (lower && String(row[lower]).trim() !== '') return String(row[lower]).trim();
+  }
+  return fallback;
+}
+
+function toNumber(value, fallback = null) {
+  if (value === null || value === undefined || value === '') return fallback;
+  const clean = String(value).replace(',', '.').replace(/[^0-9eE+\-.]/g, '');
+  const num = Number(clean);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function normalizeSymbol(symbol, z) {
+  if (symbol) return symbol.charAt(0).toUpperCase() + symbol.slice(1).toLowerCase();
+  return ELEMENTS[z]?.[0] || '?';
+}
+
+function normalizeDecay(raw) {
+  const s = String(raw || '').trim().toLowerCase();
+  if (!s || s === '?' || s === 'unknown') return 'unknown';
+  if (s.includes('stable') || s.includes('estable')) return 'stable';
+  if (s.includes('alpha') || s.includes('α')) return 'alpha';
+  if (s.includes('beta-') || s.includes('b-') || s.includes('β-') || s.includes('electron emission')) return 'beta-';
+  if (s.includes('beta+') || s.includes('b+') || s.includes('β+') || s.includes('positron')) return 'beta+';
+  if (s === 'ec' || s.includes('electron capture') || s.includes('captura')) return 'ec';
+  if (s.includes('sf') || s.includes('spontaneous fission') || s.includes('fisión')) return 'sf';
+  if (s.includes('it') || s.includes('isomeric') || s.includes('isom')) return 'it';
+  if (s.includes('/')) return 'unknown';
+  return 'unknown';
+}
+
+function colorClassFor(nuclide) {
+  if (state.colorMode === 'stability') return nuclide.isStable ? 'stable' : 'unknown';
+
+  if (state.colorMode === 'halfLife') {
+    if (nuclide.isStable) return 'stable';
+    const seconds = toNumber(nuclide.halfLifeSeconds, null);
+    if (seconds === null) return 'unknown';
+    if (seconds > 31557600 * 1000000) return 'beta-minus';
+    if (seconds > 31557600) return 'alpha';
+    if (seconds > 3600) return 'beta-plus';
+    return 'sf';
+  }
+
+  return decayClass(nuclide.decayCategory);
+}
+
+function decayClass(category) {
+  switch (category) {
+    case 'stable': return 'stable';
+    case 'alpha': return 'alpha';
+    case 'beta-': return 'beta-minus';
+    case 'beta+': return 'beta-plus';
+    case 'ec': return 'ec';
+    case 'sf': return 'sf';
+    case 'it': return 'it';
+    default: return 'unknown';
+  }
+}
+
+function parseCsv(text) {
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(line => line.trim() !== '');
+  if (lines.length < 2) return [];
+  const headers = splitCsvLine(lines[0]).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const values = splitCsvLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = values[i] ?? ''; });
+    return row;
+  });
+}
+
+function splitCsvLine(line) {
+  const out = [];
+  let current = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    const next = line[i + 1];
+    if (ch === '"' && quoted && next === '"') {
+      current += '"';
+      i++;
+      continue;
+    }
+    if (ch === '"') {
+      quoted = !quoted;
+      continue;
+    }
+    if (ch === ',' && !quoted) {
+      out.push(current);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  out.push(current);
+  return out.map(v => v.trim());
+}
+
+function normalizeRows(rows) {
+  const nuclides = [];
+  for (const row of rows) {
+    let z = toNumber(field(row, ['z', 'Z', 'protons', 'proton_number']), null);
+    let n = toNumber(field(row, ['n', 'N', 'neutrons', 'neutron_number']), null);
+    let a = toNumber(field(row, ['a', 'A', 'mass_number', 'nuclide_a']), null);
+
+    const rawSymbol = field(row, ['symbol', 'element', 'el', 'element_symbol']);
+    let symbol = normalizeSymbol(rawSymbol, z);
+
+    if (z === null && symbol !== '?') {
+      const foundZ = ELEMENTS.findIndex(e => e && e[0].toLowerCase() === symbol.toLowerCase());
+      if (foundZ > 0) z = foundZ;
+    }
+    if (a === null && z !== null && n !== null) a = z + n;
+    if (n === null && z !== null && a !== null) n = a - z;
+    if (z === null || n === null || a === null || z < 1 || n < 0) continue;
+
+    symbol = normalizeSymbol(symbol, z);
+    const elementName = field(row, ['name', 'element_name', 'elemento', 'nombre'], ELEMENTS[z]?.[1] || symbol);
+    const nuclideName = field(row, ['nuclide', 'isotope', 'nucid', 'isótopo'], `${symbol}-${a}`);
+    const halfLife = field(row, ['half_life', 'halflife', 't1/2', 'half life'], 'Sin dato');
+    const decayRaw = field(row, ['decay_mode', 'decay', 'decay_1', 'decay mode'], halfLife.toLowerCase().includes('estable') || halfLife.toLowerCase().includes('stable') ? 'stable' : 'unknown');
+    const decayCategory = normalizeDecay(decayRaw);
+    const isStable = decayCategory === 'stable' || /stable|estable/i.test(halfLife);
+
+    const normalized = {
+      raw: row,
+      z,
+      n,
       a,
       symbol,
-      elementName: element.name,
-      englishName: element.english,
-      atomicWeight: element.atomicWeight,
-      category: element.category,
-      isStable: stable,
-      halfLifeSec,
-      halfLifeText: stable ? 'Estable' : secondsToHuman(halfLifeSec),
-      decayModes: decay ? [{ mode: decay, pct: null }] : [],
-      abundance: null,
-      atomicMass: null,
-      massExcess: null,
-      spinParity: null,
-      energy: null,
-      note,
-      source: 'Muestra interna para comprobar la interfaz. Para trabajo científico importa CSV de IAEA/NNDC.',
-      raw: { symbol, A: a, Z: element.z, N: a - element.z, note }
+      elementName,
+      nuclideName,
+      key: keyFor(z, n),
+      massU: field(row, ['mass_u', 'atomic_mass', 'mass', 'masa_atomica']),
+      atomicWeight: field(row, ['atomic_weight', 'standard_atomic_weight', 'peso_atomico']),
+      halfLife,
+      halfLifeSeconds: field(row, ['half_life_seconds', 'half_life_sec', 'seconds']),
+      decayMode: decayRaw || 'Sin dato',
+      decayCategory: isStable ? 'stable' : decayCategory,
+      isStable,
+      abundance: field(row, ['abundance', 'natural_abundance', 'abundancia']),
+      spinParity: field(row, ['spin_parity', 'jp', 'spin']),
+      bindingEnergy: field(row, ['binding_energy_per_nucleon_kev', 'binding_energy', 'be_per_a']),
+      massExcess: field(row, ['mass_excess_kev', 'mass_excess', 'excess']),
+      qAlpha: field(row, ['q_alpha_kev', 'q_alpha']),
+      neutronCapture: field(row, ['neutron_capture_cross_section_barns', 'thermal_capture', 'sigma_gamma']),
+      notes: field(row, ['notes', 'peculiarities', 'observaciones', 'comentarios']),
+      wikipediaUrl: field(row, ['wikipedia_url', 'wiki', 'url'])
     };
-  });
-
-  // Añade una línea de referencia para elementos no cubiertos por la muestra, sin fingir datos de decaimiento.
-  const existing = new Set(records.map(r => r.symbol));
-  for (const element of ELEMENTS) {
-    if (existing.has(element.symbol)) continue;
-    const a = referenceMassNumber(element.atomicWeight);
-    records.push({
-      id: `${element.symbol}-${a}-ref`,
-      z: element.z,
-      n: a - element.z,
-      a,
-      symbol: element.symbol,
-      elementName: element.name,
-      englishName: element.english,
-      atomicWeight: element.atomicWeight,
-      category: element.category,
-      isStable: false,
-      halfLifeSec: null,
-      halfLifeText: 'Sin clasificar en la muestra',
-      decayModes: [],
-      abundance: null,
-      atomicMass: null,
-      massExcess: null,
-      spinParity: null,
-      energy: null,
-      note: 'Celda de referencia visual del elemento. Importa un CSV nuclear para reemplazarla por datos evaluados.',
-      source: 'Referencia visual generada desde la masa atómica estándar del elemento.',
-      raw: { symbol: element.symbol, A_referencia: a, Z: element.z, N: a - element.z, advertencia: 'No es un registro nuclear evaluado.' }
-    });
+    nuclides.push(normalized);
   }
-  return records.sort((a, b) => a.z - b.z || a.n - b.n);
+  return nuclides;
 }
 
-let state = {
-  nuclides: curatedToRecords(),
-  selectedId: null,
-  cellSize: 24,
-  colorMode: 'decay',
-  filterMode: 'all',
-  query: '',
-  labels: true,
-  datasetName: 'demo'
-};
-
-const chartCanvas = document.getElementById('chartCanvas');
-const chartViewport = document.getElementById('chartViewport');
-const detailEmpty = document.getElementById('detailEmpty');
-const detailPanel = document.getElementById('detailPanel');
-const detailTemplate = document.getElementById('detailTemplate');
-const datasetStatus = document.getElementById('datasetStatus');
-const nuclideCount = document.getElementById('nuclideCount');
-const visibleCount = document.getElementById('visibleCount');
-const extentInfo = document.getElementById('extentInfo');
-
-const debounce = (fn, wait = 160) => {
-  let t;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), wait);
-  };
-};
-
-function init() {
-  document.getElementById('loadIaeaBtn').addEventListener('click', loadIaeaDataset);
-  document.getElementById('csvFile').addEventListener('change', handleCsvFile);
-  document.getElementById('searchInput').addEventListener('input', debounce(event => {
-    state.query = event.target.value.trim();
-    render();
-  }));
-  document.getElementById('colorMode').addEventListener('change', event => {
-    state.colorMode = event.target.value;
-    render();
-  });
-  document.getElementById('filterMode').addEventListener('change', event => {
-    state.filterMode = event.target.value;
-    render();
-  });
-  document.getElementById('zoomRange').addEventListener('input', event => {
-    state.cellSize = Number(event.target.value);
-    document.documentElement.style.setProperty('--cell-size', `${state.cellSize}px`);
-    render();
-  });
-  document.getElementById('labelsToggle').addEventListener('change', event => {
-    state.labels = event.target.checked;
-    render();
-  });
-
-  chartViewport.addEventListener('dragover', event => {
-    event.preventDefault();
-  });
-  chartViewport.addEventListener('drop', async event => {
-    event.preventDefault();
-    const file = event.dataTransfer.files?.[0];
-    if (file) await importCsvFile(file);
-  });
-
-  document.documentElement.style.setProperty('--cell-size', `${state.cellSize}px`);
-  render();
-  selectNuclide('U-235');
-}
-
-async function loadIaeaDataset() {
-  setStatus('Intentando cargar CSV de IAEA LiveChart…', 'warn');
-  try {
-    const response = await fetch(IAEA_GROUND_STATES_URL, { mode: 'cors' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const text = await response.text();
-    const records = csvToNuclides(text);
-    if (!records.length) throw new Error('El CSV no contiene registros reconocibles.');
-    loadRecords(records, 'IAEA LiveChart ground_states');
-    setStatus(`Datos IAEA cargados: ${records.length.toLocaleString('es-ES')} registros`, 'ok');
-  } catch (error) {
-    console.error(error);
-    setStatus('No se pudo cargar IAEA desde el navegador. Descarga el CSV e impórtalo localmente.', 'error');
-  }
-}
-
-async function handleCsvFile(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  await importCsvFile(file);
-  event.target.value = '';
-}
-
-async function importCsvFile(file) {
-  setStatus(`Importando ${file.name}…`, 'warn');
-  try {
-    const text = await file.text();
-    const records = csvToNuclides(text);
-    if (!records.length) throw new Error('No se encontraron filas con Z y N reconocibles.');
-    loadRecords(records, file.name);
-    setStatus(`CSV importado: ${records.length.toLocaleString('es-ES')} registros`, 'ok');
-  } catch (error) {
-    console.error(error);
-    setStatus(`Error al importar CSV: ${error.message}`, 'error');
-  }
-}
-
-function loadRecords(records, datasetName) {
-  state.nuclides = records.sort((a, b) => a.z - b.z || a.n - b.n || a.a - b.a);
-  state.datasetName = datasetName;
-  state.selectedId = null;
-  render();
-  const uranium = state.nuclides.find(n => n.symbol === 'U' && n.a === 235);
-  selectNuclide(uranium?.id ?? state.nuclides[Math.floor(state.nuclides.length / 2)]?.id);
-}
-
-function csvToNuclides(csvText) {
-  const rows = parseCSV(csvText);
-  if (rows.length < 2) return [];
-  const header = rows[0].map(h => h.trim());
-  const records = [];
-
-  for (const row of rows.slice(1)) {
-    if (!row.some(Boolean)) continue;
-    const raw = {};
-    header.forEach((h, i) => { raw[h] = row[i] ?? ''; });
-    const normalized = normalizeNuclide(raw);
-    if (normalized) records.push(normalized);
-  }
-  return records;
-}
-
-function parseCSV(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    const next = text[i + 1];
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        field += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      row.push(field);
-      field = '';
-    } else if ((char === '\n' || char === '\r') && !inQuotes) {
-      if (char === '\r' && next === '\n') i++;
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = '';
-    } else {
-      field += char;
-    }
-  }
-  row.push(field);
-  rows.push(row);
-  return rows.filter(r => r.some(cell => String(cell).trim() !== ''));
-}
-
-function normalizeNuclide(raw) {
-  const keyMap = new Map(Object.keys(raw).map(k => [canonicalKey(k), k]));
-  const get = (...names) => {
-    for (const name of names) {
-      const original = keyMap.get(canonicalKey(name));
-      if (original && raw[original] !== undefined && String(raw[original]).trim() !== '') return String(raw[original]).trim();
-    }
-    return '';
-  };
-
-  let z = toNumber(get('z', 'Z', 'protons', 'proton_number'));
-  let n = toNumber(get('n', 'N', 'neutrons', 'neutron_number'));
-  let symbol = get('symbol', 'element', 'el', 'Element', 'elem');
-  let nuclideText = get('nuclide', 'isotope', 'isotope_symbol', 'nucleus');
-
-  if ((!z || !n) && nuclideText) {
-    const parsed = parseNuclideLabel(nuclideText);
-    if (parsed) {
-      symbol = symbol || parsed.symbol;
-      if (!z) z = ELEMENT_BY_SYMBOL.get(parsed.symbol.toLowerCase())?.z ?? null;
-      if (!n && parsed.a && z) n = parsed.a - z;
-    }
-  }
-
-  if (!z && symbol) z = ELEMENT_BY_SYMBOL.get(symbol.toLowerCase())?.z ?? null;
-  if (!symbol && z) symbol = ELEMENT_BY_Z.get(z)?.symbol ?? '';
-  if (!z && !symbol) return null;
-
-  const aFromColumn = toNumber(get('a', 'A', 'mass_number', 'massnumber'));
-  const a = aFromColumn || (z && Number.isFinite(n) ? z + n : null);
-  if (!a || !Number.isFinite(z) || !Number.isFinite(n)) return null;
-
-  const element = ELEMENT_BY_Z.get(z) ?? ELEMENT_BY_SYMBOL.get(symbol.toLowerCase()) ?? { symbol, name: symbol, english: symbol, category: 'Elemento', atomicWeight: '' };
-  symbol = element.symbol || symbol;
-
-  const halfLifeSec = toNumber(get('half_life_sec', 'halflife_sec', 'half_life_seconds', 'half_life_s', 'halflife_seconds'));
-  const halfLifeRaw = get('half_life', 'halflife', 't1/2', 't12');
-  const halfLifeUnit = get('unit_hl', 'half_life_unit', 'unit', 'hl_unit');
-  const halfLifeText = formatHalfLife(halfLifeSec, halfLifeRaw, halfLifeUnit);
-  const decayModes = extractDecayModes(get);
-  const isStableRaw = get('is_stable', 'stable', 'stability');
-  const isStable = parseStable(isStableRaw, halfLifeSec, decayModes, halfLifeRaw);
-
-  const atomicMass = get('atomic_mass', 'atomicmass', 'mass', 'mass_amu', 'amu');
-  const atomicMassUnc = get('atomic_mass_uncert', 'unc_am', 'atomicmass_uncert', 'mass_uncert');
-  const massExcess = get('mass_excess', 'massexcess', 'mass_excess_keV', 'mass_excess_kev');
-  const abundance = get('abundance', 'natural_abundance', 'abund');
-  const spinParity = get('jp', 'jpi', 'spin', 'spin_parity', 'spinparity');
-  const energy = get('energy', 'level_energy', 'e', 'p_energy');
-  const radius = get('radius', 'charge_radius');
-
-  return {
-    id: `${symbol}-${a}${energy && energy !== '0' ? `@${energy}` : ''}`,
-    z, n, a, symbol,
-    elementName: element.name,
-    englishName: element.english,
-    atomicWeight: element.atomicWeight,
-    category: element.category,
-    isStable,
-    halfLifeSec: halfLifeSec || null,
-    halfLifeText,
-    halfLifeRaw,
-    halfLifeUnit,
-    decayModes,
-    abundance,
-    atomicMass,
-    atomicMassUnc,
-    massExcess,
-    spinParity,
-    energy,
-    radius,
-    note: '',
-    source: state.datasetName,
-    raw
-  };
-}
-
-function canonicalKey(value) {
-  return String(value).toLowerCase().replace(/[\s\-/%()]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-}
-
-function extractDecayModes(get) {
-  const modes = [];
-  for (let i = 1; i <= 5; i++) {
-    const mode = get(`decay_${i}`, `decay${i}`, `decay_${i}_mode`, `decay mode ${i}`);
-    if (!mode) continue;
-    const pct = get(`decay_${i}_%`, `decay_${i}_pct`, `decay${i}_pct`, `branch_${i}`, `branching_${i}`);
-    modes.push({ mode, pct: pct || null });
-  }
-  const compact = get('decay', 'decay_mode', 'decay_modes', 'mode');
-  if (!modes.length && compact) {
-    for (const part of compact.split(/[;,]/).map(v => v.trim()).filter(Boolean)) {
-      modes.push({ mode: part, pct: null });
-    }
-  }
-  return modes;
-}
-
-function parseStable(value, halfLifeSec, decayModes, halfLifeRaw) {
-  const v = String(value || '').trim().toLowerCase();
-  if (['true', 'yes', 'y', 'si', 'sí', 'stable', '1'].includes(v)) return true;
-  if (['false', 'no', 'n', 'radioactive', '0'].includes(v)) return false;
-  if (String(halfLifeRaw || '').toLowerCase().includes('stable')) return true;
-  if (!halfLifeSec && decayModes.length === 0) return true;
-  return false;
-}
-
-function parseNuclideLabel(label) {
-  const plain = String(label)
-    .replace(/[{}_^]/g, '')
-    .replace(/\s+/g, '')
-    .replace(/−/g, '-');
-  let match = plain.match(/^(\d+)([A-Z][a-z]?)/);
-  if (match) return { a: Number(match[1]), symbol: match[2] };
-  match = plain.match(/^([A-Z][a-z]?)[-]?(\d+)/);
-  if (match) return { a: Number(match[2]), symbol: match[1] };
-  match = plain.match(/(\d+).*?([A-Z][a-z]?)/);
-  if (match) return { a: Number(match[1]), symbol: match[2] };
-  return null;
-}
-
-function toNumber(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const cleaned = String(value).trim().replace(/\s/g, '').replace(',', '.').replace(/[<>~≈]/g, '');
-  const match = cleaned.match(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/);
-  if (!match) return null;
-  const num = Number(match[0]);
-  return Number.isFinite(num) ? num : null;
-}
-
-function referenceMassNumber(atomicWeight) {
-  const num = toNumber(atomicWeight);
-  return Math.max(1, Math.round(num || 1));
-}
-
-function formatHalfLife(seconds, raw, unit) {
-  if (seconds) return secondsToHuman(seconds);
-  if (raw && unit) return `${raw} ${unit}`;
-  if (raw) return raw;
-  return 'Estable o no indicado';
-}
-
-function secondsToHuman(seconds) {
-  if (!Number.isFinite(seconds) || seconds <= 0) return 'No indicada';
-  const units = [
-    ['Gy', 1e9 * 365.25 * 24 * 3600],
-    ['My', 1e6 * 365.25 * 24 * 3600],
-    ['ky', 1e3 * 365.25 * 24 * 3600],
-    ['a', 365.25 * 24 * 3600],
-    ['d', 24 * 3600],
-    ['h', 3600],
-    ['min', 60],
-    ['s', 1],
-    ['ms', 1e-3],
-    ['µs', 1e-6],
-    ['ns', 1e-9]
-  ];
-  for (const [label, factor] of units) {
-    if (seconds >= factor || label === 'ns') {
-      const value = seconds / factor;
-      return `${formatNumber(value)} ${label}`;
-    }
-  }
-  return `${formatNumber(seconds)} s`;
-}
-
-function formatNumber(value) {
-  if (value === null || value === undefined || value === '') return '—';
-  const n = Number(value);
-  if (!Number.isFinite(n)) return String(value);
-  if (Math.abs(n) >= 100000 || Math.abs(n) < 0.001) return n.toExponential(3).replace('.', ',');
-  return new Intl.NumberFormat('es-ES', { maximumSignificantDigits: 5 }).format(n);
-}
-
-function render() {
-  const extent = getExtent(state.nuclides);
-  const axisPad = Math.max(36, state.cellSize * 1.7);
-  const width = axisPad + (extent.maxN + 2) * state.cellSize;
-  const height = axisPad + (extent.maxZ + 2) * state.cellSize;
-  chartCanvas.style.width = `${width}px`;
-  chartCanvas.style.height = `${height}px`;
-  chartCanvas.innerHTML = '';
-
-  renderAxes(extent, axisPad);
-  let visible = 0;
-  let searchHits = 0;
-
-  const fragment = document.createDocumentFragment();
-  for (const nuclide of state.nuclides) {
-    if (!matchesFilter(nuclide)) continue;
-    visible++;
-    const cell = document.createElement('button');
-    cell.type = 'button';
-    cell.className = `nuclide-cell ${colorClass(nuclide)}`;
-    if (!state.labels) cell.classList.add('no-label');
-    if (state.selectedId === nuclide.id) cell.classList.add('selected');
-    if (matchesSearch(nuclide, state.query)) {
-      if (state.query) cell.classList.add('search-hit');
-      if (state.query) searchHits++;
-    } else if (state.query) {
-      cell.style.opacity = '0.22';
-    }
-    cell.style.left = `${axisPad + nuclide.n * state.cellSize}px`;
-    cell.style.top = `${axisPad + (extent.maxZ - nuclide.z) * state.cellSize}px`;
-    cell.textContent = state.labels ? `${nuclide.a}${nuclide.symbol}` : '';
-    cell.title = `${nuclide.symbol}-${nuclide.a} · Z=${nuclide.z}, N=${nuclide.n} · ${nuclide.halfLifeText}`;
-    cell.dataset.id = nuclide.id;
-    cell.addEventListener('click', () => selectNuclide(nuclide.id));
-    fragment.appendChild(cell);
-  }
-  chartCanvas.appendChild(fragment);
-
-  nuclideCount.textContent = `${state.nuclides.length.toLocaleString('es-ES')} nucleídos`;
-  visibleCount.textContent = state.query ? `${visible.toLocaleString('es-ES')} visibles · ${searchHits.toLocaleString('es-ES')} coincidencias` : `${visible.toLocaleString('es-ES')} visibles`;
-  extentInfo.textContent = `Z 1–${extent.maxZ} · N 0–${extent.maxN}`;
-  renderLegend();
-  if (state.selectedId) renderDetail(state.nuclides.find(n => n.id === state.selectedId));
-}
-
-function renderAxes(extent, axisPad) {
-  const stepN = state.cellSize < 20 ? 20 : 10;
-  const stepZ = state.cellSize < 20 ? 10 : 5;
-  for (let n = 0; n <= extent.maxN; n += stepN) {
-    const label = document.createElement('span');
-    label.className = 'axis-label x';
-    label.style.left = `${axisPad + n * state.cellSize}px`;
-    label.textContent = `N ${n}`;
-    chartCanvas.appendChild(label);
-  }
-  for (let z = 1; z <= extent.maxZ; z += stepZ) {
-    const label = document.createElement('span');
-    label.className = 'axis-label y';
-    label.style.top = `${axisPad + (extent.maxZ - z) * state.cellSize}px`;
-    label.textContent = `Z ${z}`;
-    chartCanvas.appendChild(label);
-  }
-}
-
-function getExtent(records) {
-  return records.reduce((acc, r) => {
-    acc.maxZ = Math.max(acc.maxZ, r.z || 0);
-    acc.maxN = Math.max(acc.maxN, r.n || 0);
-    return acc;
-  }, { maxZ: 118, maxN: 180 });
-}
-
-function matchesFilter(nuclide) {
-  const type = decayType(nuclide);
-  switch (state.filterMode) {
-    case 'stable': return nuclide.isStable;
-    case 'radioactive': return !nuclide.isStable;
-    case 'alpha': return type === 'alpha' || type === 'mixed';
-    case 'betaMinus': return type === 'beta-minus' || type === 'mixed';
-    case 'betaPlusEc': return type === 'beta-plus' || type === 'mixed';
-    case 'unknown': return type === 'unknown';
-    default: return true;
-  }
-}
-
-function matchesSearch(nuclide, query) {
-  if (!query) return false;
-  const q = query.toLowerCase().replace(/\s+/g, '');
-  const tokens = [
-    `${nuclide.symbol}-${nuclide.a}`,
-    `${nuclide.a}${nuclide.symbol}`,
-    `${nuclide.symbol}${nuclide.a}`,
-    nuclide.symbol,
-    nuclide.elementName,
-    nuclide.englishName,
-    `z=${nuclide.z}`,
-    `n=${nuclide.n}`,
-    `a=${nuclide.a}`
-  ].filter(Boolean).map(v => String(v).toLowerCase().replace(/\s+/g, ''));
-  return tokens.some(token => token.includes(q));
-}
-
-function colorClass(nuclide) {
-  if (state.colorMode === 'stability') return nuclide.isStable ? 'decay-stable' : 'decay-unknown';
-  if (state.colorMode === 'halfLife') return halfLifeColorClass(nuclide);
-  return `decay-${decayType(nuclide)}`;
-}
-
-function halfLifeColorClass(nuclide) {
-  if (nuclide.isStable) return 'decay-stable';
-  const s = nuclide.halfLifeSec;
-  if (!s) return 'decay-unknown';
-  if (s < 60) return 'decay-sf';
-  if (s < 86400) return 'decay-alpha';
-  if (s < 365.25 * 24 * 3600) return 'decay-beta-plus';
-  return 'decay-beta-minus';
-}
-
-function decayType(nuclide) {
-  if (nuclide.isStable) return 'stable';
-  const text = nuclide.decayModes.map(d => d.mode).join(' ').toUpperCase();
-  if (!text.trim()) return 'unknown';
-  const flags = new Set();
-  if (/\bA\b|ALPHA|α/.test(text)) flags.add('alpha');
-  if (/B-|BETA-|β-|BM/.test(text)) flags.add('beta-minus');
-  if (/B\+|BETA\+|β\+|EC|ELECTRON/.test(text)) flags.add('beta-plus');
-  if (/SF|FISSION/.test(text)) flags.add('sf');
-  if (/IT|ISOMERIC|GAMMA|γ/.test(text)) flags.add('it');
-  if (flags.size > 1) return 'mixed';
-  return [...flags][0] || 'unknown';
-}
-
-function renderLegend() {
-  const entries = state.colorMode === 'halfLife'
-    ? [
-      ['Estable', 'decay-stable'], ['< 1 min', 'decay-sf'], ['< 1 día', 'decay-alpha'], ['< 1 año', 'decay-beta-plus'], ['≥ 1 año', 'decay-beta-minus'], ['Sin dato', 'decay-unknown']
-    ]
-    : [
-      ['Estable', 'decay-stable'], ['β−', 'decay-beta-minus'], ['β+ / EC', 'decay-beta-plus'], ['α', 'decay-alpha'], ['Fisión espontánea', 'decay-sf'], ['Transición isomérica', 'decay-it'], ['Mixto', 'decay-mixed'], ['Sin dato', 'decay-unknown']
-    ];
-  const legend = document.getElementById('legend');
-  legend.innerHTML = entries.map(([label, className]) => `
-    <span class="legend-item"><span class="legend-swatch ${className}"></span>${label}</span>
-  `).join('');
-}
-
-function selectNuclide(id) {
-  if (!id) return;
-  state.selectedId = id;
-  render();
-  const cell = chartCanvas.querySelector(`[data-id="${cssEscape(id)}"]`);
-  if (cell) {
-    cell.classList.add('selected');
-  }
-}
-
-function cssEscape(value) {
-  if (window.CSS?.escape) return window.CSS.escape(value);
-  return String(value).replace(/"/g, '\\"');
-}
-
-function renderDetail(nuclide) {
-  if (!nuclide) {
-    detailEmpty.classList.remove('hidden');
-    detailPanel.classList.add('hidden');
+function loadNuclidesFromCsv(text, sourceLabel = 'CSV') {
+  const rows = parseCsv(text);
+  const nuclides = normalizeRows(rows);
+  if (!nuclides.length) {
+    setStatus(`No se han encontrado nucleídos válidos en ${sourceLabel}.`);
     return;
   }
-  detailEmpty.classList.add('hidden');
-  detailPanel.classList.remove('hidden');
-  const node = detailTemplate.content.cloneNode(true);
-
-  node.querySelector('[data-field="title"]').textContent = `${nuclide.symbol}-${nuclide.a}`;
-  node.querySelector('[data-field="subtitle"]').textContent = `${nuclide.elementName} · ${nuclide.category || 'Elemento'} · Z=${nuclide.z}, N=${nuclide.n}`;
-
-  const badges = node.querySelector('[data-field="badges"]');
-  const badgeValues = [
-    nuclide.isStable ? 'Estable' : 'Radiactivo / no estable',
-    `A=${nuclide.a}`,
-    `Z=${nuclide.z}`,
-    `N=${nuclide.n}`,
-    decayLabel(decayType(nuclide))
-  ];
-  badges.innerHTML = badgeValues.map(v => `<span class="badge">${escapeHtml(v)}</span>`).join('');
-
-  const facts = [
-    ['Elemento', `${nuclide.elementName} (${nuclide.symbol})`],
-    ['Masa atómica estándar', nuclide.atomicWeight || '—'],
-    ['Masa atómica del nucleído', formatMaybeMicroMass(nuclide.atomicMass, nuclide.atomicMassUnc)],
-    ['Exceso de masa', nuclide.massExcess ? `${nuclide.massExcess} keV` : '—'],
-    ['Abundancia natural', formatAbundance(nuclide.abundance)],
-    ['Spin/paridad', nuclide.spinParity || '—'],
-    ['Energía de estado', nuclide.energy ? `${nuclide.energy} keV` : '—'],
-    ['Radio de carga', nuclide.radius ? `${nuclide.radius} fm` : '—']
-  ];
-  const mainFacts = node.querySelector('[data-field="mainFacts"]');
-  mainFacts.innerHTML = facts.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(String(v))}</dd></div>`).join('');
-
-  node.querySelector('[data-field="decayBlock"]').innerHTML = renderDecayBlock(nuclide);
-  node.querySelector('[data-field="links"]').innerHTML = renderLinks(nuclide);
-  node.querySelector('[data-field="rawFields"]').innerHTML = renderRawFields(nuclide.raw);
-  node.querySelector('#closeDetail').addEventListener('click', () => {
-    state.selectedId = null;
-    detailPanel.classList.add('hidden');
-    detailEmpty.classList.remove('hidden');
-    render();
-  });
-
-  detailPanel.replaceChildren(node);
+  state.nuclides = nuclides;
+  state.cellMap = new Map(nuclides.map(n => [n.key, n]));
+  state.maxZ = Math.max(118, ...nuclides.map(n => n.z));
+  state.maxN = Math.max(183, ...nuclides.map(n => n.n + 4));
+  state.selectedKey = null;
+  closeDetail();
+  renderAll();
+  fitToScreen();
+  setStatus(`${nuclides.length} nucleídos cargados desde ${sourceLabel}.`);
 }
 
-function renderDecayBlock(nuclide) {
-  const halfLife = `<div class="decay-row"><strong>Vida media</strong><span>${escapeHtml(nuclide.halfLifeText || '—')}</span></div>`;
-  const note = nuclide.note ? `<p class="subtitle">${escapeHtml(nuclide.note)}</p>` : '';
-  if (!nuclide.decayModes.length) {
-    return `<div class="decay-list">${halfLife}<div class="decay-row"><strong>Modo</strong><span>${nuclide.isStable ? 'Estable' : 'No indicado'}</span></div></div>${note}`;
+function renderAll() {
+  const cell = getCellSize();
+  els.world.style.width = `${(state.maxN + 1) * cell}px`;
+  els.world.style.height = `${state.maxZ * cell}px`;
+  renderAxis();
+  renderNuclides();
+}
+
+function renderAxis() {
+  const cell = getCellSize();
+  const fragment = document.createDocumentFragment();
+  els.axisLayer.textContent = '';
+
+  for (let n = 0; n <= state.maxN; n += 10) {
+    const label = document.createElement('div');
+    label.className = 'axis-label axis-label--n';
+    label.textContent = `N ${n}`;
+    label.style.left = `${n * cell + cell / 2}px`;
+    fragment.append(label);
   }
-  const modes = nuclide.decayModes.map(d => `
-    <div class="decay-row"><strong>${escapeHtml(d.mode)}</strong><span>${escapeHtml(d.pct ? `${d.pct}%` : 'rama no indicada')}</span></div>
-  `).join('');
-  return `<div class="decay-list">${halfLife}${modes}</div>${note}`;
+
+  for (let z = 10; z <= state.maxZ; z += 10) {
+    const label = document.createElement('div');
+    label.className = 'axis-label axis-label--z';
+    label.textContent = `Z ${z}`;
+    label.style.top = `${(state.maxZ - z) * cell + cell / 2}px`;
+    fragment.append(label);
+  }
+
+  els.axisLayer.append(fragment);
 }
 
-function renderLinks(nuclide) {
-  const elementPage = `https://es.wikipedia.org/wiki/${encodeURIComponent(nuclide.elementName)}`;
-  const isotopesPage = `https://en.wikipedia.org/wiki/Isotopes_of_${encodeURIComponent((nuclide.englishName || nuclide.symbol).replace(/ /g, '_'))}`;
-  const iaeaNuclide = `https://nds.iaea.org/relnsd/vcharthtml/VChartHTML.html`;
-  const nudat = `https://www.nndc.bnl.gov/nudat3/`;
-  return [
-    ['Wikipedia del elemento', elementPage],
-    ['Wikipedia: isótopos del elemento', isotopesPage],
-    ['IAEA LiveChart of Nuclides', iaeaNuclide],
-    ['NNDC NuDat 3', nudat]
-  ].map(([label, url]) => `<a href="${url}" target="_blank" rel="noreferrer">${escapeHtml(label)} ↗</a>`).join('');
+function renderNuclides() {
+  const cell = getCellSize();
+  const fragment = document.createDocumentFragment();
+  els.nuclideLayer.textContent = '';
+
+  for (const nuclide of state.nuclides) {
+    const div = document.createElement('button');
+    div.type = 'button';
+    div.className = `nuclide-cell ${colorClassFor(nuclide)}`;
+    div.dataset.key = nuclide.key;
+    div.dataset.decay = nuclide.decayCategory;
+    div.style.left = `${nuclide.n * cell}px`;
+    div.style.top = `${(state.maxZ - nuclide.z) * cell}px`;
+    div.title = `${nuclide.nuclideName} · Z=${nuclide.z}, N=${nuclide.n}`;
+    div.textContent = nuclide.a;
+    div.addEventListener('click', event => {
+      event.stopPropagation();
+      selectNuclide(nuclide.key, { center: false });
+    });
+    fragment.append(div);
+  }
+
+  els.nuclideLayer.append(fragment);
+  applyFilters();
 }
 
-function renderRawFields(raw) {
-  const entries = Object.entries(raw || {}).filter(([, value]) => String(value ?? '').trim() !== '');
-  if (!entries.length) return '<p class="subtitle">No hay campos crudos disponibles.</p>';
-  return entries.map(([key, value]) => `<div class="raw-field"><strong>${escapeHtml(key)}</strong><span>${escapeHtml(String(value))}</span></div>`).join('');
+function selectNuclide(key, options = {}) {
+  const nuclide = state.cellMap.get(key);
+  if (!nuclide) return;
+
+  document.querySelectorAll('.nuclide-cell.is-selected').forEach(el => el.classList.remove('is-selected'));
+  const cell = document.querySelector(`.nuclide-cell[data-key="${CSS.escape(key)}"]`);
+  if (cell) cell.classList.add('is-selected');
+
+  state.selectedKey = key;
+  openDetail(nuclide);
+  if (options.center) centerOnNuclide(nuclide);
 }
 
-function formatMaybeMicroMass(value, uncert) {
-  if (!value) return '—';
-  const num = toNumber(value);
-  const maybeAmu = num && num > 10000 ? num / 1_000_000 : num;
-  const base = maybeAmu ? `${formatNumber(maybeAmu)} u` : String(value);
-  return uncert ? `${base} ± ${uncert}` : base;
+function centerOnNuclide(nuclide) {
+  const cell = getCellSize();
+  const targetX = nuclide.n * cell + cell / 2;
+  const targetY = (state.maxZ - nuclide.z) * cell + cell / 2;
+  const rect = els.viewport.getBoundingClientRect();
+  const desiredScale = Math.max(state.transform.scale, 1.65);
+  state.transform.scale = clamp(desiredScale, minScale(), 7);
+  state.transform.x = rect.width * 0.48 - targetX * state.transform.scale;
+  state.transform.y = rect.height * 0.45 - targetY * state.transform.scale;
+  applyTransform();
 }
 
-function formatAbundance(value) {
-  if (!value) return '—';
-  const n = toNumber(value);
-  if (n === null) return value;
-  return n <= 1 ? `${formatNumber(n * 100)} %` : `${formatNumber(n)} %`;
+function openDetail(nuclide) {
+  els.detailContent.innerHTML = buildDetailHtml(nuclide);
+  els.detailContent.className = 'detail-content';
+  els.detailPopup.classList.add('is-open');
 }
 
-function decayLabel(type) {
-  return {
-    stable: 'Estable',
-    'beta-minus': 'β−',
-    'beta-plus': 'β+ / EC',
-    alpha: 'α',
-    sf: 'Fisión espontánea',
-    it: 'Transición isomérica',
-    mixed: 'Modos mixtos',
-    unknown: 'Sin dato'
-  }[type] || type;
+function closeDetail() {
+  state.selectedKey = null;
+  els.detailPopup.classList.remove('is-open');
+  document.querySelectorAll('.nuclide-cell.is-selected').forEach(el => el.classList.remove('is-selected'));
 }
 
-function setStatus(message, kind = '') {
-  datasetStatus.textContent = message;
-  datasetStatus.className = `status-chip ${kind}`.trim();
+function buildDetailHtml(n) {
+  const stabilityLabel = n.isStable ? 'Estable' : 'Radiactivo';
+  const wikipedia = n.wikipediaUrl || `https://es.wikipedia.org/wiki/${encodeURIComponent(n.elementName)}`;
+  const iaeaQuery = `https://www-nds.iaea.org/relnsd/vcharthtml/VChartHTML.html`;
+  const rawRows = Object.entries(n.raw)
+    .filter(([_, value]) => String(value ?? '').trim() !== '')
+    .map(([key, value]) => `<tr><th>${escapeHtml(key)}</th><td>${escapeHtml(value)}</td></tr>`)
+    .join('');
+
+  return `
+    <h2 class="detail-title">${escapeHtml(n.symbol)}-${escapeHtml(n.a)}</h2>
+    <div class="detail-subtitle">${escapeHtml(n.elementName)} · ${escapeHtml(n.nuclideName)}</div>
+
+    <div class="detail-badges">
+      <span class="badge">Z=${escapeHtml(n.z)}</span>
+      <span class="badge">N=${escapeHtml(n.n)}</span>
+      <span class="badge">A=${escapeHtml(n.a)}</span>
+      <span class="badge">${escapeHtml(stabilityLabel)}</span>
+      <span class="badge">${escapeHtml(n.decayMode || 'Sin dato')}</span>
+    </div>
+
+    <section class="detail-section">
+      <h3>Composición nuclear</h3>
+      <div class="info-grid">
+        ${infoItem('Protones', n.z)}
+        ${infoItem('Neutrones', n.n)}
+        ${infoItem('Nucleones', n.a)}
+        ${infoItem('Elemento', `${n.elementName} (${n.symbol})`)}
+      </div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Masa y energía</h3>
+      <div class="info-grid">
+        ${infoItem('Masa atómica', n.massU || 'Sin dato')}
+        ${infoItem('Peso atómico estándar', n.atomicWeight || 'Sin dato')}
+        ${infoItem('Energía enlace/nucleón', formatWithUnit(n.bindingEnergy, 'keV'))}
+        ${infoItem('Exceso de masa', formatWithUnit(n.massExcess, 'keV'))}
+      </div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Estabilidad y desintegración</h3>
+      <div class="info-grid">
+        ${infoItem('Vida media', n.halfLife || 'Sin dato')}
+        ${infoItem('Modo principal', n.decayMode || 'Sin dato')}
+        ${infoItem('Q alfa', formatWithUnit(n.qAlpha, 'keV'))}
+        ${infoItem('Spin-paridad', n.spinParity || 'Sin dato')}
+      </div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Abundancia y neutrones</h3>
+      <div class="info-grid">
+        ${infoItem('Abundancia natural', n.abundance || 'Sin dato')}
+        ${infoItem('Captura neutrónica térmica', formatWithUnit(n.neutronCapture, 'barns'))}
+      </div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Peculiaridades</h3>
+      <p class="detail-subtitle">${escapeHtml(n.notes || 'Sin notas específicas en el dataset cargado.')}</p>
+    </section>
+
+    <section class="detail-section">
+      <h3>Enlaces</h3>
+      <div class="detail-links">
+        <a href="${escapeAttribute(wikipedia)}" target="_blank" rel="noopener noreferrer">Wikipedia</a>
+        <a href="${escapeAttribute(iaeaQuery)}" target="_blank" rel="noopener noreferrer">IAEA LiveChart</a>
+        <a href="https://www.nndc.bnl.gov/nudat3/" target="_blank" rel="noopener noreferrer">NNDC NuDat</a>
+      </div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Campos crudos importados</h3>
+      <table class="raw-table"><tbody>${rawRows}</tbody></table>
+    </section>
+  `;
+}
+
+function infoItem(label, value) {
+  return `<div class="info-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || 'Sin dato')}</strong></div>`;
+}
+
+function formatWithUnit(value, unit) {
+  return value ? `${value} ${unit}` : 'Sin dato';
 }
 
 function escapeHtml(value) {
   return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replaceAll('`', '&#096;');
+}
+
+function applyFilters() {
+  const cells = document.querySelectorAll('.nuclide-cell');
+  for (const cell of cells) {
+    const decay = cell.dataset.decay || 'unknown';
+    cell.classList.toggle('is-hidden', !state.filters.has(decay));
+  }
+}
+
+function applyColorMode() {
+  for (const cell of document.querySelectorAll('.nuclide-cell')) {
+    const nuclide = state.cellMap.get(cell.dataset.key);
+    if (!nuclide) continue;
+    cell.className = `nuclide-cell ${colorClassFor(nuclide)}${cell.dataset.key === state.selectedKey ? ' is-selected' : ''}`;
+    cell.dataset.decay = nuclide.decayCategory;
+  }
+  applyFilters();
+}
+
+function fitToScreen() {
+  const cell = getCellSize();
+  const rect = els.viewport.getBoundingClientRect();
+  const worldW = (state.maxN + 1) * cell;
+  const worldH = state.maxZ * cell;
+  const scale = Math.min(rect.width / worldW, rect.height / worldH) * 0.92;
+  state.transform.scale = clamp(scale, 0.08, 7);
+  state.transform.x = (rect.width - worldW * state.transform.scale) / 2;
+  state.transform.y = (rect.height - worldH * state.transform.scale) / 2;
+  applyTransform();
+}
+
+function centerWorld() {
+  const cell = getCellSize();
+  const rect = els.viewport.getBoundingClientRect();
+  const worldW = (state.maxN + 1) * cell;
+  const worldH = state.maxZ * cell;
+  state.transform.x = (rect.width - worldW * state.transform.scale) / 2;
+  state.transform.y = (rect.height - worldH * state.transform.scale) / 2;
+  applyTransform();
+}
+
+function applyTransform() {
+  els.world.style.transform = `translate(${state.transform.x}px, ${state.transform.y}px) scale(${state.transform.scale})`;
+}
+
+function minScale() {
+  const cell = getCellSize();
+  const rect = els.viewport.getBoundingClientRect();
+  const worldW = (state.maxN + 1) * cell;
+  const worldH = state.maxZ * cell;
+  return Math.min(rect.width / worldW, rect.height / worldH) * 0.45;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function handleWheel(event) {
+  event.preventDefault();
+  const rect = els.viewport.getBoundingClientRect();
+  const pointerX = event.clientX - rect.left;
+  const pointerY = event.clientY - rect.top;
+  const worldX = (pointerX - state.transform.x) / state.transform.scale;
+  const worldY = (pointerY - state.transform.y) / state.transform.scale;
+  const factor = Math.exp(-event.deltaY * 0.00115);
+  const nextScale = clamp(state.transform.scale * factor, minScale(), 7);
+  state.transform.x = pointerX - worldX * nextScale;
+  state.transform.y = pointerY - worldY * nextScale;
+  state.transform.scale = nextScale;
+  applyTransform();
+  setStatus(`Zoom ${(state.transform.scale * 100).toFixed(0)}%`);
+}
+
+function handlePointerDown(event) {
+  if (shouldIgnoreViewportEvent(event.target)) return;
+  state.dragging = true;
+  state.moved = false;
+  state.dragStart = { x: event.clientX, y: event.clientY };
+  state.dragOrigin = { x: state.transform.x, y: state.transform.y };
+  els.viewport.setPointerCapture?.(event.pointerId);
+}
+
+function handlePointerMove(event) {
+  updateCoordinateStatus(event);
+  if (!state.dragging) return;
+  const dx = event.clientX - state.dragStart.x;
+  const dy = event.clientY - state.dragStart.y;
+  if (Math.hypot(dx, dy) > 3) state.moved = true;
+  state.transform.x = state.dragOrigin.x + dx;
+  state.transform.y = state.dragOrigin.y + dy;
+  applyTransform();
+}
+
+function handlePointerUp(event) {
+  if (!state.dragging) return;
+  els.viewport.releasePointerCapture?.(event.pointerId);
+  const wasMoved = state.moved;
+  state.dragging = false;
+  state.moved = false;
+  if (!wasMoved && !shouldIgnoreViewportEvent(event.target) && !event.target.closest('.nuclide-cell')) {
+    closeDetail();
+  }
+}
+
+function shouldIgnoreViewportEvent(target) {
+  return Boolean(
+    target.closest('.side-menu') ||
+    target.closest('.hamburger') ||
+    target.closest('.detail-popup') ||
+    target.closest('.menu-backdrop')
+  );
+}
+
+function updateCoordinateStatus(event) {
+  const cell = getCellSize();
+  const rect = els.viewport.getBoundingClientRect();
+  const wx = (event.clientX - rect.left - state.transform.x) / state.transform.scale;
+  const wy = (event.clientY - rect.top - state.transform.y) / state.transform.scale;
+  const n = Math.floor(wx / cell);
+  const z = state.maxZ - Math.floor(wy / cell);
+  if (n >= 0 && n <= state.maxN && z >= 1 && z <= state.maxZ) {
+    const found = state.cellMap.get(keyFor(z, n));
+    const suffix = found ? ` · ${found.symbol}-${found.a}` : '';
+    setStatus(`N=${n} · Z=${z}${suffix} · zoom ${(state.transform.scale * 100).toFixed(0)}%`);
+  }
+}
+
+function setStatus(message) {
+  els.statusBar.textContent = message;
+}
+
+function openMenu() {
+  els.sideMenu.classList.add('is-open');
+  els.menuBackdrop.hidden = false;
+  els.menuButton.setAttribute('aria-expanded', 'true');
+}
+
+function closeMenu() {
+  els.sideMenu.classList.remove('is-open');
+  els.menuBackdrop.hidden = true;
+  els.menuButton.setAttribute('aria-expanded', 'false');
+}
+
+function searchNuclide() {
+  const query = els.searchInput.value.trim();
+  if (!query) return;
+  const found = findNuclide(query);
+  if (!found) {
+    setStatus(`No he encontrado “${query}” en los datos cargados.`);
+    return;
+  }
+  selectNuclide(found.key, { center: true });
+  closeMenu();
+}
+
+function findNuclide(query) {
+  const q = query.trim();
+  const zMatch = q.match(/z\s*=\s*(\d+)/i);
+  const nMatch = q.match(/n\s*=\s*(\d+)/i);
+  if (zMatch && nMatch) return state.cellMap.get(keyFor(Number(zMatch[1]), Number(nMatch[1])));
+
+  const canonical = q.replace(/\s+/g, '').toLowerCase();
+  let m = canonical.match(/^([a-z]{1,3})-?(\d{1,3})$/i);
+  if (m) {
+    const symbol = normalizeSymbol(m[1]);
+    const a = Number(m[2]);
+    return state.nuclides.find(n => n.symbol.toLowerCase() === symbol.toLowerCase() && n.a === a);
+  }
+  m = canonical.match(/^(\d{1,3})([a-z]{1,3})$/i);
+  if (m) {
+    const a = Number(m[1]);
+    const symbol = normalizeSymbol(m[2]);
+    return state.nuclides.find(n => n.symbol.toLowerCase() === symbol.toLowerCase() && n.a === a);
+  }
+
+  return state.nuclides.find(n =>
+    n.nuclideName.toLowerCase() === q.toLowerCase() ||
+    n.elementName.toLowerCase() === q.toLowerCase() ||
+    `${n.symbol}-${n.a}`.toLowerCase() === canonical
+  );
+}
+
+function downloadTemplate() {
+  const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'plantilla_nucleidos.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function loadRemoteCsv() {
+  const url = els.remoteCsvUrl.value.trim();
+  if (!url) return;
+  setStatus('Intentando cargar CSV remoto...');
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
+    loadNuclidesFromCsv(text, 'CSV remoto');
+  } catch (error) {
+    console.error(error);
+    setStatus('El navegador ha bloqueado o fallado la carga remota. Descarga el CSV e impórtalo localmente.');
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+function wireEvents() {
+  els.viewport.addEventListener('wheel', handleWheel, { passive: false });
+  els.viewport.addEventListener('pointerdown', handlePointerDown);
+  els.viewport.addEventListener('pointermove', handlePointerMove);
+  els.viewport.addEventListener('pointerup', handlePointerUp);
+  els.viewport.addEventListener('pointercancel', handlePointerUp);
+
+  els.menuButton.addEventListener('click', openMenu);
+  els.closeMenuButton.addEventListener('click', closeMenu);
+  els.menuBackdrop.addEventListener('click', closeMenu);
+  els.closePopupButton.addEventListener('click', closeDetail);
+
+  els.searchButton.addEventListener('click', searchNuclide);
+  els.searchInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') searchNuclide();
+  });
+
+  els.colorMode.addEventListener('change', () => {
+    state.colorMode = els.colorMode.value;
+    applyColorMode();
+  });
+
+  els.fitButton.addEventListener('click', () => {
+    fitToScreen();
+    closeMenu();
+  });
+
+  els.resetButton.addEventListener('click', () => {
+    centerWorld();
+    closeMenu();
+  });
+
+  els.csvInput.addEventListener('change', async event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    loadNuclidesFromCsv(text, file.name);
+    closeMenu();
+  });
+
+  els.loadSampleButton.addEventListener('click', () => {
+    loadNuclidesFromCsv(SAMPLE_CSV, 'muestra interna');
+    closeMenu();
+  });
+
+  els.downloadTemplateButton.addEventListener('click', downloadTemplate);
+  els.loadRemoteButton.addEventListener('click', loadRemoteCsv);
+
+  els.filterList.addEventListener('change', () => {
+    state.filters = new Set([...els.filterList.querySelectorAll('input:checked')].map(input => input.value));
+    applyFilters();
+  });
+
+  window.addEventListener('resize', () => {
+    renderAll();
+    fitToScreen();
+  });
+
+  window.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      closeMenu();
+      closeDetail();
+    }
+  });
+}
+
+function init() {
+  wireEvents();
+  loadNuclidesFromCsv(SAMPLE_CSV, 'muestra interna');
 }
 
 init();
