@@ -12,17 +12,28 @@
       <div id="chart" class="chart" aria-label="Cuadrícula de nucleidos"></div>
     </section>
 
-    <button id="menuButton" class="floating-button menu-button" aria-label="Abrir menú" title="Menú">
+    <button id="menuButton" class="menu-button" aria-label="Abrir menú" title="Menú">
       <span></span><span></span><span></span>
     </button>
 
-    <div class="hud hud-left" aria-hidden="true">
-      <div class="hud-pill">Rueda: zoom</div>
-      <div class="hud-pill">Arrastrar: mover</div>
-      <div class="hud-pill">Clic vacío: cerrar ficha</div>
+    <div class="top-tools" aria-label="Herramientas de vista">
+      <button id="legendButton" class="tool-button" aria-label="Mostrar leyenda" title="Leyenda de capas">
+        <span class="layers-icon" aria-hidden="true"></span>
+      </button>
+      <div id="zoomHud" class="zoom-hud" aria-live="polite">100%</div>
     </div>
 
-    <div id="zoomHud" class="zoom-hud" aria-live="polite">100%</div>
+    <div id="legendPopover" class="legend-popover" aria-hidden="true">
+      <div class="popover-head">
+        <strong>Leyenda</strong>
+        <span id="legendModeLabel">Modo actual</span>
+      </div>
+      <div id="legend" class="legend"></div>
+    </div>
+
+    <div id="hoverTooltip" class="hover-tooltip" aria-hidden="true"></div>
+
+    <div id="cursorHud" class="cursor-hud" aria-live="polite">Z — · N —</div>
 
     <aside id="sideMenu" class="side-menu" aria-label="Menú de configuración" aria-hidden="true">
       <div class="side-head">
@@ -78,25 +89,26 @@
           <label><input type="checkbox" class="filterToggle" value="beta-" checked /> β−</label>
           <label><input type="checkbox" class="filterToggle" value="beta+/EC" checked /> β+/EC</label>
           <label><input type="checkbox" class="filterToggle" value="alpha" checked /> α</label>
-          <label><input type="checkbox" class="filterToggle" value="sf" checked /> Fisión esp.</label>
-          <label><input type="checkbox" class="filterToggle" value="unknown" checked /> Otros</label>
+          <label><input type="checkbox" class="filterToggle" value="sf" checked /> Fisión espontánea</label>
+          <label><input type="checkbox" class="filterToggle" value="p" checked /> Emisión protón</label>
+          <label><input type="checkbox" class="filterToggle" value="n" checked /> Emisión neutrón</label>
+          <label><input type="checkbox" class="filterToggle" value="it" checked /> Transición isomérica</label>
+          <label><input type="checkbox" class="filterToggle" value="cluster" checked /> Clúster</label>
+          <label><input type="checkbox" class="filterToggle" value="unknown" checked /> Otros / sin clasificar</label>
         </div>
       </details>
 
       <details class="menu-section">
         <summary>Datos externos</summary>
         <p class="small-copy">La tabla arranca con una malla generada para probar la interfaz. Para datos evaluados completos, importa CSV o carga desde IAEA si el navegador lo permite.</p>
-        <button id="loadIaeaButton" class="menu-action full">Cargar datos IAEA LiveChart</button>
-        <label class="file-button">
-          Importar CSV local
-          <input id="csvInput" type="file" accept=".csv,text/csv" hidden />
-        </label>
+        <div class="external-actions">
+          <button id="loadIaeaButton" class="menu-action compact-menu-action">Cargar IAEA</button>
+          <label class="file-button compact-file-button">
+            CSV local
+            <input id="csvInput" type="file" accept=".csv,text/csv" hidden />
+          </label>
+        </div>
         <p id="dataStatus" class="status-line">Datos internos de demostración cargados.</p>
-      </details>
-
-      <details class="menu-section">
-        <summary>Leyenda</summary>
-        <div id="legend" class="legend"></div>
       </details>
 
       <details class="menu-section">

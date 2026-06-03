@@ -1,42 +1,26 @@
-# Tabla de nucleidos — visor interactivo v3
+# Tabla de nucleidos — visor interactivo v4
 
-Versión estática en HTML, CSS y JavaScript.
+Versión de pulido visual basada en el enfoque de visor a pantalla completa.
 
-## Cambios de esta versión
+## Cambios v4
 
-- La cuadrícula ocupa el 100% de la pantalla.
-- La página no tiene scroll vertical ni horizontal del documento.
-- El gráfico tiene anchura/altura internas fijas y se ajusta inicialmente para ver la tabla completa.
-- La rueda del ratón hace zoom centrado en el cursor.
-- Se puede arrastrar el escenario para desplazarse por la tabla.
-- Las casillas son más grandes y muestran A, Z, N, símbolo y modo resumido.
-- Al clicar una celda se abre una ficha grande con transición suave.
-- La ficha incluye información del nucleido y una simulación atómica esquemática en canvas.
-- El menú hamburguesa contiene búsqueda, filtros, colores, importación CSV/IAEA, leyenda, notas y modo oscuro.
+- Botón hamburguesa reducido, sin caja ni borde visual dominante.
+- Eliminados los avisos flotantes de “rueda / arrastrar / clic vacío”.
+- Leyenda sacada del menú lateral y movida a un botón flotante de capas junto al zoom.
+- La leyenda se abre/cierra al pulsar el botón y se cierra al clicar fuera.
+- Menú de datos externos más compacto.
+- Más filtros de desintegración: estables, β−, β+/EC, α, fisión espontánea, protón, neutrón, transición isomérica, clúster y otros.
+- Celdas algo mayores y con nombre abreviado del elemento.
+- Tooltip al pasar el ratón por encima de una celda.
+- Indicador discreto de coordenadas Z/N bajo el cursor.
+- Cuadrícula visual más perceptible.
+- Espacio reservado para Z > 118 y soporte para representar nucleidos importados con Z superior a 118 si aparecen en un CSV.
 
 ## Uso
 
-Abre `index.html` directamente en un navegador moderno.
+Abre `index.html` en un navegador moderno. La rueda del ratón hace zoom centrado en el cursor; arrastrar mueve la tabla; clicar un nucleido abre la ficha; clicar el vacío la cierra.
 
-Controles:
+## Datos
 
-- Rueda del ratón: zoom.
-- Arrastrar fondo: mover tabla.
-- Clic en una celda: abrir ficha.
-- Clic en zona vacía: cerrar ficha.
-- Esc: cerrar ficha o menú.
+La malla inicial es demostrativa. Para trabajo científico serio, importa datos evaluados desde IAEA LiveChart, ENSDF/NNDC u otra fuente nuclear fiable.
 
-## Sobre los datos
-
-Esta versión incluye una malla interna de demostración para validar la interfaz. No debe tratarse como una base nuclear evaluada completa. Para datos científicos reales, usa la importación CSV o la carga desde IAEA LiveChart si tu navegador permite la petición.
-
-Campos recomendados para CSV:
-
-- `z`, `n`, `a`, `symbol`, `element`
-- `half_life`, `decay`, `abundance`, `atomic_mass`
-- `spin`, `parity`, `q_value`, `mass_excess`
-- `source`, `notes`, `wikipedia`
-
-## Nota visual
-
-La interfaz está inspirada en aplicaciones educativas de tabla periódica con ficha grande y visualización atómica, pero no copia código, imágenes, marcas ni assets externos. La simulación del átomo es una representación educativa tipo Bohr, no una visualización cuántica real.

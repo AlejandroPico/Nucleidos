@@ -1,15 +1,18 @@
 'use strict';
 
-const CELL_W = 66;
-const CELL_H = 54;
-const GAP = 7;
-const AXIS = 42;
-const Z_MAX = 118;
-const N_MAX = 210;
+const CELL_W = 76;
+const CELL_H = 62;
+const GAP = 8;
+const AXIS = 54;
+const OFFICIAL_Z_MAX = 118;
+const DEFAULT_Z_MAX = 130;
+const DEFAULT_N_MAX = 240;
+let Z_MAX = DEFAULT_Z_MAX;
+let N_MAX = DEFAULT_N_MAX;
 const TILE_STEP_X = CELL_W + GAP;
 const TILE_STEP_Y = CELL_H + GAP;
-const CHART_W = AXIS + (N_MAX + 1) * TILE_STEP_X + 90;
-const CHART_H = AXIS + Z_MAX * TILE_STEP_Y + 90;
+let CHART_W = 0;
+let CHART_H = 0;
 const IAEA_URL = 'https://www-nds.iaea.org/relnsd/v0/data?fields=ground_states&nuclides=all';
 
 const ELEMENTS = [
@@ -54,6 +57,10 @@ const DECAY_LABELS = {
   'beta+/EC': 'β+/EC',
   'alpha': 'α',
   'sf': 'FE',
+  'p': 'p',
+  'n': 'n',
+  'it': 'IT',
+  'cluster': 'Clúster',
   'unknown': 'Otro'
 };
 
@@ -64,6 +71,10 @@ const PALETTES = {
     'beta+/EC': '#f6dfdc',
     alpha: '#f5e3bd',
     sf: '#e4d8f7',
+    p: '#f4d7c8',
+    n: '#d7e9ea',
+    it: '#dee0f7',
+    cluster: '#ead9c2',
     unknown: '#e8e5dc'
   },
   stability: {
@@ -86,7 +97,7 @@ const state = {
   selected: null,
   selectedEl: null,
   colorMode: 'decay',
-  filters: new Set(['stable','beta-','beta+/EC','alpha','sf','unknown']),
+  filters: new Set(['stable','beta-','beta+/EC','alpha','sf','p','n','it','cluster','unknown']),
   scale: 1,
   tx: 0,
   ty: 0,
@@ -101,6 +112,11 @@ const state = {
 const viewport = document.getElementById('viewport');
 const chart = document.getElementById('chart');
 const zoomHud = document.getElementById('zoomHud');
+const legendButton = document.getElementById('legendButton');
+const legendPopover = document.getElementById('legendPopover');
+const legendModeLabel = document.getElementById('legendModeLabel');
+const hoverTooltip = document.getElementById('hoverTooltip');
+const cursorHud = document.getElementById('cursorHud');
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
 const closeMenu = document.getElementById('closeMenu');
@@ -122,10 +138,9 @@ const atomCanvas = document.getElementById('atomCanvas');
 const atomCtx = atomCanvas.getContext('2d');
 
 function init() {
-  document.documentElement.style.setProperty('--chart-w', `${CHART_W}px`);
-  document.documentElement.style.setProperty('--chart-h', `${CHART_H}px`);
-  chart.style.width = `${CHART_W}px`;
-  chart.style.height = `${CHART_H}px`;
+  updateChartMetrics();
+  document.documentElement.style.setProperty('--tile-step-x', `${TILE_STEP_X}px`);
+  document.documentElement.style.setProperty('--tile-step-y', `${TILE_STEP_Y}px`);
   state.nuclides = generateNuclides();
   indexNuclides();
   renderChart();
@@ -133,6 +148,23 @@ function init() {
   fitToScreen(true);
   bindEvents();
   requestAnimationFrame(drawAtomLoop);
+}
+
+function updateChartMetrics() {
+  CHART_W = AXIS + (N_MAX + 1) * TILE_STEP_X + 110;
+  CHART_H = AXIS + Z_MAX * TILE_STEP_Y + 110;
+  document.documentElement.style.setProperty('--chart-w', `${CHART_W}px`);
+  document.documentElement.style.setProperty('--chart-h', `${CHART_H}px`);
+  chart.style.width = `${CHART_W}px`;
+  chart.style.height = `${CHART_H}px`;
+}
+
+function updateBoundsFromData(rows) {
+  const maxZ = Math.max(DEFAULT_Z_MAX, ...rows.map(n => Number(n.z) || 0)) + 2;
+  const maxN = Math.max(DEFAULT_N_MAX, ...rows.map(n => Number(n.n) || 0)) + 4;
+  Z_MAX = Math.ceil(maxZ / 10) * 10;
+  N_MAX = Math.ceil(maxN / 10) * 10;
+  updateChartMetrics();
 }
 
 function stableNFor(Z) {
@@ -167,8 +199,8 @@ function estimateHalfLife(decay, distance, Z) {
 
 function generateNuclides() {
   const result = [];
-  for (let Z = 1; Z <= Z_MAX; Z++) {
-    const [symbol, element] = ELEMENTS[Z];
+  for (let Z = 1; Z <= OFFICIAL_Z_MAX; Z++) {
+    const [symbol, element] = elementInfo(Z);
     const center = stableNFor(Z);
     const width = Math.max(3, Math.round(3 + Z / 4.2));
     const minN = Math.max(0, center - width - 3);
@@ -211,6 +243,16 @@ function buildGenericNote(Z, N, decay, center) {
   return `Nucleido ${relation}. Modo dominante mostrado: ${mode}. Esta ficha procede de una malla interna de demostración; para valores nucleares evaluados conviene importar datos ENSDF/IAEA.`;
 }
 
+function elementInfo(Z) {
+  if (ELEMENTS[Z]) return ELEMENTS[Z];
+  return [systematicSymbol(Z), `Elemento ${Z} · hipotético/no confirmado`];
+}
+
+function systematicSymbol(Z) {
+  const roots = ['n','u','b','t','q','p','h','s','o','e'];
+  return String(Z).split('').map(d => roots[Number(d)]).join('').replace(/^./, c => c.toUpperCase());
+}
+
 function indexNuclides() {
   state.byKey.clear();
   state.nuclides.forEach(n => state.byKey.set(`${n.z}-${n.n}`, n));
@@ -229,15 +271,21 @@ function renderChart() {
     el.style.left = `${AXIS + n.n * TILE_STEP_X}px`;
     el.style.top = `${AXIS + (Z_MAX - n.z) * TILE_STEP_Y}px`;
     el.style.setProperty('--cell-color', getCellColor(n));
+    el.title = `${n.element}-${n.a} · Z=${n.z} · N=${n.n}`;
+    el.setAttribute('aria-label', el.title);
     el.innerHTML = `
       <div class="cell-top"><span>${n.a}</span><span>N${n.n}</span></div>
       <div class="cell-symbol">${escapeHtml(n.symbol)}</div>
+      <div class="cell-name">${escapeHtml(shortElementName(n.element))}</div>
       <div class="cell-bottom"><span>Z${n.z}</span><span class="decay-badge">${DECAY_LABELS[n.decay] || n.decay}</span></div>
     `;
     el.addEventListener('click', (event) => {
       event.stopPropagation();
       selectNuclide(n, el);
     });
+    el.addEventListener('pointerenter', (event) => showHoverTooltip(n, event));
+    el.addEventListener('pointermove', (event) => moveHoverTooltip(event));
+    el.addEventListener('pointerleave', hideHoverTooltip);
     fragment.appendChild(el);
   }
   chart.appendChild(fragment);
@@ -260,6 +308,15 @@ function renderAxes() {
   yTitle.style.left = '4px';
   yTitle.style.top = `${AXIS + 20}px`;
   frag.appendChild(yTitle);
+
+  if (Z_MAX > OFFICIAL_Z_MAX) {
+    const future = document.createElement('div');
+    future.className = 'future-zone-label';
+    future.textContent = 'Z > 118 · zona reservada para datos importados / superpesados hipotéticos';
+    future.style.left = `${AXIS + 18}px`;
+    future.style.top = `${AXIS + (Z_MAX - OFFICIAL_Z_MAX) * TILE_STEP_Y - 34}px`;
+    frag.appendChild(future);
+  }
 
   for (let N = 0; N <= N_MAX; N += 10) {
     const label = document.createElement('div');
@@ -312,6 +369,8 @@ function applyFilters() {
 
 function renderLegend() {
   legend.innerHTML = '';
+  const modeNames = { decay: 'Desintegración', stability: 'Estabilidad', halflife: 'Vida media' };
+  if (legendModeLabel) legendModeLabel.textContent = modeNames[state.colorMode] || 'Modo actual';
   let entries;
   if (state.colorMode === 'stability') {
     entries = [
@@ -460,6 +519,57 @@ function zoomAt(clientX, clientY, deltaY) {
   updateTransform();
 }
 
+function shortElementName(name) {
+  return String(name || '').replace(/ · .+$/, '').slice(0, 12);
+}
+
+function showHoverTooltip(n, event) {
+  hoverTooltip.innerHTML = `<strong>${escapeHtml(n.element)}-${n.a}</strong><span>${escapeHtml(n.symbol)} · Z=${n.z} · N=${n.n} · ${escapeHtml(DECAY_LABELS[n.decay] || n.decay)}</span>`;
+  hoverTooltip.classList.add('open');
+  hoverTooltip.setAttribute('aria-hidden', 'false');
+  moveHoverTooltip(event);
+}
+
+function moveHoverTooltip(event) {
+  const pad = 16;
+  const rect = hoverTooltip.getBoundingClientRect();
+  let x = event.clientX + 16;
+  let y = event.clientY + 16;
+  if (x + rect.width + pad > window.innerWidth) x = event.clientX - rect.width - 16;
+  if (y + rect.height + pad > window.innerHeight) y = event.clientY - rect.height - 16;
+  hoverTooltip.style.left = `${Math.max(pad, x)}px`;
+  hoverTooltip.style.top = `${Math.max(pad, y)}px`;
+}
+
+function hideHoverTooltip() {
+  hoverTooltip.classList.remove('open');
+  hoverTooltip.setAttribute('aria-hidden', 'true');
+}
+
+function updateCursorHud(event) {
+  const chartX = (event.clientX - state.tx) / state.scale;
+  const chartY = (event.clientY - state.ty) / state.scale;
+  const N = Math.round((chartX - AXIS - CELL_W / 2) / TILE_STEP_X);
+  const Z = Z_MAX - Math.round((chartY - AXIS - CELL_H / 2) / TILE_STEP_Y);
+  if (N >= 0 && N <= N_MAX && Z >= 1 && Z <= Z_MAX) {
+    cursorHud.textContent = `Z ${Z} · N ${N}`;
+    cursorHud.classList.add('visible');
+  } else {
+    cursorHud.classList.remove('visible');
+  }
+}
+
+function closeLegendPopover() {
+  legendPopover.classList.remove('open');
+  legendPopover.setAttribute('aria-hidden', 'true');
+}
+
+function toggleLegendPopover(event) {
+  event.stopPropagation();
+  const isOpen = legendPopover.classList.toggle('open');
+  legendPopover.setAttribute('aria-hidden', String(!isOpen));
+}
+
 function centerOnNuclide(n, zoomMultiplier = 7) {
   const x = AXIS + n.n * TILE_STEP_X + CELL_W / 2;
   const y = AXIS + (Z_MAX - n.z) * TILE_STEP_Y + CELL_H / 2;
@@ -470,6 +580,12 @@ function centerOnNuclide(n, zoomMultiplier = 7) {
 }
 
 function bindEvents() {
+  viewport.addEventListener('pointermove', updateCursorHud);
+  viewport.addEventListener('pointerleave', () => {
+    cursorHud.classList.remove('visible');
+    hideHoverTooltip();
+  });
+
   viewport.addEventListener('wheel', (event) => {
     event.preventDefault();
     zoomAt(event.clientX, event.clientY, event.deltaY);
@@ -510,6 +626,9 @@ function bindEvents() {
   });
 
   menuButton.addEventListener('click', openMenu);
+  legendButton.addEventListener('click', toggleLegendPopover);
+  legendPopover.addEventListener('click', event => event.stopPropagation());
+  document.addEventListener('click', closeLegendPopover);
   closeMenu.addEventListener('click', closeSideMenu);
   scrim.addEventListener('click', closeSideMenu);
   closeCard.addEventListener('click', closeNuclideCard);
@@ -561,6 +680,7 @@ function bindEvents() {
     if (event.key === 'Escape') {
       closeNuclideCard();
       closeSideMenu();
+      closeLegendPopover();
     }
   });
 }
@@ -643,6 +763,7 @@ function replaceWithCsvRows(rows, sourceName) {
   const mapped = rows.map(row => rowToNuclide(row, sourceName)).filter(Boolean);
   if (!mapped.length) throw new Error('No se reconocieron columnas z/n o a/symbol.');
   state.nuclides = mapped;
+  updateBoundsFromData(mapped);
   indexNuclides();
   renderChart();
   fitToScreen(true);
@@ -661,11 +782,11 @@ function rowToNuclide(row, sourceName) {
   }
   const finalZ = z || Number(row.z);
   if (!finalZ) return null;
-  if (!symbol && ELEMENTS[finalZ]) symbol = ELEMENTS[finalZ][0];
+  if (!symbol) symbol = elementInfo(finalZ)[0];
   if (!Number.isFinite(n) && Number.isFinite(a)) n = a - finalZ;
   if (!Number.isFinite(a) && Number.isFinite(n)) a = finalZ + n;
   if (!Number.isFinite(n) || !Number.isFinite(a)) return null;
-  const element = pick(row, ['element','Element','name','Name']) || ELEMENTS[finalZ]?.[1] || symbol;
+  const element = pick(row, ['element','Element','name','Name']) || elementInfo(finalZ)[1] || symbol;
   const decayRaw = String(pick(row, ['decay','decay_1','decay mode','decayMode','Decay','decay_modes']) || '').toLowerCase();
   const decay = normalizeDecay(decayRaw, pick(row, ['half_life','Half-life','halflife','T1/2','half_life_sec']));
   return {
@@ -692,10 +813,14 @@ function rowToNuclide(row, sourceName) {
 function normalizeDecay(text, halfLife) {
   const h = String(halfLife || '').toLowerCase();
   if (text.includes('stable') || text.includes('stbl') || h.includes('stable') || h.includes('inf')) return 'stable';
-  if (text.includes('alpha') || text.includes('a ') || text === 'a') return 'alpha';
+  if (text.includes('cluster') || text.includes('cl')) return 'cluster';
+  if (text.includes('alpha') || text.includes('a ') || text === 'a' || text === 'α') return 'alpha';
   if (text.includes('b-') || text.includes('beta-') || text.includes('β-')) return 'beta-';
   if (text.includes('ec') || text.includes('b+') || text.includes('beta+') || text.includes('β+')) return 'beta+/EC';
-  if (text.includes('sf')) return 'sf';
+  if (text.includes('sf') || text.includes('fission')) return 'sf';
+  if (text.includes('it') || text.includes('isomer')) return 'it';
+  if (text === 'p' || text.includes(' proton')) return 'p';
+  if (text === 'n' || text.includes(' neutron')) return 'n';
   return 'unknown';
 }
 
