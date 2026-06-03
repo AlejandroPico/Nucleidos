@@ -1021,3 +1021,235 @@ body.dark .axis-pill { background: rgba(255,255,255,.06); }
   align-items: end !important;
   justify-content: space-between !important;
 }
+
+/* v7: official CSV, top tools, centered cell content, simplified card */
+.search-tool {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.top-search-box {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 38px;
+  width: 38px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 12px 30px rgba(20,20,20,.08);
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  transform-origin: right center;
+  transition: width 190ms cubic-bezier(.2,.85,.2,1), opacity 120ms ease, padding 190ms ease;
+}
+.search-tool.open .top-search-box {
+  width: min(360px, calc(100vw - 156px));
+  padding: 0 5px 0 13px;
+  opacity: 1;
+  pointer-events: auto;
+}
+.search-tool.open #searchToggleButton { opacity: 0; pointer-events: none; }
+.top-search-box input[type="search"] {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 850;
+}
+.top-search-box input[type="search"]:focus { box-shadow: none; border-color: transparent; }
+.top-search-go {
+  border: 0;
+  border-radius: 999px;
+  min-width: 36px;
+  height: 28px;
+  padding: 0 10px;
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+}
+.search-icon {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  display: block;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+}
+.search-icon::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 2px;
+  right: -6px;
+  bottom: -3px;
+  border-radius: 99px;
+  background: currentColor;
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+.theme-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.moon-icon {
+  border-radius: 50%;
+  box-shadow: inset -5px 0 0 currentColor;
+  border: 2px solid currentColor;
+  opacity: .9;
+}
+.sun-icon {
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+.sun-icon::before,
+.sun-icon::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  background:
+    linear-gradient(currentColor, currentColor) center top / 2px 4px no-repeat,
+    linear-gradient(currentColor, currentColor) center bottom / 2px 4px no-repeat,
+    linear-gradient(90deg, currentColor, currentColor) left center / 4px 2px no-repeat,
+    linear-gradient(90deg, currentColor, currentColor) right center / 4px 2px no-repeat;
+  opacity: .85;
+}
+.sun-icon::after { transform: rotate(45deg); opacity: .55; }
+
+.nuclide-cell {
+  display: grid !important;
+  grid-template-rows: 13px minmax(0, 1fr) 14px !important;
+  padding: 7px 7px !important;
+  text-align: center !important;
+}
+.cell-top,
+.cell-bottom {
+  justify-content: center !important;
+  gap: 6px !important;
+  text-align: center !important;
+}
+.cell-bottom { align-items: center !important; }
+.decay-badge {
+  max-width: 42px !important;
+  text-align: center !important;
+}
+.cell-main {
+  justify-content: center !important;
+  justify-items: center !important;
+  align-content: center !important;
+  text-align: center !important;
+}
+.cell-symbol,
+.cell-name {
+  text-align: center !important;
+  justify-self: center !important;
+  margin-inline: auto !important;
+}
+.cell-name { max-width: calc(var(--cell-w) - 18px) !important; }
+
+.close-card { display: none !important; }
+.nuclide-card {
+  grid-template-columns: 360px 1fr;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.72), rgba(255,255,255,.92));
+  backdrop-filter: blur(22px);
+}
+body.dark .nuclide-card {
+  background:
+    linear-gradient(135deg, rgba(25,28,37,.84), rgba(25,28,37,.96));
+}
+.card-info {
+  padding: 28px 28px 24px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(93,90,246,.11), transparent 34%),
+    linear-gradient(180deg, rgba(128,128,128,.045), rgba(128,128,128,.015));
+}
+.identity-row { margin: 2px 0 20px; }
+.mass-stack {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 10px 11px;
+  background: rgba(255,255,255,.34);
+  text-align: center;
+}
+body.dark .mass-stack { background: rgba(255,255,255,.05); }
+.symbol-line { gap: 12px; }
+#detailSymbol { font-size: 56px; }
+#detailName { font-size: 23px; }
+.detail-subtitle { margin-top: 6px; }
+.primary-stats,
+.detail-grid { display: none !important; }
+.detail-sheet {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(255,255,255,.26);
+}
+body.dark .detail-sheet { background: rgba(255,255,255,.035); }
+.detail-row {
+  display: grid;
+  grid-template-columns: 116px minmax(0,1fr);
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--line);
+}
+.detail-row:last-child { border-bottom: 0; }
+.detail-row span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .075em;
+}
+.detail-row strong {
+  min-width: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 880;
+  overflow-wrap: anywhere;
+}
+.info-block {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 13px 14px;
+  background: rgba(255,255,255,.20);
+}
+body.dark .info-block { background: rgba(255,255,255,.035); }
+.info-block h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.link-row a {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+.link-row a:hover { border-color: rgba(93,90,246,.45); color: var(--accent); }
+.atom-toolbar { right: 26px; }
+
+@media (max-width: 720px) {
+  .search-tool.open .top-search-box { width: min(310px, calc(100vw - 104px)); }
+  .nuclide-card { grid-template-columns: 1fr; }
+  .detail-row { grid-template-columns: 104px minmax(0, 1fr); }
+}

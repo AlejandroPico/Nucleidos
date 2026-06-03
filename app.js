@@ -14,6 +14,7 @@ const TILE_STEP_Y = CELL_H + GAP;
 let CHART_W = 0;
 let CHART_H = 0;
 const IAEA_URL = 'https://www-nds.iaea.org/relnsd/v0/data?fields=ground_states&nuclides=all';
+const OFFICIAL_CSV_URL = 'nuclides.csv';
 
 const ELEMENTS = [
   null,
@@ -126,12 +127,14 @@ const sideMenu = document.getElementById('sideMenu');
 const closeMenu = document.getElementById('closeMenu');
 const scrim = document.getElementById('scrim');
 const card = document.getElementById('nuclideCard');
-const closeCard = document.getElementById('closeCard');
+const searchTool = document.getElementById('searchTool');
+const searchToggleButton = document.getElementById('searchToggleButton');
+const darkModeButton = document.getElementById('darkModeButton');
+const themeIcon = document.getElementById('themeIcon');
 const searchInput = document.getElementById('searchInput');
 const searchButton = document.getElementById('searchButton');
 const resetViewButton = document.getElementById('resetViewButton');
 const fitWidthButton = document.getElementById('fitWidthButton');
-const darkModeToggle = document.getElementById('darkModeToggle');
 const axesToggle = document.getElementById('axesToggle');
 const animationToggle = document.getElementById('animationToggle');
 const csvInput = document.getElementById('csvInput');
@@ -141,11 +144,12 @@ const legend = document.getElementById('legend');
 const atomCanvas = document.getElementById('atomCanvas');
 const atomCtx = atomCanvas.getContext('2d');
 
-function init() {
+async function init() {
   updateChartMetrics();
   document.documentElement.style.setProperty('--tile-step-x', `${TILE_STEP_X}px`);
   document.documentElement.style.setProperty('--tile-step-y', `${TILE_STEP_Y}px`);
-  state.nuclides = generateNuclides();
+  state.nuclides = await loadInitialNuclides();
+  updateBoundsFromData(state.nuclides);
   indexNuclides();
   renderChart();
   renderLegend();
@@ -153,6 +157,41 @@ function init() {
   bindEvents();
   requestAnimationFrame(drawAtomLoop);
 }
+
+async function loadInitialNuclides() {
+  const sources = [];
+  try {
+    const response = await fetch(OFFICIAL_CSV_URL, { cache: 'no-store' });
+    if (response.ok) {
+      const text = await response.text();
+      sources.push({ name: OFFICIAL_CSV_URL, text });
+    }
+  } catch (_) {
+    // Abrir la app como file:// puede bloquear fetch() de ficheros locales.
+  }
+
+  if (window.EMBEDDED_NUCLIDES_CSV) {
+    sources.push({ name: 'nuclides.csv integrado', text: window.EMBEDDED_NUCLIDES_CSV });
+  }
+
+  for (const source of sources) {
+    try {
+      const rows = parseCsv(source.text);
+      const mapped = rows.map(row => rowToNuclide(row, source.name)).filter(Boolean);
+      if (mapped.length) {
+        if (dataStatus) dataStatus.textContent = `Cargados ${mapped.length.toLocaleString('es-ES')} nucleidos desde ${source.name}.`;
+        return mapped;
+      }
+    } catch (_) {
+      // Si una fuente falla, pasamos a la siguiente.
+    }
+  }
+
+  const generated = generateNuclides();
+  if (dataStatus) dataStatus.textContent = 'No se pudo leer nuclides.csv. Usando malla interna de respaldo.';
+  return generated;
+}
+
 
 function updateChartMetrics() {
   CHART_W = AXIS + (N_MAX + 1) * TILE_STEP_X + 110;
@@ -248,6 +287,7 @@ function buildGenericNote(Z, N, decay, center) {
 }
 
 function elementInfo(Z) {
+  if (Number(Z) === 0) return ['n', 'Neutrón'];
   if (ELEMENTS[Z]) return ELEMENTS[Z];
   return [systematicSymbol(Z), `Elemento ${Z}`];
 }
@@ -591,6 +631,34 @@ function toggleLegendPopover(event) {
   legendPopover.setAttribute('aria-hidden', String(!isOpen));
 }
 
+function setDarkMode(enabled) {
+  document.body.classList.toggle('dark', enabled);
+  darkModeButton.setAttribute('aria-label', enabled ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+  darkModeButton.title = enabled ? 'Modo claro' : 'Modo oscuro';
+  themeIcon.className = `theme-icon ${enabled ? 'sun-icon' : 'moon-icon'}`;
+}
+
+function toggleDarkMode() {
+  setDarkMode(!document.body.classList.contains('dark'));
+}
+
+function openSearchTool() {
+  searchTool.classList.add('open');
+  searchTool.querySelector('.top-search-box')?.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => searchInput.focus());
+}
+
+function closeSearchTool() {
+  searchTool.classList.remove('open');
+  searchTool.querySelector('.top-search-box')?.setAttribute('aria-hidden', 'true');
+}
+
+function toggleSearchTool() {
+  if (searchTool.classList.contains('open')) closeSearchTool();
+  else openSearchTool();
+}
+
+
 function centerOnNuclide(n, zoomMultiplier = 7) {
   const x = AXIS + n.n * TILE_STEP_X + TILE_STEP_X / 2;
   const y = AXIS + (Z_MAX - n.z) * TILE_STEP_Y + TILE_STEP_Y / 2;
@@ -658,10 +726,12 @@ function bindEvents() {
   menuButton.addEventListener('click', openMenu);
   legendButton.addEventListener('click', toggleLegendPopover);
   legendPopover.addEventListener('click', event => event.stopPropagation());
-  document.addEventListener('click', closeLegendPopover);
+  document.addEventListener('click', () => {
+    closeLegendPopover();
+    closeSearchTool();
+  });
   closeMenu.addEventListener('click', closeSideMenu);
   scrim.addEventListener('click', closeSideMenu);
-  closeCard.addEventListener('click', closeNuclideCard);
   resetViewButton.addEventListener('click', () => fitToScreen(true));
   fitWidthButton.addEventListener('click', fitWidth);
 
@@ -670,9 +740,16 @@ function bindEvents() {
     if (event.key === 'Enter') runSearch();
   });
 
-  darkModeToggle.addEventListener('change', () => {
-    document.body.classList.toggle('dark', darkModeToggle.checked);
+  darkModeButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleDarkMode();
   });
+
+  searchToggleButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleSearchTool();
+  });
+  searchTool.addEventListener('click', event => event.stopPropagation());
 
   axesToggle.addEventListener('change', () => {
     chart.classList.toggle('axes-hidden', !axesToggle.checked);
@@ -696,6 +773,7 @@ function bindEvents() {
       closeNuclideCard();
       closeSideMenu();
       closeLegendPopover();
+      closeSearchTool();
     }
   });
 }
@@ -713,6 +791,7 @@ function runSearch() {
     selectNuclide(found, el);
     centerOnNuclide(found);
     closeSideMenu();
+    closeSearchTool();
   }
 }
 
@@ -738,6 +817,7 @@ function findNuclide(query) {
 }
 
 function normalizeSymbol(s) {
+  if (String(s).trim().toLowerCase() === 'n') return 'n';
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
@@ -786,24 +866,38 @@ function replaceWithCsvRows(rows, sourceName) {
 }
 
 function rowToNuclide(row, sourceName) {
-  const z = toNumber(pick(row, ['z','Z','protons','Protons']));
+  const zValue = pick(row, ['z','Z','protons','Protons']);
+  let finalZ = toNumber(zValue);
   let n = toNumber(pick(row, ['n','N','neutrons','Neutrons']));
   let a = toNumber(pick(row, ['a','A','mass_number','MassNumber']));
   let symbol = pick(row, ['symbol','Symbol','elem','element_symbol','Element']) || '';
-  symbol = cleanSymbol(symbol);
-  if (!z && symbol) {
+  symbol = cleanSymbol(symbol, finalZ);
+
+  if (!Number.isFinite(finalZ) && symbol) {
     const zFromSymbol = ELEMENTS.findIndex(e => e && e[0].toLowerCase() === symbol.toLowerCase());
-    if (zFromSymbol > 0) row.z = zFromSymbol;
+    if (zFromSymbol >= 0) finalZ = zFromSymbol;
   }
-  const finalZ = z || Number(row.z);
-  if (!finalZ) return null;
+  if (!Number.isFinite(finalZ)) return null;
   if (!symbol) symbol = elementInfo(finalZ)[0];
   if (!Number.isFinite(n) && Number.isFinite(a)) n = a - finalZ;
   if (!Number.isFinite(a) && Number.isFinite(n)) a = finalZ + n;
   if (!Number.isFinite(n) || !Number.isFinite(a)) return null;
+
   const element = pick(row, ['element','Element','name','Name']) || elementInfo(finalZ)[1] || symbol;
   const decayRaw = String(pick(row, ['decay','decay_1','decay mode','decayMode','Decay','decay_modes']) || '').toLowerCase();
-  const decay = normalizeDecay(decayRaw, pick(row, ['half_life','Half-life','halflife','T1/2','half_life_sec']));
+  const halfLifeValue = formatHalfLife(row);
+  const decay = normalizeDecay(decayRaw, halfLifeValue);
+  const decayDetails = formatDecayDetails(row);
+  const qValue = firstFormattedEnergy(row, [
+    ['qa', 'Qα'], ['qec', 'QEC'], ['qbm', 'Qβ−'], ['sn', 'Sₙ'], ['sp', 'Sₚ']
+  ]);
+  const mass = formatAtomicMass(pick(row, ['atomic_mass','mass','Mass','atomic mass','ame2020']));
+  const binding = formatEnergy(pick(row, ['binding']), 'keV/n');
+  const discovery = pick(row, ['discovery','Discovery']);
+  const notes = decayDetails || binding || discovery
+    ? [decayDetails, binding ? `Energía de enlace: ${binding}` : '', discovery ? `Descubrimiento: ${discovery}` : ''].filter(Boolean).join(' · ')
+    : 'Dato importado. Los campos disponibles dependen del CSV usado.';
+
   return {
     z: finalZ,
     n,
@@ -811,31 +905,33 @@ function rowToNuclide(row, sourceName) {
     symbol,
     element,
     decay,
-    half_life: pick(row, ['half_life','Half-life','halflife','T1/2','half_life_sec']) || (decay === 'stable' ? 'Estable' : '—'),
-    abundance: pick(row, ['abundance','Abundance','natural_abundance']) || '—',
-    atomic_mass: pick(row, ['atomic_mass','mass','Mass','atomic mass','ame2020']) || '—',
+    half_life: halfLifeValue || (decay === 'stable' ? 'Estable' : '—'),
+    abundance: formatPercent(pick(row, ['abundance','Abundance','natural_abundance'])) || '—',
+    atomic_mass: mass || '—',
     spin: pick(row, ['spin','Spin','jp','Jpi','parity']) || '—',
-    q_value: pick(row, ['q_value','Q','qbeta','qalpha']) || '—',
-    mass_excess: pick(row, ['mass_excess','Mass excess']) || '—',
+    q_value: qValue || '—',
+    mass_excess: formatEnergy(pick(row, ['mass_excess','Mass excess','massexcess']), 'keV') || '—',
     source: sourceName,
-    notes: pick(row, ['notes','Notes','comments']) || 'Dato importado. Los campos disponibles dependen del CSV usado.',
-    wikipedia: `https://es.wikipedia.org/wiki/Is%C3%B3topos_de_${encodeURIComponent(element)}`,
+    notes,
+    wikipedia: finalZ > 0 ? `https://es.wikipedia.org/wiki/Is%C3%B3topos_de_${encodeURIComponent(element)}` : `https://es.wikipedia.org/wiki/Neutr%C3%B3n`,
     livechart: `https://www-nds.iaea.org/relnsd/vcharthtml/VChartHTML.html?z=${finalZ}&n=${n}`,
     raw: row
   };
 }
 
 function normalizeDecay(text, halfLife) {
+  const t = String(text || '').toLowerCase().replace(/\s+/g, '');
   const h = String(halfLife || '').toLowerCase();
-  if (text.includes('stable') || text.includes('stbl') || h.includes('stable') || h.includes('inf')) return 'stable';
-  if (text.includes('cluster') || text.includes('cl')) return 'cluster';
-  if (text.includes('alpha') || text.includes('a ') || text === 'a' || text === 'α') return 'alpha';
-  if (text.includes('b-') || text.includes('beta-') || text.includes('β-')) return 'beta-';
-  if (text.includes('ec') || text.includes('b+') || text.includes('beta+') || text.includes('β+')) return 'beta+/EC';
-  if (text.includes('sf') || text.includes('fission')) return 'sf';
-  if (text.includes('it') || text.includes('isomer')) return 'it';
-  if (text === 'p' || text.includes(' proton')) return 'p';
-  if (text === 'n' || text.includes(' neutron')) return 'n';
+  if (!t && (h.includes('stable') || h.includes('estable'))) return 'stable';
+  if (t.includes('stable') || t.includes('stbl') || h.includes('stable') || h.includes('inf')) return 'stable';
+  if (t.includes('cluster') || t === 'cl') return 'cluster';
+  if (t === 'a' || t.includes('alpha') || t.includes('α')) return 'alpha';
+  if (t.includes('2b-') || t.includes('b-') || t.includes('beta-') || t.includes('β-')) return 'beta-';
+  if (t.includes('ec') || t.includes('b+') || t.includes('beta+') || t.includes('β+')) return 'beta+/EC';
+  if (t.includes('sf') || t.includes('fission')) return 'sf';
+  if (t.includes('it') || t.includes('isomer')) return 'it';
+  if (t === 'p' || t.includes('2p') || t.includes('proton')) return 'p';
+  if (t === 'n' || t.includes('2n') || t.includes('neutron')) return 'n';
   return 'unknown';
 }
 
@@ -851,9 +947,64 @@ function pick(row, names) {
   return '';
 }
 
-function cleanSymbol(value) {
-  const s = String(value || '').replace(/[^a-z]/gi, '');
+function cleanSymbol(value, z = NaN) {
+  const raw = String(value || '').trim();
+  if (Number(z) === 0 || raw.toLowerCase() === 'n') return 'n';
+  const s = raw.replace(/[^a-z]/gi, '');
   return s ? normalizeSymbol(s.slice(0, 3)) : '';
+}
+
+function formatHalfLife(row) {
+  const raw = pick(row, ['half_life','Half-life','halflife','T1/2']);
+  const op = pick(row, ['operator_hl','operator','Operator']);
+  const unit = pick(row, ['unit_hl','unit','Unit']);
+  if (!raw) return '';
+  if (String(raw).toUpperCase() === 'STABLE') return 'Estable';
+  const prefix = op ? `${op} ` : '';
+  return `${prefix}${raw}${unit ? ` ${unit}` : ''}`;
+}
+
+function formatDecayDetails(row) {
+  const parts = [];
+  for (let i = 1; i <= 3; i++) {
+    const mode = pick(row, [`decay_${i}`, `decay${i}`]);
+    if (!mode) continue;
+    const pct = pick(row, [`decay_${i}_%`, `decay${i}_%`]);
+    parts.push(`${mode}${pct ? ` ${pct}%` : ''}`);
+  }
+  return parts.length ? `Desintegración: ${parts.join(' / ')}` : '';
+}
+
+function formatPercent(value) {
+  if (value == null || String(value).trim() === '') return '';
+  const text = String(value).trim();
+  return text.endsWith('%') ? text : `${text}%`;
+}
+
+function formatAtomicMass(value) {
+  const n = toNumber(value);
+  if (!Number.isFinite(n)) return '';
+  const u = Math.abs(n) > 100000 ? n / 1000000 : n;
+  return `${trimNumber(u, 9)} u`;
+}
+
+function formatEnergy(value, unit) {
+  const n = toNumber(value);
+  if (!Number.isFinite(n)) return '';
+  return `${trimNumber(n, 5)} ${unit}`;
+}
+
+function firstFormattedEnergy(row, entries) {
+  for (const [field, label] of entries) {
+    const value = pick(row, [field]);
+    const formatted = formatEnergy(value, 'keV');
+    if (formatted) return `${label} ${formatted}`;
+  }
+  return '';
+}
+
+function trimNumber(value, decimals = 6) {
+  return Number(value).toLocaleString('es-ES', { maximumFractionDigits: decimals });
 }
 
 function toNumber(value) {
