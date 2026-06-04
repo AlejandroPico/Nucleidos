@@ -446,9 +446,10 @@ function drawEvaluatedFrame() {
 }
 
 function drawMagicLines() {
+  const dark = document.body.classList.contains('dark');
   ctx.save();
-  ctx.strokeStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.30)' : 'rgba(30,30,30,.24)';
-  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = dark ? 'rgba(255,107,117,.64)' : 'rgba(158,42,47,.55)';
+  ctx.lineWidth = 1.55;
   ctx.setLineDash([7, 7]);
   for (const N of MAGIC_NUMBERS) {
     if (N > N_MAX) continue;
@@ -489,33 +490,58 @@ function drawAxes() {
   const visible = visibleWorldRect();
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
+  const showMagic = Boolean(state.layers.magic);
+  const drawnN = new Set();
+  const drawnZ = new Set();
   ctx.save();
   ctx.font = '900 12px system-ui, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)';
   for (let N = 0; N <= N_MAX; N += 10) {
     const wx = AXIS + N * TILE_STEP_X + TILE_STEP_X/2;
     if (wx < visible.x1 - 200 || wx > visible.x2 + 200) continue;
-    drawAxisPill(String(N), sx(wx), clampNumber(sy(AXIS - 28), 22, screenH - 22));
+    drawnN.add(N);
+    drawAxisPill(String(N), sx(wx), clampNumber(sy(AXIS - 28), 22, screenH - 22), 38, showMagic && MAGIC_NUMBERS.includes(N));
+  }
+  if (showMagic) {
+    for (const N of MAGIC_NUMBERS) {
+      if (N > N_MAX || drawnN.has(N)) continue;
+      const wx = AXIS + N * TILE_STEP_X + TILE_STEP_X/2;
+      if (wx < visible.x1 - 200 || wx > visible.x2 + 200) continue;
+      drawAxisPill(String(N), sx(wx), clampNumber(sy(AXIS - 28), 22, screenH - 22), 38, true);
+    }
   }
   ctx.textAlign = 'right';
   for (let Z = 10; Z <= Z_MAX; Z += 10) {
     const wy = AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y/2;
     if (wy < visible.y1 - 200 || wy > visible.y2 + 200) continue;
-    drawAxisPill(String(Z), clampNumber(sx(AXIS - 18), 28, screenW - 28), sy(wy));
+    drawnZ.add(Z);
+    drawAxisPill(String(Z), clampNumber(sx(AXIS - 18), 28, screenW - 28), sy(wy), 38, showMagic && MAGIC_NUMBERS.includes(Z));
+  }
+  if (showMagic) {
+    for (const Z of MAGIC_NUMBERS) {
+      if (Z > Z_MAX || drawnZ.has(Z)) continue;
+      const wy = AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y/2;
+      if (wy < visible.y1 - 200 || wy > visible.y2 + 200) continue;
+      drawAxisPill(String(Z), clampNumber(sx(AXIS - 18), 28, screenW - 28), sy(wy), 38, true);
+    }
   }
   ctx.textAlign = 'left';
-  drawAxisPill('N →', clampNumber(sx(AXIS), 30, screenW - 30), clampNumber(sy(AXIS - 54), 22, screenH - 22), 48);
-  drawAxisPill('Z ↑', clampNumber(sx(AXIS - 48), 30, screenW - 30), clampNumber(sy(AXIS - 20), 54, screenH - 22), 48);
+  drawAxisPill('N →', clampNumber(sx(AXIS), 30, screenW - 30), clampNumber(sy(AXIS - 54), 22, screenH - 22), 48, false);
+  drawAxisPill('Z ↑', clampNumber(sx(AXIS - 48), 30, screenW - 30), clampNumber(sy(AXIS - 20), 54, screenH - 22), 48, false);
   ctx.restore();
 }
 function clampNumber(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
-function drawAxisPill(text, x, y, width = 38) {
+function drawAxisPill(text, x, y, width = 38, isMagic = false) {
   // Ejes limpios: solo texto, sin cápsula ni borde.
-  // Se dibujan al final del frame para que no queden ocultos por las celdas.
+  // Si la capa de números mágicos está activa, sus valores se remarcan sin duplicarse.
   ctx.save();
-  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)';
+  const dark = document.body.classList.contains('dark');
+  ctx.fillStyle = isMagic ? (dark ? 'rgba(255,107,117,.98)' : 'rgba(158,42,47,.98)') : (dark ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)');
+  if (isMagic) {
+    ctx.shadowColor = dark ? 'rgba(255,107,117,.25)' : 'rgba(158,42,47,.18)';
+    ctx.shadowBlur = 4;
+  }
   ctx.fillText(text, x, y + 0.5);
   ctx.restore();
 }

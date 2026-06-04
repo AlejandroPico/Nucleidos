@@ -1,4 +1,4 @@
-# Tabla de nucleidos — versión 16
+# Tabla de nucleidos — versión 12
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript.
 
