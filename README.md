@@ -40,3 +40,11 @@ La capa de no observados es una extensión visual/extrapolada, no un sustituto d
 - Clic sobre un nucleido: abre la ficha.
 - Clic fuera: cierra la ficha.
 - Doble clic/doble toque sobre un nucleido: centra y acerca.
+
+
+## Cambios v13
+
+- Extensión teórica preparada hasta Z=200 y N≈560.
+- La vista inicial sigue encuadrando solo el rango evaluado del CSV principal.
+- Las capas de no observados, números mágicos, frontera nuclear y marco evaluado vienen desactivadas por defecto.
+- Los ejes N/Z se dibujan como capa superior para que sus valores no queden tapados por las celdas.

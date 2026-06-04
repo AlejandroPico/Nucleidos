@@ -6,10 +6,10 @@ const GAP = 10;
 const AXIS = 58;
 const TILE_STEP_X = CELL_W + GAP;
 const TILE_STEP_Y = CELL_H + GAP;
-const DEFAULT_Z_MAX = 180;
-const DEFAULT_N_MAX = 420;
-const THEORETICAL_Z_MAX = 180;
-const THEORETICAL_N_MAX = 420;
+const DEFAULT_Z_MAX = 200;
+const DEFAULT_N_MAX = 560;
+const THEORETICAL_Z_MAX = 200;
+const THEORETICAL_N_MAX = 560;
 const IAEA_URL = 'https://www-nds.iaea.org/relnsd/v0/data?fields=ground_states&nuclides=all';
 const OFFICIAL_CSV_URL = 'nuclides.csv';
 const MAGIC_NUMBERS = [2, 8, 20, 28, 50, 82, 126, 184];
@@ -68,7 +68,7 @@ const state = {
     qalpha: new Set(['positive','negative','zero','unknown']),
     qbeta: new Set(['positive','negative','zero','unknown'])
   },
-  layers: { evaluated: true, theoretical: false, isomer: true, magic: false, frontier: false, minimap: true, expert: true },
+  layers: { evaluated: true, theoretical: false, isomer: true, magic: false, frontier: false, evaluatedFrame: false, minimap: true, expert: true },
   scale: 1, tx: 0, ty: 0, fitScale: 1, fullFitScale: 1,
   dragging: false, dragStart: null, renderPending: false,
   activePointers: new Map(), pinch: null, lastTap: 0,
@@ -159,8 +159,8 @@ function updateBoundsFromData(rows) {
   const evaluatedRows = rows.filter(n => n.dataClass !== 'theoretical' && n.z > 0);
   state.evaluatedBounds = boundsForRows(evaluatedRows.length ? evaluatedRows : rows);
 
-  const maxZ = Math.max(DEFAULT_Z_MAX, THEORETICAL_Z_MAX, ...rows.map(n => Number(n.z) || 0)) + 2;
-  const maxN = Math.max(DEFAULT_N_MAX, THEORETICAL_N_MAX, ...rows.map(n => Number(n.n) || 0)) + 4;
+  const maxZ = Math.max(DEFAULT_Z_MAX, THEORETICAL_Z_MAX, ...rows.map(n => Number(n.z) || 0));
+  const maxN = Math.max(DEFAULT_N_MAX, THEORETICAL_N_MAX, ...rows.map(n => Number(n.n) || 0));
   Z_MAX = Math.ceil(maxZ / 10) * 10;
   N_MAX = Math.ceil(maxN / 10) * 10;
   updateChartMetrics();
@@ -309,6 +309,7 @@ function syncLayerButtons() {
   toggleButtonState('isomerLayerButton', state.layers.isomer);
   toggleButtonState('magicLayerButton', state.layers.magic);
   toggleButtonState('frontierLayerButton', state.layers.frontier);
+  toggleButtonState('evaluatedFrameLayerButton', state.layers.evaluatedFrame);
   toggleButtonState('minimapButton', state.layers.minimap);
   toggleButtonState('expertModeButton', state.layers.expert);
   minimapPanel.classList.toggle('hidden', !state.layers.minimap);
@@ -336,10 +337,9 @@ function drawScene() {
   const w = window.innerWidth, h = window.innerHeight;
   ctx.clearRect(0, 0, w, h);
   drawWorldGrid(w, h);
-  drawEvaluatedFrame();
+  if (state.layers.evaluatedFrame) drawEvaluatedFrame();
   if (state.layers.magic) drawMagicLines();
   if (state.layers.frontier) drawFrontierLines();
-  drawAxes();
 
   const visible = visibleWorldRect();
   const startN = Math.max(0, Math.floor((visible.x1 - AXIS) / TILE_STEP_X) - 1);
@@ -356,6 +356,7 @@ function drawScene() {
       }
     }
   }
+  drawAxes();
 }
 
 function drawWorldGrid(w, h) {
@@ -433,35 +434,39 @@ function drawFrontierCurve(side) {
 
 function drawAxes() {
   const visible = visibleWorldRect();
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
   ctx.save();
-  ctx.font = '800 12px system-ui, sans-serif';
+  ctx.font = '900 12px system-ui, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(240,240,246,.72)' : 'rgba(44,43,40,.58)';
+  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)';
   for (let N = 0; N <= N_MAX; N += 10) {
     const wx = AXIS + N * TILE_STEP_X + TILE_STEP_X/2;
     if (wx < visible.x1 - 200 || wx > visible.x2 + 200) continue;
-    drawAxisPill(String(N), sx(wx), Math.max(22, sy(AXIS - 28)));
+    drawAxisPill(String(N), sx(wx), clampNumber(sy(AXIS - 28), 22, screenH - 22));
   }
   ctx.textAlign = 'right';
   for (let Z = 10; Z <= Z_MAX; Z += 10) {
     const wy = AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y/2;
     if (wy < visible.y1 - 200 || wy > visible.y2 + 200) continue;
-    drawAxisPill(String(Z), Math.max(28, sx(AXIS - 18)), sy(wy));
+    drawAxisPill(String(Z), clampNumber(sx(AXIS - 18), 28, screenW - 28), sy(wy));
   }
   ctx.textAlign = 'left';
-  drawAxisPill('N →', Math.max(26, sx(AXIS)), Math.max(22, sy(AXIS - 54)), 48);
-  drawAxisPill('Z ↑', Math.max(26, sx(AXIS - 48)), Math.max(54, sy(AXIS - 20)), 48);
+  drawAxisPill('N →', clampNumber(sx(AXIS), 30, screenW - 30), clampNumber(sy(AXIS - 54), 22, screenH - 22), 48);
+  drawAxisPill('Z ↑', clampNumber(sx(AXIS - 48), 30, screenW - 30), clampNumber(sy(AXIS - 20), 54, screenH - 22), 48);
   ctx.restore();
 }
+function clampNumber(value, min, max) { return Math.min(max, Math.max(min, value)); }
+
 function drawAxisPill(text, x, y, width = 38) {
   const h = 21;
   ctx.save();
   roundedRect(ctx, x - width/2, y - h/2, width, h, 999);
-  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(22,24,32,.58)' : 'rgba(255,255,255,.55)';
+  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(22,24,32,.88)' : 'rgba(255,255,255,.88)';
   ctx.fill();
-  ctx.strokeStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.08)';
+  ctx.strokeStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.22)' : 'rgba(0,0,0,.16)';
   ctx.stroke();
-  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(240,240,246,.72)' : 'rgba(44,43,40,.58)';
+  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)';
   ctx.fillText(text, x, y+0.5);
   ctx.restore();
 }
@@ -657,7 +662,7 @@ function bindEvents() {
   csvInput.addEventListener('change', handleCsvInput);
   secondaryCsvInput.addEventListener('change', handleSecondaryInput);
   loadIaeaButton.addEventListener('click', loadIaeaData);
-  for (const [id, key] of [['evaluatedLayerButton','evaluated'],['theoreticalLayerButton','theoretical'],['isomerLayerButton','isomer'],['magicLayerButton','magic'],['frontierLayerButton','frontier'],['minimapButton','minimap'],['expertModeButton','expert']]) {
+  for (const [id, key] of [['evaluatedLayerButton','evaluated'],['theoreticalLayerButton','theoretical'],['isomerLayerButton','isomer'],['magicLayerButton','magic'],['frontierLayerButton','frontier'],['evaluatedFrameLayerButton','evaluatedFrame'],['minimapButton','minimap'],['expertModeButton','expert']]) {
     document.getElementById(id)?.addEventListener('click', () => { state.layers[key] = !state.layers[key]; syncLayerButtons(); scheduleRender(); if (state.selected) fillDetail(state.selected); });
   }
   document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
