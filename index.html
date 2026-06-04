@@ -42,34 +42,18 @@
 
     <div id="cursorHud" class="cursor-hud" aria-live="polite">Z — · N —</div>
 
-    <aside id="sideMenu" class="side-menu" aria-label="Menú de configuración" aria-hidden="true">
+    <aside id="sideMenu" class="side-menu compact-side-menu" aria-label="Datos del visor" aria-hidden="true">
       <div class="side-head">
         <div>
           <p class="eyebrow">Nucleidos</p>
-          <h1>Configuración</h1>
+          <h1>Datos</h1>
         </div>
         <button id="closeMenu" class="icon-button" aria-label="Cerrar menú">×</button>
       </div>
 
-      <div class="menu-section grid-two">
-        <button id="resetViewButton" class="menu-action">Ver tabla completa</button>
-        <button id="fitWidthButton" class="menu-action">Ajustar anchura</button>
-      </div>
-
-      <div class="menu-section">
-        <label class="toggle-row">
-          <span>Mostrar ejes N/Z</span>
-          <input id="axesToggle" type="checkbox" checked />
-        </label>
-        <label class="toggle-row">
-          <span>Animación atómica</span>
-          <input id="animationToggle" type="checkbox" checked />
-        </label>
-      </div>
-
-      <details class="menu-section">
+      <details class="menu-section" open>
         <summary>Datos externos</summary>
-        <p class="small-copy">La tabla usa nuclides.csv como fuente primaria. Si abres el proyecto mediante un servidor local, puedes sustituir ese CSV por otro con la misma estructura; si el navegador bloquea la lectura local, se usa una copia integrada de respaldo.</p>
+        <p class="small-copy">La aplicación intenta leer <code>nuclides.csv</code> desde la misma carpeta que <code>index.html</code>. Si el navegador bloquea esa lectura local, usa <code>nuclides-data.js</code> como respaldo integrado.</p>
         <div class="external-actions">
           <button id="loadIaeaButton" class="menu-action compact-menu-action">Cargar IAEA</button>
           <label class="file-button compact-file-button">
@@ -81,18 +65,8 @@
       </details>
 
       <details class="menu-section">
-        <summary>Campos esperados</summary>
-        <ul class="field-list">
-          <li><code>z</code>, <code>n</code>, <code>a</code>, <code>symbol</code>, <code>element</code></li>
-          <li><code>half_life</code>, <code>unit_hl</code>, <code>decay_1</code>, <code>abundance</code>, <code>atomic_mass</code></li>
-          <li><code>jp</code>, <code>qa</code>, <code>qec</code>, <code>qbm</code>, <code>massexcess</code>, <code>binding</code></li>
-          <li><code>source</code>, <code>notes</code>, <code>wikipedia</code></li>
-        </ul>
-      </details>
-
-      <details class="menu-section">
-        <summary>Notas de uso</summary>
-        <p class="small-copy">Esta versión imita el planteamiento visual de ficha grande con información + modelo 3D, pero el código, assets y composición son originales. La simulación atómica es un modelo educativo tipo Bohr, no una representación cuántica real de orbitales.</p>
+        <summary>Estructura CSV</summary>
+        <p class="small-copy">Columnas mínimas: <code>z</code>, <code>n</code> y <code>symbol</code>. El resto de campos se usa para enriquecer la ficha: vida media, abundancia, masa, spin/paridad, modos de desintegración y energías.</p>
       </details>
     </aside>
 
@@ -143,7 +117,7 @@
           </div>
           <div id="shellText" class="shell-text">2 · 8 · 8 · 2</div>
         </div>
-        <canvas id="atomCanvas" width="900" height="620" aria-label="Simulación atómica visual"></canvas>
+        <canvas id="atomCanvas" width="900" height="620" aria-label="Simulación atómica visual" title="Clicar para pausar o reanudar la animación"></canvas>
         <div class="atom-footer">
           <span id="nucleusText">20 p⁺ · 20 n⁰</span>
           <span>Representación esquemática, no orbital real</span>

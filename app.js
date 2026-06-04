@@ -177,7 +177,7 @@ async function loadInitialNuclides() {
   for (const source of sources) {
     try {
       const rows = parseCsv(source.text);
-      const mapped = rows.map(row => rowToNuclide(row, source.name)).filter(Boolean);
+      const mapped = rows.map(row => rowToNuclide(row, source.name)).filter(n => n && Number(n.z) > 0);
       if (mapped.length) {
         if (dataStatus) dataStatus.textContent = `Cargados ${mapped.length.toLocaleString('es-ES')} nucleidos desde ${source.name}.`;
         return mapped;
@@ -300,6 +300,29 @@ function systematicSymbol(Z) {
 function indexNuclides() {
   state.byKey.clear();
   state.nuclides.forEach(n => state.byKey.set(`${n.z}-${n.n}`, n));
+  markNaturalNuclides();
+}
+
+function numericAbundance(value) {
+  if (value == null) return NaN;
+  const txt = String(value).replace('%','').replace(',', '.').trim();
+  const num = Number(txt);
+  return Number.isFinite(num) ? num : NaN;
+}
+
+function markNaturalNuclides() {
+  const bestByZ = new Map();
+  for (const n of state.nuclides) {
+    n.isNatural = false;
+    n.isPrimaryNatural = false;
+    const ab = numericAbundance(n.abundance);
+    if (Number.isFinite(ab) && ab > 0) {
+      n.isNatural = true;
+      const current = bestByZ.get(n.z);
+      if (!current || ab > current.abundance) bestByZ.set(n.z, { n, abundance: ab });
+    }
+  }
+  for (const item of bestByZ.values()) item.n.isPrimaryNatural = true;
 }
 
 function renderChart() {
@@ -308,7 +331,7 @@ function renderChart() {
   const fragment = document.createDocumentFragment();
   for (const n of state.nuclides) {
     const el = document.createElement('button');
-    el.className = 'nuclide-cell';
+    el.className = `nuclide-cell${n.isNatural ? ' natural-cell' : ''}${n.isPrimaryNatural ? ' primary-natural-cell' : ''}`;
     el.type = 'button';
     el.dataset.key = `${n.z}-${n.n}`;
     el.dataset.decay = n.decay;
@@ -480,6 +503,7 @@ function selectNuclide(n, el) {
   fillDetail(n);
   openCard();
   state.atom = buildAtomState(n);
+  atomCanvas.classList.toggle('paused', !state.animationEnabled);
   resizeAtomCanvas();
   drawAtom(performance.now());
 }
@@ -732,8 +756,8 @@ function bindEvents() {
   });
   closeMenu.addEventListener('click', closeSideMenu);
   scrim.addEventListener('click', closeSideMenu);
-  resetViewButton.addEventListener('click', () => fitToScreen(true));
-  fitWidthButton.addEventListener('click', fitWidth);
+  resetViewButton?.addEventListener('click', () => fitToScreen(true));
+  fitWidthButton?.addEventListener('click', fitWidth);
 
   searchButton.addEventListener('click', runSearch);
   searchInput.addEventListener('keydown', event => {
@@ -751,12 +775,18 @@ function bindEvents() {
   });
   searchTool.addEventListener('click', event => event.stopPropagation());
 
-  axesToggle.addEventListener('change', () => {
+  axesToggle?.addEventListener('change', () => {
     chart.classList.toggle('axes-hidden', !axesToggle.checked);
   });
 
-  animationToggle.addEventListener('change', () => {
+  animationToggle?.addEventListener('change', () => {
     state.animationEnabled = animationToggle.checked;
+  });
+
+  atomCanvas.addEventListener('click', (event) => {
+    event.stopPropagation();
+    state.animationEnabled = !state.animationEnabled;
+    atomCanvas.classList.toggle('paused', !state.animationEnabled);
   });
 
   csvInput.addEventListener('change', handleCsvInput);
@@ -855,7 +885,7 @@ function handleCsvInput(event) {
 }
 
 function replaceWithCsvRows(rows, sourceName) {
-  const mapped = rows.map(row => rowToNuclide(row, sourceName)).filter(Boolean);
+  const mapped = rows.map(row => rowToNuclide(row, sourceName)).filter(n => n && Number(n.z) > 0);
   if (!mapped.length) throw new Error('No se reconocieron columnas z/n o a/symbol.');
   state.nuclides = mapped;
   updateBoundsFromData(mapped);

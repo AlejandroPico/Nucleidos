@@ -1,54 +1,26 @@
-# Tabla interactiva de nucleidos — v7
+# Tabla de nucleidos — versión 8
 
-Visor web estático en HTML, CSS y JavaScript para explorar una tabla de nucleidos a pantalla completa.
+Visor web estático de nucleidos en HTML, CSS y JavaScript.
 
-## Archivos
+## Cambios de la versión 8
 
-- `index.html`: interfaz principal.
-- `styles.css`: estilos visuales.
-- `app.js`: lógica de navegación, zoom, filtros, búsqueda y ficha de detalle.
-- `nuclides.csv`: fuente primaria de datos.
-- `nuclides-data.js`: copia integrada de respaldo generada desde `nuclides.csv`.
+- `nuclides.csv` es la fuente principal de datos.
+- Se filtran del mapa principal las filas con `Z=0`, para no dibujar neutrones aislados en la tabla de elementos.
+- Las celdas y su contenido interno quedan centrados vertical y horizontalmente.
+- Los nucleidos con abundancia natural positiva se resaltan con borde.
+- El nucleido natural principal de cada elemento se resalta con un borde más fuerte.
+- El menú lateral queda reducido a datos/importación y estructura CSV.
+- Eliminados los controles de ajustar vista, mostrar ejes, animación y notas de uso.
+- La animación atómica se pausa o reanuda clicando directamente sobre el modelo.
 
 ## Uso
 
-Abre `index.html` directamente o sirve la carpeta con un servidor local.
+Abre `index.html` en un navegador moderno. Si el navegador permite leer ficheros locales, cargará `nuclides.csv`; si no, usará `nuclides-data.js` como respaldo.
 
-Recomendado para que el navegador pueda leer `nuclides.csv` como fichero externo:
+Para una carga más fiable, abre la carpeta con un servidor local, por ejemplo:
 
 ```bash
 python -m http.server 8000
 ```
 
-Después abre:
-
-```text
-http://localhost:8000
-```
-
-Si abres el proyecto directamente como `file://`, algunos navegadores pueden bloquear `fetch('nuclides.csv')`. En ese caso la aplicación usa automáticamente `nuclides-data.js`, que contiene una copia integrada del CSV oficial incluido en esta versión.
-
-## Controles
-
-- Rueda del ratón: zoom centrado en el cursor.
-- Arrastrar: mover la tabla.
-- Clic en un nucleido: abrir ficha de detalle.
-- Clic en zona vacía: cerrar ficha.
-- Lupa superior: búsqueda rápida.
-- Sol/luna: modo claro/oscuro.
-- Capas: modo de color y filtros visibles.
-- Menú hamburguesa: ajustes generales y carga de datos externos.
-
-## Datos
-
-La versión v7 está preparada para columnas de IAEA/LiveChart como:
-
-- `z`, `n`, `symbol`
-- `abundance`
-- `jp`
-- `half_life`, `operator_hl`, `unit_hl`, `half_life_sec`
-- `decay_1`, `decay_1_%`, `decay_2`, `decay_2_%`, `decay_3`, `decay_3_%`
-- `qa`, `qec`, `qbm`, `sn`, `sp`
-- `binding`, `atomic_mass`, `massexcess`
-- `discovery`
-
+Después entra en `http://localhost:8000`.
