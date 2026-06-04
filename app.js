@@ -54,6 +54,45 @@ const COLOR_MODES = [
   ['abundance', 'Abundancia'], ['binding', 'Enlace'], ['qalpha', 'Qα'], ['qbeta', 'Qβ−']
 ];
 
+const MODE_SUBTITLES = {
+  decay: 'modo nuclear', stability: 'clasificación', halflife: 'escala temporal', quality: 'origen del dato',
+  abundance: 'presencia natural', binding: 'energía nuclear', qalpha: 'energía α', qbeta: 'energía β−'
+};
+
+const MODE_TIPS = {
+  decay: 'Colorea cada celda según su modo principal de desintegración: estable, beta, alfa, fisión espontánea, emisión de partículas u otros modos.',
+  stability: 'Reduce el mapa a categorías generales: estable, radiactivo o sin clasificación suficiente.',
+  halflife: 'Agrupa los nucleidos por vida media aproximada para distinguir estables, larga vida, vida media y vida corta.',
+  quality: 'Distingue datos evaluados, isómeros, posiciones teóricas/no observadas y registros sin clasificar.',
+  abundance: 'Resalta si el nucleido aparece con abundancia natural, traza o sin abundancia natural cargada.',
+  binding: 'Colorea por energía de enlace cuando el CSV contiene ese campo; si falta, se clasifica como sin dato.',
+  qalpha: 'Colorea por el signo o disponibilidad de Qα. Útil para explorar posibles desintegraciones alfa.',
+  qbeta: 'Colorea por el signo o disponibilidad de Qβ−. Útil para explorar tendencias beta menos.'
+};
+
+const FILTER_TIPS = {
+  stable: 'Muestra u oculta nucleidos clasificados como estables.', radioactive: 'Muestra u oculta nucleidos radiactivos.', unknown: 'Muestra u oculta registros sin clasificación clara.',
+  'beta-': 'Muestra u oculta emisores beta menos.', 'beta+/EC': 'Muestra u oculta beta más y captura electrónica.', alpha: 'Muestra u oculta emisores alfa.',
+  sf: 'Muestra u oculta fisión espontánea.', p: 'Muestra u oculta emisión de protones.', n: 'Muestra u oculta emisión de neutrones.',
+  it: 'Muestra u oculta transiciones isoméricas.', cluster: 'Muestra u oculta desintegración por clúster.',
+  long: 'Muestra u oculta nucleidos de vida larga.', medium: 'Muestra u oculta nucleidos de vida media intermedia.', short: 'Muestra u oculta nucleidos de vida corta.',
+  evaluated: 'Muestra u oculta datos evaluados del dataset principal.', isomer: 'Muestra u oculta estados isoméricos cargados desde datasets secundarios.', theoretical: 'Muestra u oculta posiciones no observadas o extrapoladas.',
+  natural: 'Muestra u oculta nucleidos con abundancia natural registrada.', trace: 'Muestra u oculta abundancias traza.', none: 'Muestra u oculta nucleidos sin abundancia natural cargada.',
+  high: 'Muestra u oculta valores altos de energía de enlace.', low: 'Muestra u oculta valores bajos de energía de enlace.', positive: 'Muestra u oculta valores Q positivos.', negative: 'Muestra u oculta valores Q negativos.', zero: 'Muestra u oculta valores Q cercanos a cero.'
+};
+
+const LAYER_TIPS = {
+  evaluatedLayerButton: 'Activa o desactiva los nucleidos evaluados del CSV principal.',
+  theoreticalLayerButton: 'Activa o desactiva la extensión no observada/extrapolada. No representa datos oficiales.',
+  isomerLayerButton: 'Activa o desactiva estados isoméricos cuando el dataset secundario los contiene.',
+  gridLayerButton: 'Muestra u oculta la cuadrícula de referencia N/Z del fondo.',
+  magicLayerButton: 'Muestra u oculta las líneas de números mágicos nucleares.',
+  frontierLayerButton: 'Muestra u oculta la frontera nuclear estimada y líneas de goteo aproximadas.',
+  evaluatedFrameLayerButton: 'Muestra u oculta el marco que delimita el rango evaluado cargado desde el CSV principal.',
+  minimapButton: 'Muestra u oculta el minimapa de navegación.',
+  expertModeButton: 'Alterna entre ficha técnica concisa y ficha con explicación más pedagógica.'
+};
+
 const state = {
   official: [], secondary: [], theoretical: [], all: [], byKey: new Map(), byCell: new Map(),
   evaluatedBounds: null,
@@ -88,6 +127,7 @@ const legendButton = document.getElementById('legendButton');
 const legendPopover = document.getElementById('legendPopover');
 const legendModes = document.getElementById('legendModes');
 const legend = document.getElementById('legend');
+const uiTooltip = document.getElementById('uiTooltip');
 const dataButton = document.getElementById('dataButton');
 const dataPopover = document.getElementById('dataPopover');
 const dataStatus = document.getElementById('dataStatus');
@@ -114,6 +154,7 @@ async function init() {
   state.official = await loadInitialNuclides();
   rebuildDerivedData();
   bindEvents();
+  bindTooltips();
   renderLegend();
   fitToScreen(true);
   requestAnimationFrame(drawAtomLoop);
@@ -260,7 +301,9 @@ function renderLegend() {
   for (const [mode, label] of COLOR_MODES) {
     const b = document.createElement('button');
     b.className = `legend-mode-btn${state.colorMode === mode ? ' active' : ''}`;
-    b.type = 'button'; b.textContent = label;
+    b.type = 'button';
+    b.dataset.tip = MODE_TIPS[mode] || `Colorea el mapa por ${label}.`;
+    b.innerHTML = `<span>${label}</span><small>${MODE_SUBTITLES[mode] || 'mapa'}</small>`;
     b.addEventListener('click', () => { state.colorMode = mode; renderLegend(); scheduleRender(); });
     legendModes.appendChild(b);
   }
@@ -270,6 +313,7 @@ function renderLegend() {
     const item = document.createElement('button');
     item.className = `legend-item${active.has(entry.key) ? '' : ' muted'}`;
     item.type = 'button';
+    item.dataset.tip = entry.tip || FILTER_TIPS[entry.key] || `Muestra u oculta ${entry.label}.`;
     item.innerHTML = `<span class="legend-swatch" style="background:${entry.color}"></span><span>${entry.label}</span>`;
     item.addEventListener('click', () => {
       if (active.has(entry.key)) { if (active.size > 1) active.delete(entry.key); }
@@ -278,7 +322,15 @@ function renderLegend() {
     });
     legend.appendChild(item);
   }
+  applyLayerTooltips();
   syncLayerButtons();
+}
+
+function applyLayerTooltips() {
+  for (const [id, tip] of Object.entries(LAYER_TIPS)) {
+    const el = document.getElementById(id);
+    if (el) el.dataset.tip = tip;
+  }
 }
 
 function legendEntriesForMode(mode) {
@@ -828,7 +880,18 @@ function daughterOf(n) {
 }
 function buildDecayChain(n, max) { const out = []; let cur = n; const seen = new Set([n.uid]); for (let i=0; i<max; i++) { const d = daughterOf(cur); if (!d || seen.has(d.uid)) break; out.push(d); seen.add(d.uid); cur = d; } return out; }
 function relationNuclides(n) { const out = []; for (const cand of state.all) { const d = daughterOf(cand); if (d && d.z === n.z && d.n === n.n && out.length < 8) out.push(cand); } return out; }
-function renderRaw(n) { const clone = { ...n }; delete clone.source; delete clone.uid; document.getElementById('rawDataBlock').textContent = JSON.stringify(clone.raw || clone, null, 2); }
+function renderRaw(n) {
+  const raw = n.raw || {};
+  const compact = [
+    ['uid', `${n.symbol}-${n.a}${n.stateId && n.stateId !== 'gs' ? ` · ${n.stateId}` : ''}`],
+    ['z', n.z], ['n', n.n], ['a', n.a], ['clase', classLabel(n)],
+    ['decaimiento', DECAY_LABELS[n.decay] || n.decay || '—'],
+    ['vida_media', n.half_life || '—'], ['abundancia', n.abundance || '—'],
+    ['masa_atomica', n.atomic_mass || '—'], ['spin_paridad', n.spin || '—'],
+    ['campos_csv', Object.keys(raw).slice(0, 18).join(', ') || '—']
+  ];
+  document.getElementById('rawDataBlock').textContent = compact.map(([k,v]) => `${k}: ${v}`).join('\n');
+}
 
 function applicationText(n) {
   const id = `${n.symbol}-${n.a}`;
@@ -889,6 +952,58 @@ function findNuclide(query) {
   m = q.match(/^([a-z]{1,3})-?(\d+)(m\d+)?$/i); if (m) { const s = normalizeSymbol(m[1]), A = Number(m[2]); return state.all.find(n => n.symbol === s && n.a === A && isRenderable(n)); }
   m = q.match(/^(\d+)-?([a-z]{1,3})(m\d+)?$/i); if (m) { const A = Number(m[1]), s = normalizeSymbol(m[2]); return state.all.find(n => n.symbol === s && n.a === A && isRenderable(n)); }
   return state.all.find(n => (n.symbol.toLowerCase() === q || n.element.toLowerCase() === q || `${n.symbol.toLowerCase()}${n.a}` === q) && isRenderable(n));
+}
+
+
+function bindTooltips() {
+  let activeTarget = null;
+  const hide = () => {
+    activeTarget = null;
+    uiTooltip?.classList.remove('visible');
+    uiTooltip?.setAttribute('aria-hidden', 'true');
+  };
+  const show = (target, x, y) => {
+    const text = target?.dataset?.tip;
+    if (!text || !uiTooltip) return;
+    activeTarget = target;
+    uiTooltip.textContent = text;
+    uiTooltip.setAttribute('aria-hidden', 'false');
+    uiTooltip.classList.add('visible');
+    positionTooltip(x, y);
+  };
+  document.addEventListener('pointerover', e => {
+    const target = e.target.closest('[data-tip]');
+    if (!target) return;
+    show(target, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (activeTarget) positionTooltip(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    if (activeTarget && !e.relatedTarget?.closest?.('[data-tip]')) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const target = e.target.closest('[data-tip]');
+    if (!target) return;
+    const r = target.getBoundingClientRect();
+    show(target, r.left + r.width / 2, r.bottom + 4);
+  });
+  document.addEventListener('focusout', e => {
+    if (activeTarget && e.target === activeTarget) hide();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+}
+
+function positionTooltip(x, y) {
+  if (!uiTooltip) return;
+  const margin = 12;
+  const rect = uiTooltip.getBoundingClientRect();
+  let left = x + 14;
+  let top = y + 16;
+  if (left + rect.width + margin > window.innerWidth) left = x - rect.width - 14;
+  if (top + rect.height + margin > window.innerHeight) top = y - rect.height - 14;
+  uiTooltip.style.left = `${Math.max(margin, left)}px`;
+  uiTooltip.style.top = `${Math.max(margin, top)}px`;
 }
 
 function toggleLegendPopover(e) { e.stopPropagation(); closeDataPopover(); closeSearchTool(); const open = legendPopover.classList.toggle('open'); legendPopover.setAttribute('aria-hidden', String(!open)); }
