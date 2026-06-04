@@ -6,10 +6,10 @@ const GAP = 10;
 const AXIS = 58;
 const TILE_STEP_X = CELL_W + GAP;
 const TILE_STEP_Y = CELL_H + GAP;
-const DEFAULT_Z_MAX = 200;
-const DEFAULT_N_MAX = 560;
-const THEORETICAL_Z_MAX = 200;
-const THEORETICAL_N_MAX = 560;
+const DEFAULT_Z_MAX = 130;
+const DEFAULT_N_MAX = 320;
+const THEORETICAL_Z_MAX = 130;
+const THEORETICAL_N_MAX = 320;
 const IAEA_URL = 'https://www-nds.iaea.org/relnsd/v0/data?fields=ground_states&nuclides=all';
 const OFFICIAL_CSV_URL = 'nuclides.csv';
 const MAGIC_NUMBERS = [2, 8, 20, 28, 50, 82, 126, 184];
@@ -460,15 +460,11 @@ function drawAxes() {
 function clampNumber(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
 function drawAxisPill(text, x, y, width = 38) {
-  const h = 21;
+  // Ejes limpios: solo texto, sin cápsula ni borde.
+  // Se dibujan al final del frame para que no queden ocultos por las celdas.
   ctx.save();
-  roundedRect(ctx, x - width/2, y - h/2, width, h, 999);
-  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(22,24,32,.88)' : 'rgba(255,255,255,.88)';
-  ctx.fill();
-  ctx.strokeStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.22)' : 'rgba(0,0,0,.16)';
-  ctx.stroke();
   ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)';
-  ctx.fillText(text, x, y+0.5);
+  ctx.fillText(text, x, y + 0.5);
   ctx.restore();
 }
 

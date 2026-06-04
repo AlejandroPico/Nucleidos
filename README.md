@@ -44,7 +44,7 @@ La capa de no observados es una extensión visual/extrapolada, no un sustituto d
 
 ## Cambios v13
 
-- Extensión teórica preparada hasta Z=200 y N≈560.
+- Extensión teórica limitada hasta Z=130 y N≈320.
 - La vista inicial sigue encuadrando solo el rango evaluado del CSV principal.
 - Las capas de no observados, números mágicos, frontera nuclear y marco evaluado vienen desactivadas por defecto.
 - Los ejes N/Z se dibujan como capa superior para que sus valores no queden tapados por las celdas.
@@ -55,4 +55,12 @@ La capa de no observados es una extensión visual/extrapolada, no un sustituto d
 - Corrige los arcos gigantes provocados por radios excesivos en las etiquetas de eje dibujadas en Canvas.
 - Añade la capa Cuadrícula, desactivada por defecto, para dejar la vista inicial limpia.
 - Mantiene números mágicos, frontera nuclear y marco evaluado como capas desactivadas por defecto.
-- Conserva la extensión teórica hasta Z=200 y N≈560, con vista inicial encuadrada en los nucleidos evaluados.
+- Limita la extensión teórica hasta Z=130 y N≈320, con vista inicial encuadrada en los nucleidos evaluados.
+
+
+## Versión 15
+
+- Extensión teórica reducida a Z=130 para evitar un mapa excesivamente vacío.
+- Eje de neutrones reducido a N≈320, suficiente para la extensión superpesada planteada.
+- Los valores de los ejes se muestran como números simples, sin cápsula ni borde redondeado.
+- La vista inicial sigue encuadrando únicamente los nucleidos evaluados del CSV.
