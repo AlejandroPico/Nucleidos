@@ -41,21 +41,27 @@
         <div class="external-actions data-actions">
           <div>
             <button id="loadIaeaButton" class="menu-action compact-menu-action">Cargar IAEA</button>
-            <p>CSV oficial de LiveChart.</p>
+            <p>Descarga datos nucleares desde LiveChart.</p>
           </div>
           <div>
             <label class="file-button compact-file-button">
               CSV local
               <input id="csvInput" type="file" accept=".csv,text/csv" hidden />
             </label>
-            <p>Importar archivo propio.</p>
+            <p>Sustituye la tabla por tu propio CSV.</p>
           </div>
         </div>
-        <p id="dataStatus" class="status-line">Cargando nuclides.csv…</p>
+        <p id="dataStatus" class="status-line">Datos listos.</p>
       </div>
       <div class="data-popover-section">
         <h2>Estructura CSV</h2>
-        <p class="small-copy">Mínimos: <code>z</code>, <code>n</code>, <code>symbol</code>. Opcionales: vida media, abundancia, masa, spin/paridad, desintegración y energías.</p>
+        <div class="csv-schema">
+          <p><strong>Campos mínimos:</strong> <code>z</code>, <code>n</code> y <code>symbol</code>. Con esos tres valores la app ya puede colocar cada nucleido en la cuadrícula.</p>
+          <p><strong>Identificación:</strong> <code>name</code> o <code>element</code>, <code>a</code>, <code>nuclide</code>. Si falta <code>a</code>, se calcula como <code>Z + N</code>.</p>
+          <p><strong>Estabilidad y desintegración:</strong> <code>half_life</code>, <code>operator_hl</code>, <code>unit_hl</code>, <code>decay_1</code>, <code>decay_1_%</code>, <code>decay_2</code>, <code>decay_3</code>.</p>
+          <p><strong>Propiedades nucleares:</strong> <code>atomic_mass</code>, <code>massexcess</code>, <code>binding</code>, <code>jp</code>, <code>qa</code>, <code>qec</code>, <code>qbm</code>, <code>sn</code>, <code>sp</code>.</p>
+          <p><strong>Metadatos útiles:</strong> <code>abundance</code>, <code>discovery</code>, <code>notes</code>, <code>wikipedia</code>, <code>livechart</code>.</p>
+        </div>
       </div>
     </div>
 
@@ -91,7 +97,6 @@
           <div class="detail-row"><span>Electrones</span><strong id="detailElectrons">20</strong></div>
           <div class="detail-row"><span>Spin/paridad</span><strong id="detailSpin">0+</strong></div>
           <div class="detail-row"><span>Q / energía</span><strong id="detailQ">—</strong></div>
-          <div class="detail-row"><span>Origen</span><strong id="detailSource">Interno</strong></div>
         </div>
 
         <div class="info-block">

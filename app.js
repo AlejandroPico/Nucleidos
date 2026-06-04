@@ -111,7 +111,9 @@ const state = {
   dragStart: null,
   animationEnabled: true,
   atom: null,
-  atomFrame: 0
+  atomFrame: 0,
+  activePointers: new Map(),
+  pinch: null
 };
 
 const viewport = document.getElementById('viewport');
@@ -181,7 +183,7 @@ async function loadInitialNuclides() {
       const rows = parseCsv(source.text);
       const mapped = rows.map(row => rowToNuclide(row, source.name)).filter(n => n && Number(n.z) > 0);
       if (mapped.length) {
-        if (dataStatus) dataStatus.textContent = `Cargados ${mapped.length.toLocaleString('es-ES')} nucleidos desde ${source.name}.`;
+        if (dataStatus) dataStatus.textContent = `Cargados ${mapped.length.toLocaleString('es-ES')} nucleidos.`;
         return mapped;
       }
     } catch (_) {
@@ -346,7 +348,6 @@ function renderChart() {
       <div class="cell-top"><span>${n.a}</span><span>N${n.n}</span></div>
       <div class="cell-main">
         <div class="cell-symbol">${escapeHtml(n.symbol)}</div>
-        <div class="cell-name">${escapeHtml(displayElementName(n.element))}</div>
       </div>
       <div class="cell-bottom"><span>Z${n.z}</span><span class="decay-badge">${DECAY_LABELS[n.decay] || n.decay}</span></div>
     `;
@@ -525,7 +526,6 @@ function fillDetail(n) {
   setText('detailElectrons', n.z);
   setText('detailSpin', n.spin || '—');
   setText('detailQ', n.q_value || n.mass_excess || '—');
-  setText('detailSource', n.source || '—');
   setText('detailNotes', n.notes || '—');
   setText('atomTitle', `${n.symbol}-${n.a}`);
   setText('nucleusText', `${n.z} p⁺ · ${n.n} n⁰`);
@@ -536,7 +536,9 @@ function fillDetail(n) {
 }
 
 function setText(id, value) {
-  document.getElementById(id).textContent = value == null || value === '' ? '—' : value;
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.textContent = value == null || value === '' ? '—' : value;
 }
 
 function openCard() {
@@ -718,6 +720,61 @@ function centerOnNuclide(n, zoomMultiplier = 7) {
   updateTransform();
 }
 
+function getTouchPointers() {
+  return [...state.activePointers.values()].filter(pointer => pointer.pointerType === 'touch');
+}
+
+function distanceBetween(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function midpointBetween(a, b) {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2
+  };
+}
+
+function startPinchIfPossible() {
+  const touches = getTouchPointers();
+  if (touches.length < 2) return false;
+  const [a, b] = touches;
+  const distance = distanceBetween(a, b);
+  if (!distance) return false;
+  const center = midpointBetween(a, b);
+  state.pinch = {
+    startDistance: distance,
+    startScale: state.scale,
+    chartX: (center.x - state.tx) / state.scale,
+    chartY: (center.y - state.ty) / state.scale
+  };
+  state.dragging = false;
+  state.dragStart = null;
+  viewport.classList.remove('dragging');
+  return true;
+}
+
+function updatePinchZoom() {
+  const touches = getTouchPointers();
+  if (touches.length < 2 || !state.pinch) return false;
+  const [a, b] = touches;
+  const distance = distanceBetween(a, b);
+  if (!distance) return false;
+  const center = midpointBetween(a, b);
+  const maxScale = Math.max(1.9, state.fitScale * 18);
+  const newScale = Math.max(state.fitScale, Math.min(maxScale, state.pinch.startScale * (distance / state.pinch.startDistance)));
+  state.scale = newScale;
+  state.tx = center.x - state.pinch.chartX * newScale;
+  state.ty = center.y - state.pinch.chartY * newScale;
+  updateTransform();
+  return true;
+}
+
+function removeActivePointer(pointerId) {
+  state.activePointers.delete(pointerId);
+  if (state.activePointers.size < 2) state.pinch = null;
+}
+
 function bindEvents() {
   viewport.addEventListener('pointermove', updateCursorHud);
   viewport.addEventListener('pointerleave', () => {
@@ -730,24 +787,61 @@ function bindEvents() {
   }, { passive: false });
 
   viewport.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'touch') {
+      event.preventDefault();
+      state.activePointers.set(event.pointerId, {
+        pointerId: event.pointerId,
+        pointerType: event.pointerType,
+        x: event.clientX,
+        y: event.clientY,
+        target: event.target
+      });
+      viewport.setPointerCapture(event.pointerId);
+      if (startPinchIfPossible()) return;
+    }
+
     if (event.button !== 0) return;
+    if (state.pinch) return;
+
     state.dragging = true;
-    state.dragStart = { x: event.clientX, y: event.clientY, tx: state.tx, ty: state.ty, moved: false, target: event.target };
+    state.dragStart = { x: event.clientX, y: event.clientY, tx: state.tx, ty: state.ty, moved: false, target: event.target, pointerId: event.pointerId };
     viewport.classList.add('dragging');
     viewport.setPointerCapture(event.pointerId);
-  });
+  }, { passive: false });
 
   viewport.addEventListener('pointermove', (event) => {
-    if (!state.dragging || !state.dragStart) return;
+    if (state.activePointers.has(event.pointerId)) {
+      event.preventDefault();
+      const current = state.activePointers.get(event.pointerId);
+      state.activePointers.set(event.pointerId, {
+        ...current,
+        x: event.clientX,
+        y: event.clientY,
+        target: event.target
+      });
+      if (updatePinchZoom()) return;
+    }
+
+    if (!state.dragging || !state.dragStart || state.pinch) return;
     const dx = event.clientX - state.dragStart.x;
     const dy = event.clientY - state.dragStart.y;
     if (Math.hypot(dx, dy) > 4) state.dragStart.moved = true;
     state.tx = state.dragStart.tx + dx;
     state.ty = state.dragStart.ty + dy;
     updateTransform();
-  });
+  }, { passive: false });
 
   viewport.addEventListener('pointerup', (event) => {
+    const wasPinching = Boolean(state.pinch);
+    removeActivePointer(event.pointerId);
+
+    if (wasPinching) {
+      state.dragging = false;
+      state.dragStart = null;
+      viewport.classList.remove('dragging');
+      return;
+    }
+
     if (!state.dragging) return;
     const wasClick = state.dragStart && !state.dragStart.moved;
     const target = state.dragStart?.target;
@@ -767,7 +861,8 @@ function bindEvents() {
     closeNuclideCard();
   });
 
-  viewport.addEventListener('pointercancel', () => {
+  viewport.addEventListener('pointercancel', (event) => {
+    removeActivePointer(event.pointerId);
     state.dragging = false;
     state.dragStart = null;
     viewport.classList.remove('dragging');

@@ -1469,3 +1469,186 @@ body.dark .nuclide-cell:hover {
   }
   .data-actions { grid-template-columns: 1fr; }
 }
+
+
+/* v10: publicación móvil, celdas limpias y datos mejor documentados */
+.viewport {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.nuclide-cell {
+  color: rgba(13, 14, 15, .88) !important;
+}
+body.dark .nuclide-cell,
+body.dark .cell-top,
+body.dark .cell-bottom,
+body.dark .cell-symbol,
+body.dark .decay-badge {
+  color: rgba(13, 14, 15, .88) !important;
+}
+.nuclide-cell {
+  display: grid !important;
+  grid-template-rows: 16px minmax(0, 1fr) 15px !important;
+  place-items: center !important;
+  padding: 8px !important;
+  text-align: center !important;
+}
+.nuclide-cell > * {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+.cell-main {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  text-align: center !important;
+}
+.cell-symbol {
+  width: 100% !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+  justify-self: center !important;
+  align-self: center !important;
+  font-size: 23px !important;
+  line-height: 1 !important;
+  letter-spacing: -.04em !important;
+}
+.cell-name { display: none !important; }
+.cell-top,
+.cell-bottom {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+.cell-top span,
+.cell-bottom span,
+.decay-badge {
+  min-width: 0 !important;
+  margin: 0 !important;
+  text-align: center !important;
+}
+.decay-badge {
+  display: inline-block !important;
+  width: auto !important;
+  max-width: 44px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Icono de datos: cilindro de base de datos */
+.data-icon {
+  position: relative !important;
+  width: 19px !important;
+  height: 18px !important;
+  display: block !important;
+  border: 2px solid currentColor !important;
+  border-radius: 50% / 18% !important;
+  border-top-width: 2px !important;
+  background: transparent !important;
+}
+.data-icon::before {
+  content: "" !important;
+  position: absolute !important;
+  left: -2px !important;
+  right: -2px !important;
+  top: 4px !important;
+  height: 5px !important;
+  border-top: 2px solid currentColor !important;
+  border-radius: 50% / 40% !important;
+  background: transparent !important;
+  box-shadow: 0 5px 0 -0.2px currentColor !important;
+  opacity: .9 !important;
+}
+.data-icon::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 3px !important;
+  right: 3px !important;
+  bottom: -5px !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+  opacity: .24 !important;
+  box-shadow: none !important;
+}
+
+.data-popover {
+  width: min(440px, calc(100vw - 36px)) !important;
+  max-height: calc(100vh - 86px) !important;
+  overflow: auto !important;
+  scrollbar-width: thin;
+}
+.data-popover-section {
+  background: rgba(255,255,255,.32) !important;
+}
+body.dark .data-popover-section {
+  background: rgba(255,255,255,.045) !important;
+}
+.csv-schema {
+  display: grid;
+  gap: 8px;
+}
+.csv-schema p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.2px;
+  line-height: 1.42;
+  font-weight: 700;
+}
+.csv-schema strong {
+  color: var(--ink);
+  font-weight: 900;
+}
+.csv-schema code {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255,255,255,.44);
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 850;
+}
+body.dark .csv-schema code {
+  background: rgba(255,255,255,.07);
+}
+
+/* La fuente de datos no se muestra en la ficha del nucleido. */
+#detailSource { display: none !important; }
+
+@media (max-width: 720px) {
+  .top-tools {
+    top: 10px !important;
+    right: 10px !important;
+    gap: 6px !important;
+  }
+  .tool-button {
+    width: 38px !important;
+    height: 38px !important;
+  }
+  .zoom-hud {
+    height: 38px !important;
+    min-width: 58px !important;
+    padding: 0 11px !important;
+  }
+  .data-popover,
+  .legend-popover {
+    top: 58px !important;
+    right: 10px !important;
+    width: min(420px, calc(100vw - 20px)) !important;
+  }
+  .search-tool.open {
+    width: min(360px, calc(100vw - 20px)) !important;
+  }
+  .top-search-box {
+    width: min(360px, calc(100vw - 20px)) !important;
+  }
+}
