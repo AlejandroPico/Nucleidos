@@ -119,6 +119,8 @@ const chart = document.getElementById('chart');
 const zoomHud = document.getElementById('zoomHud');
 const legendButton = document.getElementById('legendButton');
 const legendPopover = document.getElementById('legendPopover');
+const dataButton = document.getElementById('dataButton');
+const dataPopover = document.getElementById('dataPopover');
 const legendModeLabel = document.getElementById('legendModeLabel');
 const legendModes = document.getElementById('legendModes');
 const cursorHud = document.getElementById('cursorHud');
@@ -331,7 +333,7 @@ function renderChart() {
   const fragment = document.createDocumentFragment();
   for (const n of state.nuclides) {
     const el = document.createElement('button');
-    el.className = `nuclide-cell${n.isNatural ? ' natural-cell' : ''}${n.isPrimaryNatural ? ' primary-natural-cell' : ''}`;
+    el.className = 'nuclide-cell';
     el.type = 'button';
     el.dataset.key = `${n.z}-${n.n}`;
     el.dataset.decay = n.decay;
@@ -551,15 +553,35 @@ function closeNuclideCard() {
 }
 
 function openMenu() {
-  sideMenu.classList.add('open');
-  sideMenu.setAttribute('aria-hidden', 'false');
-  scrim.classList.add('open');
+  // El menú hamburguesa queda retirado desde la v9.
 }
 
 function closeSideMenu() {
-  sideMenu.classList.remove('open');
-  sideMenu.setAttribute('aria-hidden', 'true');
-  scrim.classList.remove('open');
+  sideMenu?.classList.remove('open');
+  sideMenu?.setAttribute('aria-hidden', 'true');
+  scrim?.classList.remove('open');
+}
+
+function toggleDataPopover(event) {
+  event?.stopPropagation?.();
+  const isOpen = dataPopover?.classList.contains('open');
+  closeLegendPopover();
+  closeSearchTool();
+  if (isOpen) {
+    closeDataPopover();
+  } else {
+    openDataPopover();
+  }
+}
+
+function openDataPopover() {
+  dataPopover?.classList.add('open');
+  dataPopover?.setAttribute('aria-hidden', 'false');
+}
+
+function closeDataPopover() {
+  dataPopover?.classList.remove('open');
+  dataPopover?.setAttribute('aria-hidden', 'true');
 }
 
 function fitToScreen(force = false) {
@@ -651,6 +673,8 @@ function closeLegendPopover() {
 
 function toggleLegendPopover(event) {
   event.stopPropagation();
+  closeDataPopover();
+  closeSearchTool();
   const isOpen = legendPopover.classList.toggle('open');
   legendPopover.setAttribute('aria-hidden', String(!isOpen));
 }
@@ -667,6 +691,8 @@ function toggleDarkMode() {
 }
 
 function openSearchTool() {
+  closeLegendPopover();
+  closeDataPopover();
   searchTool.classList.add('open');
   searchTool.querySelector('.top-search-box')?.setAttribute('aria-hidden', 'false');
   requestAnimationFrame(() => searchInput.focus());
@@ -747,15 +773,18 @@ function bindEvents() {
     viewport.classList.remove('dragging');
   });
 
-  menuButton.addEventListener('click', openMenu);
+  menuButton?.addEventListener('click', openMenu);
+  dataButton?.addEventListener('click', toggleDataPopover);
+  dataPopover?.addEventListener('click', event => event.stopPropagation());
   legendButton.addEventListener('click', toggleLegendPopover);
   legendPopover.addEventListener('click', event => event.stopPropagation());
   document.addEventListener('click', () => {
     closeLegendPopover();
     closeSearchTool();
+    closeDataPopover();
   });
-  closeMenu.addEventListener('click', closeSideMenu);
-  scrim.addEventListener('click', closeSideMenu);
+  closeMenu?.addEventListener('click', closeSideMenu);
+  scrim?.addEventListener('click', closeSideMenu);
   resetViewButton?.addEventListener('click', () => fitToScreen(true));
   fitWidthButton?.addEventListener('click', fitWidth);
 
@@ -804,6 +833,7 @@ function bindEvents() {
       closeSideMenu();
       closeLegendPopover();
       closeSearchTool();
+      closeDataPopover();
     }
   });
 }
@@ -820,7 +850,6 @@ function runSearch() {
   if (el) {
     selectNuclide(found, el);
     centerOnNuclide(found);
-    closeSideMenu();
     closeSearchTool();
   }
 }
@@ -861,7 +890,7 @@ async function loadIaeaData() {
     if (!parsed.length) throw new Error('CSV vacío');
     replaceWithCsvRows(parsed, 'IAEA LiveChart');
     dataStatus.textContent = `Cargados ${state.nuclides.length.toLocaleString('es-ES')} nucleidos desde IAEA.`;
-    closeSideMenu();
+    closeDataPopover();
   } catch (error) {
     dataStatus.textContent = `No se pudo cargar automáticamente. Descarga el CSV desde IAEA e impórtalo manualmente. Detalle: ${error.message}`;
   }
@@ -876,7 +905,7 @@ function handleCsvInput(event) {
       const parsed = parseCsv(String(reader.result || ''));
       replaceWithCsvRows(parsed, file.name);
       dataStatus.textContent = `Importados ${state.nuclides.length.toLocaleString('es-ES')} nucleidos desde ${file.name}.`;
-      closeSideMenu();
+      closeDataPopover();
     } catch (error) {
       dataStatus.textContent = `Error importando CSV: ${error.message}`;
     }

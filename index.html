@@ -12,9 +12,6 @@
       <div id="chart" class="chart" aria-label="Cuadrícula de nucleidos"></div>
     </section>
 
-    <button id="menuButton" class="menu-button" aria-label="Abrir menú" title="Menú">
-      <span></span><span></span><span></span>
-    </button>
 
     <div class="top-tools" aria-label="Herramientas de vista">
       <div id="searchTool" class="search-tool" aria-label="Buscar nucleido">
@@ -26,6 +23,9 @@
           <button id="searchButton" class="top-search-go" aria-label="Buscar">Ir</button>
         </div>
       </div>
+      <button id="dataButton" class="tool-button" aria-label="Abrir datos" title="Datos">
+        <span class="data-icon" aria-hidden="true"></span>
+      </button>
       <button id="darkModeButton" class="tool-button" aria-label="Cambiar a modo oscuro" title="Modo oscuro">
         <span id="themeIcon" class="theme-icon moon-icon" aria-hidden="true"></span>
       </button>
@@ -35,6 +35,30 @@
       <div id="zoomHud" class="zoom-hud" aria-live="polite">100%</div>
     </div>
 
+    <div id="dataPopover" class="data-popover" aria-hidden="true">
+      <div class="data-popover-section">
+        <h2>Datos</h2>
+        <div class="external-actions data-actions">
+          <div>
+            <button id="loadIaeaButton" class="menu-action compact-menu-action">Cargar IAEA</button>
+            <p>CSV oficial de LiveChart.</p>
+          </div>
+          <div>
+            <label class="file-button compact-file-button">
+              CSV local
+              <input id="csvInput" type="file" accept=".csv,text/csv" hidden />
+            </label>
+            <p>Importar archivo propio.</p>
+          </div>
+        </div>
+        <p id="dataStatus" class="status-line">Cargando nuclides.csv…</p>
+      </div>
+      <div class="data-popover-section">
+        <h2>Estructura CSV</h2>
+        <p class="small-copy">Mínimos: <code>z</code>, <code>n</code>, <code>symbol</code>. Opcionales: vida media, abundancia, masa, spin/paridad, desintegración y energías.</p>
+      </div>
+    </div>
+
     <div id="legendPopover" class="legend-popover" aria-hidden="true">
       <div id="legendModes" class="legend-modes" aria-label="Modo de color de la tabla"></div>
       <div id="legend" class="legend" aria-label="Filtros visibles"></div>
@@ -42,35 +66,7 @@
 
     <div id="cursorHud" class="cursor-hud" aria-live="polite">Z — · N —</div>
 
-    <aside id="sideMenu" class="side-menu compact-side-menu" aria-label="Datos del visor" aria-hidden="true">
-      <div class="side-head">
-        <div>
-          <p class="eyebrow">Nucleidos</p>
-          <h1>Datos</h1>
-        </div>
-        <button id="closeMenu" class="icon-button" aria-label="Cerrar menú">×</button>
-      </div>
 
-      <details class="menu-section" open>
-        <summary>Datos externos</summary>
-        <p class="small-copy">La aplicación intenta leer <code>nuclides.csv</code> desde la misma carpeta que <code>index.html</code>. Si el navegador bloquea esa lectura local, usa <code>nuclides-data.js</code> como respaldo integrado.</p>
-        <div class="external-actions">
-          <button id="loadIaeaButton" class="menu-action compact-menu-action">Cargar IAEA</button>
-          <label class="file-button compact-file-button">
-            CSV local
-            <input id="csvInput" type="file" accept=".csv,text/csv" hidden />
-          </label>
-        </div>
-        <p id="dataStatus" class="status-line">Cargando nuclides.csv…</p>
-      </details>
-
-      <details class="menu-section">
-        <summary>Estructura CSV</summary>
-        <p class="small-copy">Columnas mínimas: <code>z</code>, <code>n</code> y <code>symbol</code>. El resto de campos se usa para enriquecer la ficha: vida media, abundancia, masa, spin/paridad, modos de desintegración y energías.</p>
-      </details>
-    </aside>
-
-    <div id="scrim" class="scrim" aria-hidden="true"></div>
 
     <article id="nuclideCard" class="nuclide-card" aria-label="Ficha del nucleido" aria-hidden="true">
       <section class="card-info">

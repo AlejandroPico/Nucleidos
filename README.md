@@ -1,23 +1,19 @@
-# Tabla de nucleidos — versión 8
+# Tabla de nucleidos — versión 9
 
 Visor web estático de nucleidos en HTML, CSS y JavaScript.
 
-## Cambios de la versión 8
+## Cambios de la versión 9
 
-- `nuclides.csv` es la fuente principal de datos.
-- Se filtran del mapa principal las filas con `Z=0`, para no dibujar neutrones aislados en la tabla de elementos.
-- Las celdas y su contenido interno quedan centrados vertical y horizontalmente.
-- Los nucleidos con abundancia natural positiva se resaltan con borde.
-- El nucleido natural principal de cada elemento se resalta con un borde más fuerte.
-- El menú lateral queda reducido a datos/importación y estructura CSV.
-- Eliminados los controles de ajustar vista, mostrar ejes, animación y notas de uso.
-- La animación atómica se pausa o reanuda clicando directamente sobre el modelo.
+- Eliminado el menú hamburguesa lateral.
+- Añadido botón superior de **Datos**, situado entre búsqueda y modo claro/oscuro.
+- Datos externos y estructura CSV se muestran ahora en una ventana emergente compacta.
+- Eliminado el resaltado de borde de los nucleidos con abundancia natural.
+- La barra superior queda ordenada así: búsqueda, datos, modo claro/oscuro, capas y zoom.
+- Se mantienen `nuclides.csv` como fuente principal y `nuclides-data.js` como respaldo integrado.
 
 ## Uso
 
-Abre `index.html` en un navegador moderno. Si el navegador permite leer ficheros locales, cargará `nuclides.csv`; si no, usará `nuclides-data.js` como respaldo.
-
-Para una carga más fiable, abre la carpeta con un servidor local, por ejemplo:
+Abre `index.html` en un navegador moderno. Para una carga más fiable del CSV local, abre la carpeta con un servidor local:
 
 ```bash
 python -m http.server 8000
