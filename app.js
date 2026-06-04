@@ -6,8 +6,10 @@ const GAP = 10;
 const AXIS = 58;
 const TILE_STEP_X = CELL_W + GAP;
 const TILE_STEP_Y = CELL_H + GAP;
-const DEFAULT_Z_MAX = 130;
-const DEFAULT_N_MAX = 250;
+const DEFAULT_Z_MAX = 180;
+const DEFAULT_N_MAX = 420;
+const THEORETICAL_Z_MAX = 180;
+const THEORETICAL_N_MAX = 420;
 const IAEA_URL = 'https://www-nds.iaea.org/relnsd/v0/data?fields=ground_states&nuclides=all';
 const OFFICIAL_CSV_URL = 'nuclides.csv';
 const MAGIC_NUMBERS = [2, 8, 20, 28, 50, 82, 126, 184];
@@ -54,6 +56,7 @@ const COLOR_MODES = [
 
 const state = {
   official: [], secondary: [], theoretical: [], all: [], byKey: new Map(), byCell: new Map(),
+  evaluatedBounds: null,
   selected: null, colorMode: 'decay',
   filters: {
     decay: new Set(['stable','beta-','beta+/EC','alpha','sf','p','n','it','cluster','unknown']),
@@ -65,8 +68,8 @@ const state = {
     qalpha: new Set(['positive','negative','zero','unknown']),
     qbeta: new Set(['positive','negative','zero','unknown'])
   },
-  layers: { evaluated: true, theoretical: true, isomer: true, magic: true, frontier: true, minimap: true, expert: true },
-  scale: 1, tx: 0, ty: 0, fitScale: 1,
+  layers: { evaluated: true, theoretical: false, isomer: true, magic: false, frontier: false, minimap: true, expert: true },
+  scale: 1, tx: 0, ty: 0, fitScale: 1, fullFitScale: 1,
   dragging: false, dragStart: null, renderPending: false,
   activePointers: new Map(), pinch: null, lastTap: 0,
   atom: null, atomFrame: 0, animationEnabled: true,
@@ -153,11 +156,25 @@ function rankClass(n) {
 }
 
 function updateBoundsFromData(rows) {
-  const maxZ = Math.max(DEFAULT_Z_MAX, ...rows.map(n => Number(n.z) || 0), 130) + 2;
-  const maxN = Math.max(DEFAULT_N_MAX, ...rows.map(n => Number(n.n) || 0), 252) + 4;
+  const evaluatedRows = rows.filter(n => n.dataClass !== 'theoretical' && n.z > 0);
+  state.evaluatedBounds = boundsForRows(evaluatedRows.length ? evaluatedRows : rows);
+
+  const maxZ = Math.max(DEFAULT_Z_MAX, THEORETICAL_Z_MAX, ...rows.map(n => Number(n.z) || 0)) + 2;
+  const maxN = Math.max(DEFAULT_N_MAX, THEORETICAL_N_MAX, ...rows.map(n => Number(n.n) || 0)) + 4;
   Z_MAX = Math.ceil(maxZ / 10) * 10;
   N_MAX = Math.ceil(maxN / 10) * 10;
   updateChartMetrics();
+}
+
+function boundsForRows(rows) {
+  const clean = rows.filter(n => n && Number.isFinite(Number(n.z)) && Number.isFinite(Number(n.n)) && n.z > 0);
+  if (!clean.length) return { minZ: 1, maxZ: 118, minN: 0, maxN: 178 };
+  return {
+    minZ: Math.max(1, Math.min(...clean.map(n => Number(n.z)))),
+    maxZ: Math.max(...clean.map(n => Number(n.z))),
+    minN: Math.max(0, Math.min(...clean.map(n => Number(n.n)))),
+    maxN: Math.max(...clean.map(n => Number(n.n)))
+  };
 }
 
 function updateChartMetrics() {
@@ -178,7 +195,7 @@ function indexNuclides() {
 
 function generateTheoreticalNuclides(occupied) {
   const rows = [];
-  for (let Z = 1; Z <= Z_MAX; Z++) {
+  for (let Z = 1; Z <= Math.min(Z_MAX, THEORETICAL_Z_MAX); Z++) {
     const center = stableNFor(Z);
     const width = Math.max(8, Math.round(11 + Z * 0.38));
     const minN = Math.max(0, center - width);
@@ -319,16 +336,25 @@ function drawScene() {
   const w = window.innerWidth, h = window.innerHeight;
   ctx.clearRect(0, 0, w, h);
   drawWorldGrid(w, h);
+  drawEvaluatedFrame();
   if (state.layers.magic) drawMagicLines();
   if (state.layers.frontier) drawFrontierLines();
   drawAxes();
 
   const visible = visibleWorldRect();
-  for (const n of state.all) {
-    if (!isRenderable(n)) continue;
-    const rect = cellRect(n.z, n.n);
-    if (rect.x > visible.x2 || rect.x + CELL_W < visible.x1 || rect.y > visible.y2 || rect.y + CELL_H < visible.y1) continue;
-    drawNuclideCell(n, rect);
+  const startN = Math.max(0, Math.floor((visible.x1 - AXIS) / TILE_STEP_X) - 1);
+  const endN = Math.min(N_MAX, Math.ceil((visible.x2 - AXIS) / TILE_STEP_X) + 1);
+  const startZ = Math.max(1, Z_MAX - Math.ceil((visible.y2 - AXIS) / TILE_STEP_Y) - 1);
+  const endZ = Math.min(Z_MAX, Z_MAX - Math.floor((visible.y1 - AXIS) / TILE_STEP_Y) + 1);
+  for (let Z = startZ; Z <= endZ; Z++) {
+    for (let N = startN; N <= endN; N++) {
+      const list = state.byCell.get(`${Z}-${N}`);
+      if (!list) continue;
+      const rect = cellRect(Z, N);
+      for (const n of list) {
+        if (isRenderable(n)) drawNuclideCell(n, rect);
+      }
+    }
   }
 }
 
@@ -346,6 +372,21 @@ function drawWorldGrid(w, h) {
   ctx.beginPath();
   for (let n = startN; n <= endN; n++) { const x = sx(AXIS + n * stepX + stepX/2); ctx.moveTo(x, 0); ctx.lineTo(x, h); }
   for (let r = startZrow; r <= endZrow; r++) { const y = sy(AXIS + r * stepY + stepY/2); ctx.moveTo(0, y); ctx.lineTo(w, y); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawEvaluatedFrame() {
+  const b = state.evaluatedBounds;
+  if (!b) return;
+  const r = worldRectForBounds(b, 18);
+  const x = sx(r.x1), y = sy(r.y1), w = (r.x2 - r.x1) * state.scale, h = (r.y2 - r.y1) * state.scale;
+  if (x > window.innerWidth || y > window.innerHeight || x + w < 0 || y + h < 0) return;
+  ctx.save();
+  ctx.lineWidth = Math.max(1, Math.min(2.4, 1.2 * state.scale));
+  ctx.strokeStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.18)' : 'rgba(34,32,28,.16)';
+  ctx.setLineDash([Math.max(5, 8 * state.scale), Math.max(5, 8 * state.scale)]);
+  roundedRect(ctx, x, y, w, h, Math.max(8, 18 * state.scale));
   ctx.stroke();
   ctx.restore();
 }
@@ -546,15 +587,35 @@ function drawMinimap() {
 }
 
 function fitToScreen(force = false) {
-  const pad = 60;
-  const sxv = (window.innerWidth - pad*2) / CHART_W;
-  const syv = (window.innerHeight - pad*2) / CHART_H;
-  state.fitScale = Math.min(sxv, syv);
-  if (force || state.scale < state.fitScale) state.scale = state.fitScale;
-  state.tx = (window.innerWidth - CHART_W * state.scale) / 2;
-  state.ty = (window.innerHeight - CHART_H * state.scale) / 2;
+  const pad = 64;
+  const fullSx = (window.innerWidth - pad*2) / CHART_W;
+  const fullSy = (window.innerHeight - pad*2) / CHART_H;
+  state.fullFitScale = Math.min(fullSx, fullSy);
+
+  const r = worldRectForBounds(state.evaluatedBounds || { minZ: 1, maxZ: 118, minN: 0, maxN: 178 }, 28);
+  const rw = Math.max(1, r.x2 - r.x1), rh = Math.max(1, r.y2 - r.y1);
+  const evalSx = (window.innerWidth - pad*2) / rw;
+  const evalSy = (window.innerHeight - pad*2) / rh;
+  state.fitScale = Math.min(evalSx, evalSy);
+  if (force || state.scale < state.fullFitScale) state.scale = state.fitScale;
+  state.tx = (window.innerWidth - rw * state.scale) / 2 - r.x1 * state.scale;
+  state.ty = (window.innerHeight - rh * state.scale) / 2 - r.y1 * state.scale;
   updateView();
 }
+
+function worldRectForBounds(b, margin = 0) {
+  const minN = Math.max(0, Number(b.minN) || 0);
+  const maxN = Math.min(N_MAX, Number(b.maxN) || 0);
+  const minZ = Math.max(1, Number(b.minZ) || 1);
+  const maxZ = Math.min(Z_MAX, Number(b.maxZ) || 1);
+  return {
+    x1: AXIS + minN * TILE_STEP_X - margin,
+    x2: AXIS + maxN * TILE_STEP_X + TILE_STEP_X + margin,
+    y1: AXIS + (Z_MAX - maxZ) * TILE_STEP_Y - margin,
+    y2: AXIS + (Z_MAX - minZ) * TILE_STEP_Y + TILE_STEP_Y + margin
+  };
+}
+
 function updateView() { clampTransform(); zoomValue.textContent = `${Math.round(state.scale / state.fitScale * 100)}%`; scheduleRender(); }
 function clampTransform() {
   const viewW = window.innerWidth, viewH = window.innerHeight;
@@ -566,7 +627,7 @@ function clampTransform() {
 function zoomAt(clientX, clientY, factor) {
   const old = state.scale;
   const maxScale = Math.max(2.6, state.fitScale * 26);
-  const next = Math.max(state.fitScale, Math.min(maxScale, old * factor));
+  const next = Math.max(state.fullFitScale || state.fitScale, Math.min(maxScale, old * factor));
   const chartX = (clientX - state.tx) / old;
   const chartY = (clientY - state.ty) / old;
   state.scale = next; state.tx = clientX - chartX * next; state.ty = clientY - chartY * next;
@@ -656,7 +717,7 @@ function updatePinchZoom() {
   const [a,b] = touches, d = Math.hypot(a.x-b.x, a.y-b.y); if (!d) return false;
   const c = { x: (a.x+b.x)/2, y: (a.y+b.y)/2 };
   const maxScale = Math.max(2.6, state.fitScale * 26);
-  const ns = Math.max(state.fitScale, Math.min(maxScale, state.pinch.startScale * d / state.pinch.startDistance));
+  const ns = Math.max(state.fullFitScale || state.fitScale, Math.min(maxScale, state.pinch.startScale * d / state.pinch.startDistance));
   state.scale = ns; state.tx = c.x - state.pinch.chartX * ns; state.ty = c.y - state.pinch.chartY * ns;
   updateView(); return true;
 }
@@ -924,7 +985,7 @@ function electronShells(electrons) { const caps = [2,8,18,32,32,18,8]; const she
 function buildAtomState(n) { return { z:n.z, neutrons:n.n, symbol:n.symbol, a:n.a, shells: electronShells(n.z), particles: buildNucleusParticles(n.z, n.n) }; }
 function buildNucleusParticles(protons, neutrons) { const total = Math.min(90, protons + neutrons); const particles = []; for (let i=0;i<total;i++) { const angle = i*2.399963, radius = Math.sqrt(i/Math.max(1,total))*42; const isProton = i < Math.round(total*protons/Math.max(1, protons+neutrons)); particles.push({ x:Math.cos(angle)*radius+(Math.random()-.5)*5, y:Math.sin(angle)*radius+(Math.random()-.5)*5, z:Math.sin(angle*1.7)*18, proton:isProton, size:9+Math.random()*4 }); } return particles; }
 function resizeAtomCanvas() { const r = atomCanvas.getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1); const w = Math.max(300, Math.floor(r.width*dpr)), h = Math.max(260, Math.floor(r.height*dpr)); if (atomCanvas.width !== w || atomCanvas.height !== h) { atomCanvas.width = w; atomCanvas.height = h; } }
-function drawAtomLoop(time) { resizeAtomCanvas(); if (state.atom) drawAtom(time); requestAnimationFrame(drawAtomLoop); }
+function drawAtomLoop(time) { if (state.atom && card.classList.contains('open') && state.animationEnabled) drawAtom(time); requestAnimationFrame(drawAtomLoop); }
 function drawAtom(time) {
   const atom = state.atom; if (!atom) return; const c = atomCtx; const w = atomCanvas.width, h = atomCanvas.height; c.clearRect(0,0,w,h); const cx=w*.52, cy=h*.54, min=Math.min(w,h), gap=Math.max(38,min*.085), base=Math.max(68,min*.14); const t = state.animationEnabled ? time*.001 : state.atomFrame; if (!state.animationEnabled) state.atomFrame = t;
   c.save(); c.translate(cx,cy); c.lineWidth = Math.max(1,min*.0024);
