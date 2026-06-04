@@ -2,16 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Nucleidos — visor interactivo</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main id="app" aria-label="Visor interactivo de tabla de nucleidos">
     <section id="viewport" class="viewport" aria-label="Escenario de nucleidos">
-      <div id="chart" class="chart" aria-label="Cuadrícula de nucleidos"></div>
+      <canvas id="chartCanvas" class="chart-canvas" aria-label="Cuadrícula de nucleidos"></canvas>
     </section>
-
 
     <div class="top-tools" aria-label="Herramientas de vista">
       <div id="searchTool" class="search-tool" aria-label="Buscar nucleido">
@@ -19,89 +18,175 @@
           <span class="search-icon" aria-hidden="true"></span>
         </button>
         <div class="top-search-box" aria-hidden="true">
-          <input id="searchInput" type="search" placeholder="Ca-40, 40Ca, Z=20, N=20..." autocomplete="off" />
+          <input id="searchInput" type="search" placeholder="Ca-40, 40Ca, Z=20, N=20, decay:alpha..." autocomplete="off" />
           <button id="searchButton" class="top-search-go" aria-label="Buscar">Ir</button>
         </div>
       </div>
+
       <button id="dataButton" class="tool-button" aria-label="Abrir datos" title="Datos">
-        <span class="data-icon" aria-hidden="true"></span>
+        <span class="database-icon" aria-hidden="true"></span>
       </button>
       <button id="darkModeButton" class="tool-button" aria-label="Cambiar a modo oscuro" title="Modo oscuro">
         <span id="themeIcon" class="theme-icon moon-icon" aria-hidden="true"></span>
       </button>
-      <button id="legendButton" class="tool-button" aria-label="Mostrar capas" title="Capas y filtros">
+      <button id="legendButton" class="tool-button" aria-label="Mostrar capas" title="Capas, filtros y mapas">
         <span class="layers-icon" aria-hidden="true"></span>
       </button>
-      <div id="zoomHud" class="zoom-hud" aria-live="polite">100%</div>
+      <div id="zoomHud" class="zoom-hud" aria-live="polite">
+        <button id="zoomOutButton" aria-label="Alejar">−</button>
+        <span id="zoomValue">100%</span>
+        <button id="zoomInButton" aria-label="Acercar">+</button>
+      </div>
     </div>
 
-    <div id="dataPopover" class="data-popover" aria-hidden="true">
-      <div class="data-popover-section">
+    <div id="dataPopover" class="data-popover popover" aria-hidden="true">
+      <section class="popover-section">
         <h2>Datos</h2>
-        <div class="external-actions data-actions">
-          <div>
-            <button id="loadIaeaButton" class="menu-action compact-menu-action">Cargar IAEA</button>
-            <p>Descarga datos nucleares desde LiveChart.</p>
+        <div class="data-actions">
+          <div class="data-action-card">
+            <button id="loadIaeaButton" class="menu-action">Cargar IAEA</button>
+            <p>Recarga la tabla desde LiveChart, si el navegador permite la conexión.</p>
           </div>
-          <div>
-            <label class="file-button compact-file-button">
+          <div class="data-action-card">
+            <label class="file-button">
               CSV local
               <input id="csvInput" type="file" accept=".csv,text/csv" hidden />
             </label>
-            <p>Sustituye la tabla por tu propio CSV.</p>
+            <p>Importa otro CSV principal con estados fundamentales.</p>
+          </div>
+          <div class="data-action-card">
+            <label class="file-button secondary">
+              Dataset secundario
+              <input id="secondaryCsvInput" type="file" accept=".csv,.txt,text/csv,text/plain" hidden />
+            </label>
+            <p>Añade isómeros, NUBASE, predicciones o masas teóricas.</p>
           </div>
         </div>
         <p id="dataStatus" class="status-line">Datos listos.</p>
-      </div>
-      <div class="data-popover-section">
+      </section>
+
+      <section class="popover-section">
         <h2>Estructura CSV</h2>
         <div class="csv-schema">
-          <p><strong>Campos mínimos:</strong> <code>z</code>, <code>n</code> y <code>symbol</code>. Con esos tres valores la app ya puede colocar cada nucleido en la cuadrícula.</p>
-          <p><strong>Identificación:</strong> <code>name</code> o <code>element</code>, <code>a</code>, <code>nuclide</code>. Si falta <code>a</code>, se calcula como <code>Z + N</code>.</p>
-          <p><strong>Estabilidad y desintegración:</strong> <code>half_life</code>, <code>operator_hl</code>, <code>unit_hl</code>, <code>decay_1</code>, <code>decay_1_%</code>, <code>decay_2</code>, <code>decay_3</code>.</p>
-          <p><strong>Propiedades nucleares:</strong> <code>atomic_mass</code>, <code>massexcess</code>, <code>binding</code>, <code>jp</code>, <code>qa</code>, <code>qec</code>, <code>qbm</code>, <code>sn</code>, <code>sp</code>.</p>
-          <p><strong>Metadatos útiles:</strong> <code>abundance</code>, <code>discovery</code>, <code>notes</code>, <code>wikipedia</code>, <code>livechart</code>.</p>
+          <p><strong>Colocación:</strong> la tabla necesita <code>z</code> y <code>n</code>. Si falta <code>n</code>, puede calcularse con <code>a - z</code>. Si falta <code>z</code>, se intenta deducir desde <code>symbol</code>.</p>
+          <p><strong>Identidad nuclear:</strong> <code>symbol</code>, <code>element</code>/<code>name</code>, <code>a</code>/<code>mass_number</code>, <code>state</code>, <code>isomer</code>, <code>energy</code>. Los isómeros pueden distinguirse con <code>state=m1</code>, <code>m2</code> o una columna equivalente.</p>
+          <p><strong>Vida media:</strong> <code>half_life</code>, <code>operator_hl</code>, <code>unit_hl</code>, <code>half_life_sec</code>. La app usa estos campos para clasificar vida corta, media, larga o estable.</p>
+          <p><strong>Desintegración:</strong> <code>decay_1</code>, <code>decay_1_%</code>, <code>decay_2</code>, <code>decay_3</code>. Admite alfa, beta menos, beta más/captura electrónica, fisión espontánea, emisión de protón, neutrón, clúster e transición isomérica.</p>
+          <p><strong>Masas y energías:</strong> <code>atomic_mass</code>, <code>massexcess</code>, <code>binding</code>, <code>qa</code>, <code>qec</code>, <code>qbm</code>, <code>sn</code>, <code>sp</code>. Estos campos alimentan los mapas térmicos.</p>
+          <p><strong>Calidad del dato:</strong> usa <code>data_class</code>, <code>quality</code> o <code>source_type</code> con valores como <code>evaluated</code>, <code>isomer</code>, <code>estimated</code> o <code>theoretical</code>. Si no existe, se trata como evaluado.</p>
+          <p><strong>Metadatos:</strong> <code>abundance</code>, <code>discovery</code>, <code>notes</code>, <code>wikipedia</code>, <code>livechart</code>, <code>application</code>. Si existen, aparecen en la ficha.</p>
         </div>
-      </div>
+      </section>
     </div>
 
-    <div id="legendPopover" class="legend-popover" aria-hidden="true">
-      <div id="legendModes" class="legend-modes" aria-label="Modo de color de la tabla"></div>
-      <div id="legend" class="legend" aria-label="Filtros visibles"></div>
+    <div id="legendPopover" class="legend-popover popover" aria-hidden="true">
+      <section class="popover-section compact-section">
+        <h2>Mapa</h2>
+        <div id="legendModes" class="legend-modes" aria-label="Modo de color de la tabla"></div>
+      </section>
+      <section class="popover-section compact-section">
+        <h2>Filtros</h2>
+        <div id="legend" class="legend" aria-label="Filtros visibles"></div>
+      </section>
+      <section class="popover-section compact-section">
+        <h2>Capas</h2>
+        <div class="layer-toggles">
+          <button id="evaluatedLayerButton" class="layer-toggle active" type="button">Evaluados</button>
+          <button id="theoreticalLayerButton" class="layer-toggle active" type="button">No observados</button>
+          <button id="isomerLayerButton" class="layer-toggle active" type="button">Isómeros</button>
+          <button id="magicLayerButton" class="layer-toggle active" type="button">Números mágicos</button>
+          <button id="frontierLayerButton" class="layer-toggle active" type="button">Frontera nuclear</button>
+          <button id="minimapButton" class="layer-toggle active" type="button">Minimapa</button>
+          <button id="expertModeButton" class="layer-toggle active" type="button">Modo experto</button>
+        </div>
+      </section>
     </div>
 
     <div id="cursorHud" class="cursor-hud" aria-live="polite">Z — · N —</div>
 
+    <div id="minimapPanel" class="minimap-panel" aria-label="Minimapa de la tabla">
+      <canvas id="minimapCanvas" width="260" height="150"></canvas>
+    </div>
 
+    <section id="compareTray" class="compare-tray" aria-hidden="true">
+      <div class="compare-head">
+        <strong>Comparador</strong>
+        <button id="clearCompareButton" type="button">Limpiar</button>
+      </div>
+      <div id="compareTable" class="compare-table"></div>
+    </section>
 
     <article id="nuclideCard" class="nuclide-card" aria-label="Ficha del nucleido" aria-hidden="true">
       <section class="card-info">
         <div class="identity-row">
-          <div class="mass-stack">
-            <span id="detailA">40</span>
-            <span id="detailZ">20</span>
-          </div>
+          <div class="mass-stack"><span id="detailA">40</span><span id="detailZ">20</span></div>
           <div>
             <div class="symbol-line"><span id="detailSymbol">Ca</span><span id="detailName">Calcio</span></div>
             <p id="detailSubtitle" class="detail-subtitle">Calcio-40 · N=20</p>
           </div>
         </div>
 
-        <div class="detail-sheet">
-          <div class="detail-row"><span>Estado</span><strong id="detailState">Estable</strong></div>
-          <div class="detail-row"><span>Vida media</span><strong id="detailHalfLife">Estable</strong></div>
-          <div class="detail-row"><span>Abundancia</span><strong id="detailAbundance">96,94%</strong></div>
-          <div class="detail-row"><span>Masa</span><strong id="detailMass">39,96259098 u</strong></div>
-          <div class="detail-row"><span>Protones</span><strong id="detailProtons">20</strong></div>
-          <div class="detail-row"><span>Neutrones</span><strong id="detailNeutrons">20</strong></div>
-          <div class="detail-row"><span>Electrones</span><strong id="detailElectrons">20</strong></div>
-          <div class="detail-row"><span>Spin/paridad</span><strong id="detailSpin">0+</strong></div>
-          <div class="detail-row"><span>Q / energía</span><strong id="detailQ">—</strong></div>
+        <nav class="detail-tabs" aria-label="Secciones de ficha">
+          <button class="tab-button active" data-tab="summary" type="button">Resumen</button>
+          <button class="tab-button" data-tab="decay" type="button">Decaimiento</button>
+          <button class="tab-button" data-tab="mass" type="button">Masas</button>
+          <button class="tab-button" data-tab="structure" type="button">Estructura</button>
+          <button class="tab-button" data-tab="apps" type="button">Usos</button>
+          <button class="tab-button" data-tab="raw" type="button">Datos</button>
+        </nav>
+
+        <div class="tab-panel active" data-panel="summary">
+          <div class="detail-sheet">
+            <div class="detail-row"><span>Clase</span><strong id="detailClass">Evaluado</strong></div>
+            <div class="detail-row"><span>Estado</span><strong id="detailState">Estable</strong></div>
+            <div class="detail-row"><span>Vida media</span><strong id="detailHalfLife">Estable</strong></div>
+            <div class="detail-row"><span>Abundancia</span><strong id="detailAbundance">96,94%</strong></div>
+            <div class="detail-row"><span>Spin/paridad</span><strong id="detailSpin">0+</strong></div>
+          </div>
+          <div class="mini-bars" id="miniBars"></div>
+          <div class="info-block"><h2>Peculiaridades</h2><p id="detailNotes">Selecciona una celda para ver la información.</p></div>
         </div>
 
-        <div class="info-block">
-          <h2>Peculiaridades</h2>
-          <p id="detailNotes">Selecciona una celda para ver la información.</p>
+        <div class="tab-panel" data-panel="decay">
+          <div class="detail-sheet">
+            <div class="detail-row"><span>Modo principal</span><strong id="detailDecayMode">—</strong></div>
+            <div class="detail-row"><span>Q / energía</span><strong id="detailQ">—</strong></div>
+            <div class="detail-row"><span>Descendiente probable</span><strong id="detailDaughter">—</strong></div>
+          </div>
+          <h2 class="subhead">Cadena estimada</h2>
+          <div id="decayChain" class="chain-list"></div>
+          <h2 class="subhead">Relaciones</h2>
+          <div id="relationList" class="chain-list"></div>
+        </div>
+
+        <div class="tab-panel" data-panel="mass">
+          <div class="detail-sheet">
+            <div class="detail-row"><span>Masa atómica</span><strong id="detailMass">—</strong></div>
+            <div class="detail-row"><span>Exceso de masa</span><strong id="detailMassExcess">—</strong></div>
+            <div class="detail-row"><span>Energía de enlace</span><strong id="detailBinding">—</strong></div>
+            <div class="detail-row"><span>Separación n/p</span><strong id="detailSeparation">—</strong></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="structure">
+          <div class="detail-sheet">
+            <div class="detail-row"><span>Protones</span><strong id="detailProtons">20</strong></div>
+            <div class="detail-row"><span>Neutrones</span><strong id="detailNeutrons">20</strong></div>
+            <div class="detail-row"><span>Electrones</span><strong id="detailElectrons">20</strong></div>
+            <div class="detail-row"><span>Números mágicos</span><strong id="detailMagic">—</strong></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="apps">
+          <div class="info-block"><h2>Aplicaciones / interés</h2><p id="detailApplications">—</p></div>
+          <div class="action-row">
+            <button id="addCompareButton" type="button">Añadir al comparador</button>
+            <button id="exportCardButton" type="button">Exportar ficha PNG</button>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="raw">
+          <pre id="rawDataBlock" class="raw-data"></pre>
         </div>
 
         <div class="link-row">
@@ -112,17 +197,11 @@
 
       <section class="atom-panel">
         <div class="atom-toolbar">
-          <div>
-            <p class="eyebrow">Modelo visual</p>
-            <h2 id="atomTitle">Átomo neutro</h2>
-          </div>
+          <div><p class="eyebrow">Modelo visual</p><h2 id="atomTitle">Átomo neutro</h2></div>
           <div id="shellText" class="shell-text">2 · 8 · 8 · 2</div>
         </div>
         <canvas id="atomCanvas" width="900" height="620" aria-label="Simulación atómica visual" title="Clicar para pausar o reanudar la animación"></canvas>
-        <div class="atom-footer">
-          <span id="nucleusText">20 p⁺ · 20 n⁰</span>
-          <span>Representación esquemática, no orbital real</span>
-        </div>
+        <div class="atom-footer"><span id="nucleusText">20 p⁺ · 20 n⁰</span><span>Representación esquemática</span></div>
       </section>
     </article>
   </main>
