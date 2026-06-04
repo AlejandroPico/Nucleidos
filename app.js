@@ -68,7 +68,7 @@ const state = {
     qalpha: new Set(['positive','negative','zero','unknown']),
     qbeta: new Set(['positive','negative','zero','unknown'])
   },
-  layers: { evaluated: true, theoretical: false, isomer: true, magic: false, frontier: false, evaluatedFrame: false, minimap: true, expert: true },
+  layers: { evaluated: true, theoretical: false, isomer: true, grid: false, magic: false, frontier: false, evaluatedFrame: false, minimap: true, expert: true },
   scale: 1, tx: 0, ty: 0, fitScale: 1, fullFitScale: 1,
   dragging: false, dragStart: null, renderPending: false,
   activePointers: new Map(), pinch: null, lastTap: 0,
@@ -307,6 +307,7 @@ function syncLayerButtons() {
   toggleButtonState('evaluatedLayerButton', state.layers.evaluated);
   toggleButtonState('theoreticalLayerButton', state.layers.theoretical);
   toggleButtonState('isomerLayerButton', state.layers.isomer);
+  toggleButtonState('gridLayerButton', state.layers.grid);
   toggleButtonState('magicLayerButton', state.layers.magic);
   toggleButtonState('frontierLayerButton', state.layers.frontier);
   toggleButtonState('evaluatedFrameLayerButton', state.layers.evaluatedFrame);
@@ -336,7 +337,7 @@ function scheduleRender() {
 function drawScene() {
   const w = window.innerWidth, h = window.innerHeight;
   ctx.clearRect(0, 0, w, h);
-  drawWorldGrid(w, h);
+  if (state.layers.grid) drawWorldGrid(w, h);
   if (state.layers.evaluatedFrame) drawEvaluatedFrame();
   if (state.layers.magic) drawMagicLines();
   if (state.layers.frontier) drawFrontierLines();
@@ -525,7 +526,16 @@ function sy(y) { return state.ty + y * state.scale; }
 function wx(x) { return (x - state.tx) / state.scale; }
 function wy(y) { return (y - state.ty) / state.scale; }
 function cellRect(Z, N) { return { x: AXIS + N * TILE_STEP_X + (TILE_STEP_X - CELL_W)/2, y: AXIS + (Z_MAX - Z) * TILE_STEP_Y + (TILE_STEP_Y - CELL_H)/2, w: CELL_W, h: CELL_H }; }
-function roundedRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+function roundedRect(c, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(Number(r) || 0, Math.abs(w) / 2, Math.abs(h) / 2));
+  c.beginPath();
+  c.moveTo(x + rr, y);
+  c.arcTo(x + w, y, x + w, y + h, rr);
+  c.arcTo(x + w, y + h, x, y + h, rr);
+  c.arcTo(x, y + h, x, y, rr);
+  c.arcTo(x, y, x + w, y, rr);
+  c.closePath();
+}
 
 function isRenderable(n) {
   if (n.dataClass === 'theoretical' && !state.layers.theoretical) return false;
@@ -662,7 +672,7 @@ function bindEvents() {
   csvInput.addEventListener('change', handleCsvInput);
   secondaryCsvInput.addEventListener('change', handleSecondaryInput);
   loadIaeaButton.addEventListener('click', loadIaeaData);
-  for (const [id, key] of [['evaluatedLayerButton','evaluated'],['theoreticalLayerButton','theoretical'],['isomerLayerButton','isomer'],['magicLayerButton','magic'],['frontierLayerButton','frontier'],['evaluatedFrameLayerButton','evaluatedFrame'],['minimapButton','minimap'],['expertModeButton','expert']]) {
+  for (const [id, key] of [['evaluatedLayerButton','evaluated'],['theoreticalLayerButton','theoretical'],['isomerLayerButton','isomer'],['gridLayerButton','grid'],['magicLayerButton','magic'],['frontierLayerButton','frontier'],['evaluatedFrameLayerButton','evaluatedFrame'],['minimapButton','minimap'],['expertModeButton','expert']]) {
     document.getElementById(id)?.addEventListener('click', () => { state.layers[key] = !state.layers[key]; syncLayerButtons(); scheduleRender(); if (state.selected) fillDetail(state.selected); });
   }
   document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));

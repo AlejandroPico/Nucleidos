@@ -48,3 +48,11 @@ La capa de no observados es una extensión visual/extrapolada, no un sustituto d
 - La vista inicial sigue encuadrando solo el rango evaluado del CSV principal.
 - Las capas de no observados, números mágicos, frontera nuclear y marco evaluado vienen desactivadas por defecto.
 - Los ejes N/Z se dibujan como capa superior para que sus valores no queden tapados por las celdas.
+
+
+## v14
+
+- Corrige los arcos gigantes provocados por radios excesivos en las etiquetas de eje dibujadas en Canvas.
+- Añade la capa Cuadrícula, desactivada por defecto, para dejar la vista inicial limpia.
+- Mantiene números mágicos, frontera nuclear y marco evaluado como capas desactivadas por defecto.
+- Conserva la extensión teórica hasta Z=200 y N≈560, con vista inicial encuadrada en los nucleidos evaluados.
