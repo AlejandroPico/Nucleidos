@@ -1,66 +1,47 @@
-# Tabla de nucleidos — versión 12
+# Tabla de nucleidos · filtros estilo ZPeriod
 
-Visor interactivo de nucleidos en HTML, CSS y JavaScript.
+Versión 18 experimental.
 
-## Cambios principales de esta versión
+## Qué incluye
 
-- La tabla principal se renderiza en Canvas 2D para mejorar el rendimiento con miles de nucleidos.
-- El renderizado recorre únicamente las celdas visibles, no toda la colección de datos en cada frame.
-- La vista inicial se ajusta al rango evaluado del CSV oficial.
-- El lienzo queda extendido para permitir una capa teórica/no observada más allá de los datos evaluados.
-- La capa **No observados** arranca deshabilitada.
-- La capa **Números mágicos** arranca deshabilitada.
-- La capa **Frontera nuclear** arranca deshabilitada.
-- Se añade un marco sutil para delimitar el área de nucleidos evaluados.
-- Se mantiene `nuclides.csv` como fuente principal y `nuclides-data.js` como respaldo embebido.
+- Visor de nucleidos en Canvas 2D.
+- Carga automática de `nuclides.csv` si existe junto a `index.html`.
+- Respaldo mínimo generado desde `PeriodicTableJSON.json` si no se encuentra `nuclides.csv`.
+- Datos químicos integrados desde `PeriodicTableJSON.json` y `PeriodicTableCSV.csv`.
+- Filtros químicos inspirados en ZPeriod:
+  - categoría,
+  - bloque,
+  - fase,
+  - grupo,
+  - periodo,
+  - tipo general,
+  - punto de fusión,
+  - punto de ebullición,
+  - densidad,
+  - electronegatividad,
+  - primera ionización,
+  - afinidad electrónica,
+  - radio atómico,
+  - calor específico / molar,
+  - masa atómica.
+- Barra superior central de rango para filtros numéricos.
+- Búsqueda avanzada por sintaxis.
+- Ficha de nucleido con datos nucleares y químicos del elemento.
 
-## Datos
+## Archivos principales
 
-La aplicación carga `nuclides.csv` desde la misma carpeta que `index.html`. Si el navegador bloquea esa lectura local, usa el respaldo embebido en `nuclides-data.js`.
+- `index.html`
+- `styles.css`
+- `app.js`
+- `periodic-elements-data.js`
+- `PeriodicTableJSON.json`
+- `PeriodicTableCSV.csv`
 
-## Capas
+## CSV nuclear
 
-En el botón de capas se pueden activar o desactivar:
+Coloca el archivo oficial `nuclides.csv` en la misma carpeta que `index.html`.
+La aplicación intenta reconocer columnas como `Z`, `N`, `A`, `symbol`, `half_life`, `decay`, `abundance`, `qalpha`, `qbeta`, `mass` y variantes equivalentes.
 
-- Evaluados
-- No observados
-- Isómeros
-- Números mágicos
-- Frontera nuclear
-- Minimapa
-- Modo experto
+## Nota sobre radio atómico
 
-La capa de no observados es una extensión visual/extrapolada, no un sustituto de datos evaluados.
-
-## Uso
-
-- Rueda del ratón: zoom.
-- Arrastrar: mover la tabla.
-- Móvil: un dedo mueve, dos dedos hacen zoom.
-- Clic sobre un nucleido: abre la ficha.
-- Clic fuera: cierra la ficha.
-- Doble clic/doble toque sobre un nucleido: centra y acerca.
-
-
-## Cambios v13
-
-- Extensión teórica limitada hasta Z=130 y N≈320.
-- La vista inicial sigue encuadrando solo el rango evaluado del CSV principal.
-- Las capas de no observados, números mágicos, frontera nuclear y marco evaluado vienen desactivadas por defecto.
-- Los ejes N/Z se dibujan como capa superior para que sus valores no queden tapados por las celdas.
-
-
-## v14
-
-- Corrige los arcos gigantes provocados por radios excesivos en las etiquetas de eje dibujadas en Canvas.
-- Añade la capa Cuadrícula, desactivada por defecto, para dejar la vista inicial limpia.
-- Mantiene números mágicos, frontera nuclear y marco evaluado como capas desactivadas por defecto.
-- Limita la extensión teórica hasta Z=130 y N≈320, con vista inicial encuadrada en los nucleidos evaluados.
-
-
-## Versión 15
-
-- Extensión teórica reducida a Z=130 para evitar un mapa excesivamente vacío.
-- Eje de neutrones reducido a N≈320, suficiente para la extensión superpesada planteada.
-- Los valores de los ejes se muestran como números simples, sin cápsula ni borde redondeado.
-- La vista inicial sigue encuadrando únicamente los nucleidos evaluados del CSV.
+El filtro de radio atómico queda preparado. Si el JSON/CSV no contiene una columna `atomic_radius`, la opción aparecerá sin datos disponibles.
