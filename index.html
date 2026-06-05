@@ -10,10 +10,10 @@
   <canvas id="nuclideCanvas" aria-label="Tabla interactiva de nucleidos"></canvas>
 
   <div class="top-tools" aria-label="Herramientas principales">
-    <button id="searchButton" class="tool-button" type="button" data-tip="Buscar por símbolo, elemento, Z, N, A o sintaxis avanzada como Z=92, N=126, A=235, symbol=U, decay=alpha o stable=true.">⌕</button>
-    <button id="dataButton" class="tool-button" type="button" data-tip="Datos cargados, importación CSV y estructura de archivos.">▣</button>
-    <button id="themeButton" class="tool-button" type="button" data-tip="Alternar modo claro y modo nocturno.">☾</button>
-    <button id="layersButton" class="tool-button" type="button" data-tip="Mapa, filtros químicos tipo ZPeriod, capas nucleares y leyenda.">◫</button>
+    <button id="searchButton" class="tool-button" type="button" data-tip="Buscar por símbolo, elemento, Z, N, A o sintaxis avanzada como Z=92, N=126, A=235, symbol=U, decay=alpha o stable=true."><span class="search-icon" aria-hidden="true"></span></button>
+    <button id="dataButton" class="tool-button" type="button" data-tip="Datos cargados, importación CSV y estructura de archivos."><span class="database-icon" aria-hidden="true"></span></button>
+    <button id="themeButton" class="tool-button" type="button" data-tip="Alternar modo claro y modo nocturno."><span id="themeIcon" class="theme-icon moon-icon" aria-hidden="true"></span></button>
+    <button id="layersButton" class="tool-button" type="button" data-tip="Mapa, filtros químicos tipo ZPeriod, capas nucleares y leyenda."><span class="layers-icon" aria-hidden="true"></span></button>
     <div class="zoom-hud" data-tip="Zoom de la tabla. También puedes usar la rueda del ratón o pellizco táctil.">
       <button id="zoomOut" type="button">−</button>
       <span id="zoomValue">100%</span>
@@ -89,38 +89,50 @@
       <button class="ghost-close" data-close="layersPopover" type="button">×</button>
     </div>
 
-    <div class="popover-section">
-      <h3>Mapa nuclear</h3>
-      <div id="nuclearModes" class="mode-grid"></div>
+    <div class="filter-columns">
+      <div class="filter-column nuclear-column">
+        <div class="column-head">
+          <strong>Nuclear</strong>
+          <small>Filtros originales de nucleidos</small>
+        </div>
+        <div class="popover-section">
+          <h3>Mapa nuclear</h3>
+          <div id="nuclearModes" class="mode-grid"></div>
+        </div>
+        <div class="popover-section">
+          <h3>Capas nucleares y vista</h3>
+          <div class="layer-grid nuclear-layers">
+            <button id="evaluatedLayerButton" class="layer-toggle active" type="button" data-layer="evaluated" data-tip="Muestra u oculta los nucleidos evaluados o cargados desde el CSV principal.">Evaluados</button>
+            <button id="theoreticalLayerButton" class="layer-toggle" type="button" data-layer="theoretical" data-tip="Muestra posiciones no observadas o extrapoladas cuando existan. Por defecto está apagado.">No observados</button>
+            <button id="isomerLayerButton" class="layer-toggle active" type="button" data-layer="isomer" data-tip="Muestra estados isoméricos si el dataset los contiene.">Isómeros</button>
+            <button id="gridLayerButton" class="layer-toggle" type="button" data-layer="grid" data-tip="Activa la cuadrícula de fondo N/Z.">Cuadrícula</button>
+            <button id="magicLayerButton" class="layer-toggle" type="button" data-layer="magic" data-tip="Muestra números mágicos nucleares en N y Z con énfasis visual.">Números mágicos</button>
+            <button id="frontierLayerButton" class="layer-toggle" type="button" data-layer="frontier" data-tip="Muestra una frontera nuclear estimada. Es orientativa, no una evaluación oficial.">Frontera nuclear</button>
+            <button id="minimapButton" class="layer-toggle active" type="button" data-layer="minimap" data-tip="Muestra el minimapa de navegación.">Minimapa</button>
+            <button id="expertModeButton" class="layer-toggle active" type="button" data-layer="expert" data-tip="Alterna ficha técnica compacta y explicación ampliada.">Modo experto</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-column chemical-column">
+        <div class="column-head">
+          <strong>Elemento químico</strong>
+          <small>Filtros heredados desde Z por cada isótopo</small>
+        </div>
+        <div class="popover-section">
+          <h3>Clasificaciones químicas</h3>
+          <div id="chemicalClassModes" class="mode-grid"></div>
+        </div>
+        <div class="popover-section">
+          <h3>Propiedades con rango</h3>
+          <div id="numericModes" class="mode-grid dense"></div>
+        </div>
+      </div>
     </div>
 
-    <div class="popover-section">
-      <h3>Clasificaciones químicas</h3>
-      <div id="chemicalClassModes" class="mode-grid"></div>
-    </div>
-
-    <div class="popover-section">
-      <h3>Propiedades con rango</h3>
-      <div id="numericModes" class="mode-grid dense"></div>
-    </div>
-
-    <div class="popover-section">
+    <div class="popover-section legend-section">
       <h3>Leyenda / filtro activo</h3>
       <div id="legend" class="legend"></div>
-    </div>
-
-    <div class="popover-section">
-      <h3>Capas visuales</h3>
-      <div class="layer-grid">
-        <button id="evaluatedLayerButton" class="layer-toggle active" type="button" data-layer="evaluated" data-tip="Muestra u oculta los nucleidos evaluados o cargados desde el CSV principal.">Evaluados</button>
-        <button id="theoreticalLayerButton" class="layer-toggle" type="button" data-layer="theoretical" data-tip="Muestra posiciones no observadas o extrapoladas cuando existan. Por defecto está apagado.">No observados</button>
-        <button id="isomerLayerButton" class="layer-toggle active" type="button" data-layer="isomer" data-tip="Muestra estados isoméricos si el dataset los contiene.">Isómeros</button>
-        <button id="gridLayerButton" class="layer-toggle" type="button" data-layer="grid" data-tip="Activa la cuadrícula de fondo N/Z.">Cuadrícula</button>
-        <button id="magicLayerButton" class="layer-toggle" type="button" data-layer="magic" data-tip="Muestra números mágicos nucleares en N y Z con énfasis visual.">Números mágicos</button>
-        <button id="frontierLayerButton" class="layer-toggle" type="button" data-layer="frontier" data-tip="Muestra una frontera nuclear estimada. Es orientativa, no una evaluación oficial.">Frontera nuclear</button>
-        <button id="minimapButton" class="layer-toggle active" type="button" data-layer="minimap" data-tip="Muestra el minimapa de navegación.">Minimapa</button>
-        <button id="expertModeButton" class="layer-toggle active" type="button" data-layer="expert" data-tip="Alterna ficha técnica compacta y explicación ampliada.">Modo experto</button>
-      </div>
     </div>
   </section>
 
@@ -162,6 +174,7 @@
   <div id="miniMap" class="minimap glass"></div>
   <div id="uiTooltip" class="ui-tooltip" role="tooltip" aria-hidden="true"></div>
 
+  <script src="nuclides-data.js"></script>
   <script src="periodic-elements-data.js"></script>
   <script src="app.js"></script>
 </body>

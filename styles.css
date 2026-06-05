@@ -146,3 +146,39 @@ body.dark .detail-tabs { background: rgba(255,255,255,.04); }
 }
 
 .empty-state-note { color: var(--muted); }
+
+/* v20 corrections: restore previous toolbar icons, minimap position, and two-column filters */
+.top-tools { z-index: 190; }
+.tool-button { font-size: 0; }
+.search-icon, .layers-icon, .database-icon, .theme-icon { position: relative; width: 20px; height: 20px; display: block; color: currentColor; }
+.search-icon::before { content: ""; position: absolute; left: 2px; top: 2px; width: 11px; height: 11px; border: 2px solid currentColor; border-radius: 50%; }
+.search-icon::after { content: ""; position: absolute; right: 2px; bottom: 3px; width: 8px; height: 2px; background: currentColor; transform: rotate(45deg); border-radius: 99px; }
+.database-icon::before { content: ""; position: absolute; left: 3px; top: 2px; width: 14px; height: 16px; border: 2px solid currentColor; border-radius: 50% / 16%; }
+.database-icon::after { content: ""; position: absolute; left: 5px; top: 7px; width: 10px; height: 8px; border-top: 2px solid currentColor; border-bottom: 2px solid currentColor; opacity: .75; }
+.layers-icon::before, .layers-icon::after { content: ""; position: absolute; left: 3px; width: 14px; height: 10px; border: 2px solid currentColor; border-radius: 4px; transform: rotate(-18deg); }
+.layers-icon::before { top: 3px; opacity: .95; }
+.layers-icon::after { top: 8px; opacity: .55; }
+.moon-icon::before { content: ""; position: absolute; inset: 1px 4px 2px 1px; border-radius: 50%; background: currentColor; }
+.moon-icon::after { content: ""; position: absolute; right: 2px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--panel-solid); }
+.sun-icon::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 -10px 0 -7px currentColor, 0 10px 0 -7px currentColor, 10px 0 0 -7px currentColor, -10px 0 0 -7px currentColor, 7px 7px 0 -7px currentColor, -7px -7px 0 -7px currentColor, 7px -7px 0 -7px currentColor, -7px 7px 0 -7px currentColor; }
+
+.minimap { left: 14px; top: 14px; bottom: auto; width: 230px; height: 136px; }
+.layers-popover { width: min(820px, calc(100vw - 28px)); }
+.filter-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 14px; align-items: start; }
+.filter-column { border: 1px solid var(--line); border-radius: 20px; padding: 13px; background: rgba(255,255,255,.24); min-width: 0; }
+body.dark .filter-column { background: rgba(255,255,255,.035); }
+.column-head { display: grid; gap: 2px; margin-bottom: 11px; }
+.column-head strong { font-size: 13px; font-weight: 950; }
+.column-head small { color: var(--muted); font-size: 11px; font-weight: 800; }
+.layers-popover .popover-section + .popover-section { margin-top: 13px; padding-top: 13px; }
+.legend-section { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
+.nuclear-layers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mode-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.mode-grid.dense { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.mode-button, .layer-toggle { min-height: 36px; }
+.legend-chip { border-radius: 12px; }
+@media (max-width: 900px) {
+  .filter-columns { grid-template-columns: 1fr; }
+  .layers-popover { width: auto; }
+  .minimap { top: 56px; width: 170px; height: 105px; }
+}

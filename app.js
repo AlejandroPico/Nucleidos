@@ -110,7 +110,7 @@
     atomCanvas.addEventListener('click', () => { state.atomPaused = !state.atomPaused; });
     document.getElementById('zoomIn').addEventListener('click', () => zoomAt(innerWidth/2, innerHeight/2, 1.22));
     document.getElementById('zoomOut').addEventListener('click', () => zoomAt(innerWidth/2, innerHeight/2, 1/1.22));
-    els.themeButton.addEventListener('click', () => { document.body.classList.toggle('dark'); els.themeButton.textContent = document.body.classList.contains('dark') ? '☀' : '☾'; render(); });
+    els.themeButton.addEventListener('click', () => { document.body.classList.toggle('dark'); const icon=document.getElementById('themeIcon'); if(icon) icon.className = document.body.classList.contains('dark') ? 'theme-icon sun-icon' : 'theme-icon moon-icon'; render(); });
     els.searchButton.addEventListener('click', () => togglePopover('searchPopover'));
     els.dataButton.addEventListener('click', () => togglePopover('dataPopover'));
     els.layersButton.addEventListener('click', () => togglePopover('layersPopover'));
@@ -147,30 +147,37 @@
       if (!res.ok) throw new Error('No encontrado');
       const text = await res.text();
       setNuclides(parseNuclideCsv(text), 'nuclides.csv');
+      return;
     } catch (err) {
-      state.all = [];
-      state.hasNuclideDataset = false;
-      rebuildIndexes();
-      computeRanges();
-      initFilterSets();
-      updateBounds();
-      renderModeButtons();
-      renderLegend();
-      fitToEvaluated(true);
-      renderStats('sin CSV de nucleidos');
-      els.loadStatus.textContent = 'No se encontró nuclides.csv. La tabla periódica NO se usa como sustituto: importa tu CSV de nucleidos o usa IAEA online. Los datos químicos quedan listos para fusionarse por Z cuando haya nucleidos cargados.';
-      render();
+      if (window.EMBEDDED_NUCLIDES_CSV && String(window.EMBEDDED_NUCLIDES_CSV).trim()) {
+        setNuclides(parseNuclideCsv(window.EMBEDDED_NUCLIDES_CSV), 'nuclides-data.js integrado');
+        return;
+      }
+      els.loadStatus.textContent = 'No se encontró nuclides.csv local. Intentando cargar automáticamente IAEA LiveChart…';
+      try {
+        await loadNuclidesFromIAEA(true);
+        return;
+      } catch (_) {
+        state.all = [];
+        state.hasNuclideDataset = false;
+        rebuildIndexes(); computeRanges(); initFilterSets(); updateBounds(); renderModeButtons(); renderLegend(); fitToEvaluated(true); renderStats('sin CSV de nucleidos');
+        els.loadStatus.textContent = 'No se encontró un CSV de nucleidos integrado ni local, y la descarga IAEA no fue posible en este navegador. Importa nuclides.csv desde Datos → CSV local. La tabla periódica queda como capa auxiliar y no sustituye a los nucleidos.';
+        render();
+      }
     }
   }
 
-  async function loadNuclidesFromIAEA() {
+  async function loadNuclidesFromIAEA(silentFail = false) {
     els.loadStatus.textContent = 'Descargando nucleidos desde IAEA LiveChart…';
     try {
       const res = await fetch(IAEA_GROUND_STATES_URL, { cache:'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
-      setNuclides(parseNuclideCsv(text), 'IAEA LiveChart online');
+      const rows = parseNuclideCsv(text);
+      if (!rows.length) throw new Error('La respuesta no contiene nucleidos reconocibles');
+      setNuclides(rows, 'IAEA LiveChart online');
     } catch (err) {
+      if (silentFail) throw err;
       els.loadStatus.textContent = 'No se pudo descargar desde IAEA LiveChart. Puede ser un bloqueo CORS/red. Usa el CSV local nuclides.csv o impórtalo manualmente.';
       console.warn(err);
     }
@@ -207,8 +214,12 @@
       if (!Number.isFinite(nn) && Number.isFinite(a) && Number.isFinite(z)) nn = a - z;
       if (!Number.isFinite(a) && Number.isFinite(nn) && Number.isFinite(z)) a = z + nn;
       const halfText = pick(nrow, ['half_life','halflife','t12','t_1_2','half_life_sec','half_life_seconds']) || '';
-      const halfUnit = pick(nrow, ['unit_hl','half_life_unit','unit','hl_unit']) || '';
-      const decayText = pick(nrow, ['decay','decay_1','decay_mode','decaymode','mode','decay_modes','decaymode_1']) || '';
+      const halfUnit = pick(nrow, ['unit_hl','operator_hl','half_life_unit','unit','hl_unit']) || '';
+      const decayText = [
+        pick(nrow, ['decay','decay_1','decay_mode','decaymode','mode','decay_modes','decaymode_1']),
+        pick(nrow, ['decay_2','decaymode_2']),
+        pick(nrow, ['decay_3','decaymode_3'])
+      ].filter(Boolean).join(' ');
       const halfSeconds = halfLifeToSeconds(halfText, halfUnit);
       return {
         z, n: nn, a, symbol, raw: row,
@@ -216,10 +227,10 @@
         decay: classifyDecay(decayText, halfText),
         stability: classifyStability(decayText, halfText, halfSeconds),
         abundance: pick(nrow, ['abundance','isotopic_abundance','abund','natural_abundance']) || '',
-        atomic_mass: pick(nrow, ['atomic_mass','mass','mass_excess','isotopic_mass']) || '',
+        atomic_mass: pick(nrow, ['atomic_mass','mass','mass_excess','massexcess','isotopic_mass']) || '',
         qalpha: numberValue(pick(nrow, ['qalpha','q_alpha','qa'])),
-        qbeta: numberValue(pick(nrow, ['qbeta','q_beta','qbminus','qbm'])),
-        spin: pick(nrow, ['jp','spin','spin_parity']) || '',
+        qbeta: numberValue(pick(nrow, ['qbeta','q_beta','qbminus','qbm','qbm_n'])),
+        spin: pick(nrow, ['jp','jpi','spin','spin_parity']) || '',
         dataClass: detectDataClass(row, nrow)
       };
     }).filter(n => Number.isFinite(n.z) && Number.isFinite(n.n));
@@ -259,7 +270,10 @@
       state.byCell.get(cell).push(n);
       state.byKey.set(n.key.toLowerCase(), n);
     }
+    for (const list of state.byCell.values()) list.sort((a,b) => classRank(a)-classRank(b));
   }
+
+  function classRank(n) { return n.dataClass === 'evaluated' ? 0 : n.dataClass === 'isomer' ? 1 : n.dataClass === 'theoretical' ? 2 : 3; }
   function updateBounds() {
     const rows = state.all.filter(n => n.dataClass !== 'theoretical');
     const maxZ = Math.max(DEFAULT_Z_MAX, ...state.all.map(n => n.z || 0));
@@ -415,7 +429,19 @@
     ctx.restore(); }
   function drawAxes(){ ctx.save(); ctx.font='900 12px system-ui'; ctx.textBaseline='middle'; const magic=state.layers.magic; ctx.textAlign='center'; for(let N=0;N<=state.nMax;N+=10) axisText(String(N), sx(AXIS+N*STEP_X+STEP_X/2), clamp(sy(AXIS-28),22,innerHeight-22), magic&&MAGIC_NUMBERS.includes(N)); if(magic) for(const N of MAGIC_NUMBERS) if(N<=state.nMax && N%10!==0) axisText(String(N), sx(AXIS+N*STEP_X+STEP_X/2), clamp(sy(AXIS-28),22,innerHeight-22), true); ctx.textAlign='right'; for(let Z=10;Z<=state.zMax;Z+=10) axisText(String(Z), clamp(sx(AXIS-18),28,innerWidth-28), sy(AXIS+(state.zMax-Z)*STEP_Y+STEP_Y/2), magic&&MAGIC_NUMBERS.includes(Z)); if(magic) for(const Z of MAGIC_NUMBERS) if(Z<=state.zMax && Z%10!==0) axisText(String(Z), clamp(sx(AXIS-18),28,innerWidth-28), sy(AXIS+(state.zMax-Z)*STEP_Y+STEP_Y/2), true); ctx.textAlign='left'; axisText('N →', clamp(sx(AXIS),30,innerWidth-30), clamp(sy(AXIS-54),22,innerHeight-22)); axisText('Z ↑', clamp(sx(AXIS-48),30,innerWidth-30), clamp(sy(AXIS-20),54,innerHeight-22)); ctx.restore(); }
   function axisText(t,x,y,isMagic=false){ ctx.save(); ctx.fillStyle=isMagic?getCss('--magic'):(document.body.classList.contains('dark')?'rgba(255,255,255,.92)':'rgba(34,32,28,.82)'); if(isMagic){ctx.shadowColor=getCss('--magic');ctx.shadowBlur=4;} ctx.fillText(t,x,y); ctx.restore(); }
-  function drawMinimap(){ if(!state.layers.minimap) return els.miniMap.classList.add('hidden'); els.miniMap.classList.remove('hidden'); const w=180,h=120; const bg=document.body.classList.contains('dark')?'#20232d':'#fffaf2'; els.miniMap.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><rect x="0" y="0" width="${w}" height="${h}" rx="18" fill="${bg}"/><rect x="10" y="10" width="${w-20}" height="${h-20}" rx="10" fill="none" stroke="rgba(120,120,120,.35)"/><rect x="${clamp((-state.tx/state.scale)/state.chartW*(w-20)+10,10,w-12)}" y="${clamp((-state.ty/state.scale)/state.chartH*(h-20)+10,10,h-12)}" width="${Math.max(8, innerWidth/state.scale/state.chartW*(w-20))}" height="${Math.max(6, innerHeight/state.scale/state.chartH*(h-20))}" rx="3" fill="rgba(93,90,246,.35)" stroke="rgba(93,90,246,.9)"/></svg>`; }
+  function drawMinimap(){
+    if(!state.layers.minimap) return els.miniMap.classList.add('hidden');
+    els.miniMap.classList.remove('hidden');
+    const w=230,h=136,p=10; const bg=document.body.classList.contains('dark')?'#20232d':'#fffaf2';
+    const sxm=(w-p*2)/Math.max(1,state.chartW), sym=(h-p*2)/Math.max(1,state.chartH);
+    const maxDots = 1800;
+    const step = Math.max(1, Math.ceil(state.all.length / maxDots));
+    const dots=[];
+    for(let i=0;i<state.all.length;i+=step){ const n=state.all[i]; if(!isRenderable(n)) continue; const x=p+(AXIS+n.n*STEP_X)*sxm; const y=p+(AXIS+(state.zMax-n.z)*STEP_Y)*sym; const col=colorForNuclide(n); dots.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="1.8" height="1.8" fill="${col}" opacity=".85"/>`); }
+    const vx=clamp((-state.tx/state.scale)*sxm+p,p,w-p), vy=clamp((-state.ty/state.scale)*sym+p,p,h-p);
+    const vw=Math.max(8, innerWidth/state.scale*sxm), vh=Math.max(6, innerHeight/state.scale*sym);
+    els.miniMap.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><rect x="0" y="0" width="${w}" height="${h}" rx="18" fill="${bg}"/><g>${dots.join('')}</g><rect x="${vx}" y="${vy}" width="${Math.min(vw,w-p-vx)}" height="${Math.min(vh,h-p-vy)}" rx="3" fill="rgba(93,90,246,.24)" stroke="rgba(93,90,246,.95)"/></svg>`;
+  }
 
   function isRenderable(n) {
     if (n.dataClass === 'theoretical' && !state.layers.theoretical) return false; if (n.dataClass === 'isomer' && !state.layers.isomer) return false; if (n.dataClass !== 'theoretical' && n.dataClass !== 'isomer' && !state.layers.evaluated) return false;
@@ -428,9 +454,12 @@
     const e=n.element||{}; if(mode==='element_category') return e.category || 'unknown'; if(mode==='element_block') return e.block || 'unknown'; if(mode==='element_phase') return e.phase || 'Unknown'; if(mode==='element_group') return e.group ? `Grupo ${e.group}`:'unknown'; if(mode==='element_period') return e.period ? `Periodo ${e.period}`:'unknown'; if(mode==='element_type') return generalType(e.category); return 'unknown';
   }
   function colorForKey(mode,key){ if(mode==='decay') return DECAY_COLORS[key]||DECAY_COLORS.unknown; if(mode==='stability') return key==='stable'?'#61b37b':key==='radioactive'?'#d66b5d':'#aaa39b'; if(mode==='halflife') return ({stable:'#61b37b',long:'#6ea7f4',medium:'#d0a34e',short:'#d66b5d',unknown:'#aaa39b'})[key]||'#aaa39b'; if(mode==='quality') return QUALITY_COLORS[key]||QUALITY_COLORS.unknown; if(mode==='abundance') return key==='natural'?'#61b37b':'#aaa39b'; if(mode==='qalpha'||mode==='qbeta') return key==='positive'?'#d66b5d':key==='negative'?'#6ea7f4':key==='zero'?'#d0a34e':'#aaa39b'; if(mode==='element_phase') return PHASE_COLORS[key]||PHASE_COLORS.Unknown; if(mode==='element_block') return BLOCK_COLORS[key]||BLOCK_COLORS.unknown; if(mode==='element_type') return TYPE_COLORS[key]||TYPE_COLORS.unknown; return palette(key); }
-  function labelForKey(mode,key){ const maps={ stable:'Estable', radioactive:'Radiactivo', unknown:'Sin dato', natural:'Natural', none:'Sin abundancia', long:'Vida larga', medium:'Vida media', short:'Vida corta', positive:'Positivo', negative:'Negativo', zero:'Cero', evaluated:'Evaluado', isomer:'Isómero', theoretical:'Teórico', fallback:'Respaldo' }; return maps[key] || String(key).replace(/\b\w/g,m=>m.toUpperCase()); }
+  function labelForKey(mode,key){
+    const maps={ stable:'Estable', radioactive:'Radiactivo', unknown:'Sin dato', natural:'Natural', none:'Sin abundancia', long:'Vida larga', medium:'Vida media', short:'Vida corta', positive:'Positivo', negative:'Negativo', zero:'Cero', evaluated:'Evaluado', isomer:'Isómero', theoretical:'Teórico', fallback:'Respaldo', alpha:'Alfa', 'beta-':'β−', 'beta+/EC':'β+/EC', sf:'Fisión espontánea', p:'Protón', n:'Neutrón', it:'Transición isomérica', cluster:'Clúster' };
+    return maps[key] || String(key).replace(/\w/g,m=>m.toUpperCase());
+  }
   function labelForMode(mode){ return [...NUCLEAR_MODES,...CHEM_CLASS_MODES,...NUMERIC_MODES].find(x=>x[0]===mode)?.[1] || mode; }
-  function getNumericValue(n, key) { const e=n.element || {}; if(key==='first_ionization') return Array.isArray(e.ionization_energies)?numberValue(e.ionization_energies[0]):NaN; return numberValue(e[key]); }
+  function getNumericValue(n, key) { const e=n.element || {}; if(key==='first_ionization') return Array.isArray(e.ionization_energies)?numberValue(e.ionization_energies[0]):NaN; if(key==='atomic_mass') return numberValue(e.atomic_mass ?? n.atomic_mass); return numberValue(e[key]); }
 
   function pickNuclideAt(px,py){ const x=wx(px), y=wy(py); const n=Math.floor((x-AXIS)/STEP_X), row=Math.floor((y-AXIS)/STEP_Y); const z=state.zMax-row; const list=state.byCell.get(`${z}-${n}`); return list?.find(isRenderable) || null; }
   function centerOn(n){ const x=AXIS+n.n*STEP_X+STEP_X/2, y=AXIS+(state.zMax-n.z)*STEP_Y+STEP_Y/2; state.tx=innerWidth/2-x*state.scale; state.ty=innerHeight/2-y*state.scale; updateZoom(); render(); }
@@ -503,7 +532,19 @@
   function normaliseRow(row){ const o={}; for(const [k,v] of Object.entries(row)) o[norm(k)] = v; return o; } function norm(k){ return String(k).toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); } function pick(o,keys){ for(const k of keys){ const v=o[norm(k)]; if(v!==undefined && v!==null && String(v).trim()!=='') return v; } return ''; }
   function numberValue(v){ if(v===null||v===undefined||v==='') return NaN; if(typeof v==='number') return v; const s=String(v).replace(',','.').match(/[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?/i); return s?Number(s[0]):NaN; }
   function halfLifeToSeconds(text,unit=''){ const s=String(text||'').toLowerCase(); if(/stable|stbl|∞|inf/.test(s)) return Infinity; const val=numberValue(s); if(!Number.isFinite(val)) return NaN; const u=(String(unit||'')+' '+s).toLowerCase(); if(/ms|millisecond/.test(u)) return val/1000; if(/µs|us|micro/.test(u)) return val/1e6; if(/ns|nano/.test(u)) return val/1e9; if(/min/.test(u)) return val*60; if(/h|hour|hora/.test(u)) return val*3600; if(/d|day|día/.test(u)) return val*86400; if(/y|yr|year|año/.test(u)) return val*31557600; return val; }
-  function classifyDecay(decay,half){ const s=(decay+' '+half).toLowerCase(); if(/stable|stbl/.test(s)) return 'stable'; if(/alpha|^a\b| α|\ba\b/.test(s)) return 'alpha'; if(/b-|beta-|β-/.test(s)) return 'beta-'; if(/b\+|beta\+|β\+|ec|electron capture/.test(s)) return 'beta+/EC'; if(/sf|fission/.test(s)) return 'sf'; if(/\bp\b|proton/.test(s)) return 'p'; if(/\bn\b|neutron/.test(s)) return 'n'; if(/it|isomer/.test(s)) return 'it'; if(/cluster/.test(s)) return 'cluster'; return 'unknown'; }
+  function classifyDecay(decay, half){
+    const s = (String(decay || '') + ' ' + String(half || '')).toLowerCase().replace(/\s+/g,' ');
+    if(/stable|stbl|∞|inf/.test(s)) return 'stable';
+    if(/cluster|cl/.test(s)) return 'cluster';
+    if(/alpha|α|a|a,/.test(s)) return 'alpha';
+    if(/β-|beta-|b-|beta minus/.test(s)) return 'beta-';
+    if(/β\+|beta\+|b\+|ec|electron capture/.test(s)) return 'beta+/EC';
+    if(/sf|fission/.test(s)) return 'sf';
+    if(/2p|p|proton/.test(s)) return 'p';
+    if(/2n|n|neutron/.test(s)) return 'n';
+    if(/it|isomer|meta/.test(s)) return 'it';
+    return 'unknown';
+  }
   function classifyStability(decay,half,sec){ if(classifyDecay(decay,half)==='stable'||sec===Infinity) return 'stable'; if(decay||Number.isFinite(sec)) return 'radioactive'; return 'unknown'; }
   function detectDataClass(row,nrow){ const s=JSON.stringify(row).toLowerCase(); if(/theor|unobserv|predic/.test(s)) return 'theoretical'; if(/isomer|meta|m\d/.test(s)) return 'isomer'; return 'evaluated'; }
   function halfBucket(n){ if(n.stability==='stable'||n.half_life_sec===Infinity) return 'stable'; const s=n.half_life_sec; if(!Number.isFinite(s)) return 'unknown'; if(s>31557600) return 'long'; if(s>3600) return 'medium'; return 'short'; }

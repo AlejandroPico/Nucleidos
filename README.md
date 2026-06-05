@@ -1,37 +1,36 @@
-# Tabla de nucleidos · filtros ZPeriod fusionados (v19)
+# Tabla de nucleidos fusionada con datos ZPeriod — v20
 
-Esta versión corrige el enfoque de la v18: la tabla principal vuelve a ser la tabla de **nucleidos/isótopos**, no una tabla periódica reducida.
+Esta versión corrige la integración de datos químicos sobre la tabla de nucleidos:
 
-## Idea de fusión
-
-- `nuclides.csv` sigue siendo la fuente principal.
-- `PeriodicTableJSON.json` y `periodic-elements-data.js` funcionan como tabla auxiliar de elementos.
-- Cada nucleido se cruza por `Z` con el elemento químico correspondiente.
-- Todos los isótopos de un elemento heredan sus propiedades químicas comunes: categoría, bloque, fase, densidad, punto de fusión, punto de ebullición, electronegatividad, primera ionización, afinidad electrónica, calor molar, configuración electrónica, etc.
-- Los datos nucleares siguen siendo propios de cada isótopo: `N`, `A`, vida media, decaimiento, abundancia isotópica, Qα, Qβ−, spin/paridad, etc.
-
-## Uso correcto
-
-Coloca tu `nuclides.csv` oficial en la misma carpeta que `index.html` o impórtalo desde el panel **Datos**.
-
-Si `nuclides.csv` no está presente, la aplicación ya no muestra una falsa tabla periódica de respaldo. En su lugar avisa de que falta el CSV de nucleidos.
-
-## Nuevas funciones
-
-- Filtros nucleares anteriores conservados.
-- Filtros químicos estilo ZPeriod añadidos sin sustituir los nucleidos.
-- Rango superior para propiedades numéricas químicas.
-- Búsqueda avanzada ampliada con campos químicos.
-- Botón para exportar un CSV fusionado: `nuclides_enriched_with_periodic_table.csv`.
-- Botón IAEA online como intento de carga directa desde LiveChart si el navegador lo permite.
+- La tabla principal vuelve a ser la carta de nucleidos/isótopos.
+- Los datos periódicos se fusionan por `Z` como capa auxiliar, no sustituyen los nucleidos.
+- El panel de filtros se divide en dos columnas: Nuclear y Elemento químico.
+- Se restauran iconos visuales anteriores: búsqueda, base de datos, modo claro/oscuro y capas.
+- El minimapa vuelve a la zona superior izquierda y vuelve a dibujar una vista real de la distribución de nucleidos.
+- Los filtros nucleares recuperan prioridad: desintegración, estabilidad, vida media, calidad, abundancia, Qα y Qβ−.
+- Los filtros químicos estilo ZPeriod permanecen disponibles en la columna derecha.
+- Si `nuclides.csv` no está en la carpeta, la app intenta cargar IAEA LiveChart automáticamente. Si el navegador bloquea la descarga, se puede importar manualmente desde Datos → CSV local.
 
 ## Archivos incluidos
 
 - `index.html`
 - `styles.css`
 - `app.js`
-- `periodic-elements-data.js`
 - `PeriodicTableJSON.json`
 - `PeriodicTableCSV.csv`
+- `periodic-elements-data.js`
+- `nuclides-data.js` como punto de integración para un CSV embebido si se quiere añadir más adelante.
 
-El CSV oficial de nucleidos no está incluido en este paquete porque no se ha adjuntado en esta iteración. Debe añadirse como `nuclides.csv`.
+## Uso recomendado
+
+Coloca `nuclides.csv` en la misma carpeta que `index.html` para tener carga inmediata offline, o abre la aplicación desde un servidor local.
+
+```bash
+python -m http.server 8000
+```
+
+Después entra en:
+
+```text
+http://localhost:8000
+```
