@@ -55,7 +55,7 @@
     ['electronegativity_pauling','Electronegatividad','Pauling','Rango por electronegatividad de Pauling.'],
     ['first_ionization','1ª ionización','kJ/mol','Rango por primera energía de ionización.'],
     ['electron_affinity','Afinidad electrónica','kJ/mol','Rango por afinidad electrónica.'],
-    ['atomic_radius','Radio atómico','pm','Rango por radio atómico. Si no aparece en tus datos, queda preparado sin valores.'],
+    ['atomic_radius','Radio atómico','pm','Rango por radio atómico. Si el dataset no trae radio real, se usa una estimación visual marcada como aproximada.'],
     ['molar_heat','Calor específico','J/(mol·K)','Rango por calor molar específico disponible en el CSV/JSON.'],
     ['atomic_mass','Masa atómica','u','Rango por masa atómica media del elemento.']
   ];
@@ -67,7 +67,7 @@
     searchInput: document.getElementById('searchInput'), searchResults: document.getElementById('searchResults'),
     nuclearModes: document.getElementById('nuclearModes'), chemicalClassModes: document.getElementById('chemicalClassModes'), numericModes: document.getElementById('numericModes'), legend: document.getElementById('legend'),
     rangeControl: document.getElementById('rangeControl'), rangeLabel: document.getElementById('rangeLabel'), rangeUnit: document.getElementById('rangeUnit'), rangeMin: document.getElementById('rangeMin'), rangeMax: document.getElementById('rangeMax'), rangeMinText: document.getElementById('rangeMinText'), rangeMaxText: document.getElementById('rangeMaxText'), rangeFill: document.getElementById('rangeFill'),
-    detailCard: document.getElementById('detailCard'), uiTooltip: document.getElementById('uiTooltip'), miniMap: document.getElementById('miniMap'),
+    detailCard: document.getElementById('detailCard'), atomModel3d: document.getElementById('atomModel3d'), uiTooltip: document.getElementById('uiTooltip'), miniMap: document.getElementById('miniMap'),
     loadStatus: document.getElementById('loadStatus'), datasetStats: document.getElementById('datasetStats')
   };
 
@@ -81,7 +81,7 @@
     filters: {}, rangeFilters: {}, numericRanges: {},
     layers: { evaluated:true, theoretical:false, isomer:true, grid:false, magic:false, frontier:false, minimap:true, expert:true },
     renderPending: false,
-    hasNuclideDataset: false
+    hasNuclideDataset: false, theoreticalGenerated: false
   };
 
   function init() {
@@ -114,7 +114,8 @@
     els.searchButton.addEventListener('click', () => togglePopover('searchPopover'));
     els.dataButton.addEventListener('click', () => togglePopover('dataPopover'));
     els.layersButton.addEventListener('click', () => togglePopover('layersPopover'));
-    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closePopover(b.dataset.close)));
+    document.querySelectorAll('.popover, .top-tools, .range-control').forEach(el => el.addEventListener('click', e => e.stopPropagation()));
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); closePopover(b.dataset.close); }));
     document.getElementById('csvInput').addEventListener('change', e => { const file = e.target.files?.[0]; if (file) loadNuclidesFromFile(file); });
     document.getElementById('reloadButton').addEventListener('click', loadNuclidesFromDefault);
     document.getElementById('iaeaButton')?.addEventListener('click', loadNuclidesFromIAEA);
@@ -122,10 +123,12 @@
     document.getElementById('resetFiltersButton').addEventListener('click', resetFilters);
     els.searchInput.addEventListener('input', () => renderSearchResults(els.searchInput.value));
     document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => selectTab(b.dataset.tab)));
-    document.querySelectorAll('.layer-toggle').forEach(b => b.addEventListener('click', () => { const k=b.dataset.layer; state.layers[k]=!state.layers[k]; b.classList.toggle('active', state.layers[k]); els.miniMap.classList.toggle('hidden', !state.layers.minimap); render(); }));
+    document.querySelectorAll('.layer-toggle').forEach(b => b.addEventListener('click', (event) => { event.stopPropagation(); const k=b.dataset.layer; state.layers[k]=!state.layers[k]; b.classList.toggle('active', state.layers[k]); els.miniMap.classList.toggle('hidden', !state.layers.minimap); render(); }));
     [els.rangeMin, els.rangeMax].forEach(i => i.addEventListener('input', onRangeInput));
     document.addEventListener('click', e => {
-      if (!e.target.closest('.popover') && !e.target.closest('.top-tools') && !e.target.closest('.range-control')) closeAllPopovers(false);
+      const path = e.composedPath ? e.composedPath() : [];
+      const insideFloatingUi = path.some(node => node?.classList && (node.classList.contains('popover') || node.classList.contains('top-tools') || node.classList.contains('range-control')));
+      if (!insideFloatingUi) closeAllPopovers(false);
     });
   }
 
@@ -188,8 +191,9 @@
   function setNuclides(rows, source) {
     const valid = rows.filter(n => Number.isFinite(n.z) && Number.isFinite(n.n) && n.z > 0 && n.n >= 0);
     for (const n of valid) enrichNuclide(n, source);
+    const withTheoretical = valid.concat(generateTheoreticalNuclides(valid));
     state.hasNuclideDataset = valid.length > 0 && source !== 'respaldo químico integrado';
-    state.all = valid;
+    state.all = withTheoretical;
     rebuildIndexes();
     computeRanges();
     initFilterSets();
@@ -198,7 +202,7 @@
     renderLegend();
     fitToEvaluated(true);
     renderStats(source);
-    if (!els.loadStatus.textContent.includes('No se pudo')) els.loadStatus.textContent = `${valid.length.toLocaleString('es-ES')} nucleidos cargados desde ${source}. ${ELEMENTS.length} elementos químicos enlazados por Z; los filtros químicos se aplican a todos los isótopos del elemento.`;
+    if (!els.loadStatus.textContent.includes('No se pudo')) els.loadStatus.textContent = `${valid.length.toLocaleString('es-ES')} nucleidos evaluados cargados desde ${source}. Se añadió una capa teórica opcional desactivada por defecto; ${ELEMENTS.length} elementos químicos enlazados por Z.`;
   }
 
   function parseNuclideCsv(text) {
@@ -289,11 +293,49 @@
     return { minZ: Math.min(...rows.map(n=>n.z)), maxZ: Math.max(...rows.map(n=>n.z)), minN: Math.min(...rows.map(n=>n.n)), maxN: Math.max(...rows.map(n=>n.n)) };
   }
 
+
+  function generateTheoreticalNuclides(evaluatedRows) {
+    const occupied = new Set(evaluatedRows.map(n => `${n.z}-${n.n}`));
+    const generated = [];
+    for (let z = 1; z <= DEFAULT_Z_MAX; z++) {
+      const center = Math.round(z * (1 + 0.0056 * z));
+      const width = Math.max(7, Math.round(10 + z * 0.30));
+      const minN = Math.max(0, center - width);
+      const maxN = Math.min(DEFAULT_N_MAX, center + width + Math.round(z * 0.025));
+      const element = ELEMENT_BY_Z.get(z);
+      if (!element) continue;
+      for (let n = minN; n <= maxN; n++) {
+        const key = `${z}-${n}`;
+        if (occupied.has(key)) continue;
+        const decay = estimateTheoreticalDecay(z, n, center);
+        const nuc = { z, n, a:z+n, symbol:element.symbol, raw:{ generated:true, z, n, a:z+n }, half_life:'—', half_life_unit:'', half_life_sec:NaN, decay, stability:'unknown', abundance:'', atomic_mass:'', qalpha:NaN, qbeta:NaN, spin:'', dataClass:'theoretical' };
+        enrichNuclide(nuc, 'capa teórica generada');
+        generated.push(nuc);
+      }
+    }
+    return generated;
+  }
+
+  function estimateTheoreticalDecay(z, n, center) {
+    if (z > 118) return Math.abs(n - 184) < 14 ? 'sf' : 'alpha';
+    if (z > 82) return 'alpha';
+    if (n > center + 2) return 'beta-';
+    if (n < center - 2) return 'beta+/EC';
+    return 'unknown';
+  }
+
   function computeRanges() {
     state.numericRanges = {};
     for (const [key] of NUMERIC_MODES) {
-      const vals = state.all.map(n => getNumericValue(n, key)).filter(Number.isFinite);
-      if (vals.length) state.numericRanges[key] = { min: Math.min(...vals), max: Math.max(...vals) };
+      const vals = state.all
+        .filter(n => n.dataClass !== 'theoretical')
+        .map(n => getNumericValue(n, key))
+        .filter(Number.isFinite);
+      if (vals.length) {
+        const rawMin = Math.min(...vals), rawMax = Math.max(...vals);
+        const span = Math.max(Math.abs(rawMax - rawMin), Math.abs(rawMax) * 0.02, Math.abs(rawMin) * 0.02, 1);
+        state.numericRanges[key] = { rawMin, rawMax, min: rawMin - span * 0.035, max: rawMax + span * 0.035 };
+      }
     }
   }
   function initFilterSets() {
@@ -302,7 +344,7 @@
     }
     for (const [key] of NUMERIC_MODES) {
       const r = state.numericRanges[key];
-      if (r) state.rangeFilters[key] = { min:r.min, max:r.max };
+      if (r) state.rangeFilters[key] = { min:r.rawMin ?? r.min, max:r.rawMax ?? r.max };
     }
   }
 
@@ -350,9 +392,11 @@
   }
   function updateRangeControl() {
     if (state.modeType !== 'numeric' || !state.numericRanges[state.mode]) return els.rangeControl.classList.add('hidden');
-    const def = NUMERIC_MODES.find(x=>x[0]===state.mode); const r = state.numericRanges[state.mode]; const f = state.rangeFilters[state.mode] || r;
+    const def = NUMERIC_MODES.find(x=>x[0]===state.mode); const r = state.numericRanges[state.mode]; const f = state.rangeFilters[state.mode] || { min:r.rawMin ?? r.min, max:r.rawMax ?? r.max };
     els.rangeControl.classList.remove('hidden'); els.rangeLabel.textContent = def[1]; els.rangeUnit.textContent = def[2];
-    const minPct = valueToPct(f.min, r), maxPct = valueToPct(f.max, r);
+    els.rangeMin.min = els.rangeMax.min = 0;
+    els.rangeMin.max = els.rangeMax.max = 1000;
+    const minPct = clamp(valueToPct(f.min, r), 0, 1000), maxPct = clamp(valueToPct(f.max, r), 0, 1000);
     els.rangeMin.value = minPct; els.rangeMax.value = maxPct; updateRangeTexts();
   }
   function onRangeInput() {
@@ -365,7 +409,7 @@
     const r = state.numericRanges[state.mode], f = state.rangeFilters[state.mode]; if (!r || !f) return;
     const p1 = valueToPct(f.min,r), p2 = valueToPct(f.max,r);
     els.rangeMinText.textContent = formatNumber(f.min); els.rangeMaxText.textContent = formatNumber(f.max);
-    els.rangeFill.style.left = `${Math.min(p1,p2)/10}%`; els.rangeFill.style.right = `${100 - Math.max(p1,p2)/10}%`;
+    els.rangeFill.style.left = `${clamp(Math.min(p1,p2)/10, 0, 100)}%`; els.rangeFill.style.right = `${clamp(100 - Math.max(p1,p2)/10, 0, 100)}%`; 
   }
 
   function resize() { const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1)); canvas.width = Math.floor(innerWidth*dpr); canvas.height = Math.floor(innerHeight*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); render(); }
@@ -445,7 +489,7 @@
 
   function isRenderable(n) {
     if (n.dataClass === 'theoretical' && !state.layers.theoretical) return false; if (n.dataClass === 'isomer' && !state.layers.isomer) return false; if (n.dataClass !== 'theoretical' && n.dataClass !== 'isomer' && !state.layers.evaluated) return false;
-    if (state.modeType === 'numeric') { const v=getNumericValue(n,state.mode), f=state.rangeFilters[state.mode]; return Number.isFinite(v) && (!f || (v>=f.min && v<=f.max)); }
+    if (state.modeType === 'numeric') { const v=getNumericValue(n,state.mode), f=state.rangeFilters[state.mode]; return Number.isFinite(v) && (!f || (v >= f.min - 1e-9 && v <= f.max + 1e-9)); }
     const set = state.filters[state.mode]; return !set || set.has(valueKey(n,state.mode));
   }
   function colorForNuclide(n) { if (state.modeType === 'numeric') return gradientColor(getNumericValue(n,state.mode), state.numericRanges[state.mode]); const key=valueKey(n,state.mode); return colorForKey(state.mode,key); }
@@ -459,22 +503,28 @@
     return maps[key] || String(key).replace(/\w/g,m=>m.toUpperCase());
   }
   function labelForMode(mode){ return [...NUCLEAR_MODES,...CHEM_CLASS_MODES,...NUMERIC_MODES].find(x=>x[0]===mode)?.[1] || mode; }
-  function getNumericValue(n, key) { const e=n.element || {}; if(key==='first_ionization') return Array.isArray(e.ionization_energies)?numberValue(e.ionization_energies[0]):NaN; if(key==='atomic_mass') return numberValue(e.atomic_mass ?? n.atomic_mass); return numberValue(e[key]); }
+  function getNumericValue(n, key) {
+    const e=n.element || {};
+    if(key==='first_ionization') return Array.isArray(e.ionization_energies)?numberValue(e.ionization_energies[0]):NaN;
+    if(key==='atomic_mass') return numberValue(e.atomic_mass ?? n.atomic_mass);
+    if(key==='atomic_radius') return numberValue(e.atomic_radius ?? e.atomic_radius_pm ?? e.covalent_radius ?? estimateAtomicRadius(e));
+    return numberValue(e[key]);
+  }
 
   function pickNuclideAt(px,py){ const x=wx(px), y=wy(py); const n=Math.floor((x-AXIS)/STEP_X), row=Math.floor((y-AXIS)/STEP_Y); const z=state.zMax-row; const list=state.byCell.get(`${z}-${n}`); return list?.find(isRenderable) || null; }
   function centerOn(n){ const x=AXIS+n.n*STEP_X+STEP_X/2, y=AXIS+(state.zMax-n.z)*STEP_Y+STEP_Y/2; state.tx=innerWidth/2-x*state.scale; state.ty=innerHeight/2-y*state.scale; updateZoom(); render(); }
-  function openDetail(n){ state.selected=n; document.getElementById('detailA').textContent=n.a||n.z+n.n; document.getElementById('detailZ').textContent=`Z${n.z}`; document.getElementById('detailSymbol').textContent=n.symbol; document.getElementById('detailName').textContent=n.elementName; document.getElementById('detailSubtitle').textContent=`N=${n.n} · A=${n.a||n.z+n.n} · ${labelForKey('stability',n.stability)}`; document.getElementById('atomTitle').textContent=`${n.symbol} · ${n.elementName}`; document.getElementById('atomSubtitle').textContent='clic para pausar/reanudar'; document.getElementById('atomMeta').textContent=`${n.z} protones · ${n.n} neutrones · ${n.z} electrones`; renderDetailTabs(n); els.detailCard.classList.add('open'); render(); }
+  function openDetail(n){ state.selected=n; document.getElementById('detailA').textContent=n.a||n.z+n.n; document.getElementById('detailZ').textContent=`Z${n.z}`; document.getElementById('detailSymbol').textContent=n.symbol; document.getElementById('detailName').textContent=n.elementName; document.getElementById('detailSubtitle').textContent=`N=${n.n} · A=${n.a||n.z+n.n} · ${labelForKey('stability',n.stability)}`; document.getElementById('atomTitle').textContent=`${n.symbol} · ${n.elementName}`; document.getElementById('atomSubtitle').textContent='clic para pausar/reanudar'; document.getElementById('atomMeta').textContent=`${n.z} protones · ${n.n} neutrones · ${n.z} electrones`; renderDetailTabs(n); setAtomModel(n); els.detailCard.classList.add('open'); render(); }
   function closeDetail(){ state.selected=null; els.detailCard.classList.remove('open'); render(); }
   function selectTab(id){ document.querySelectorAll('.tab-button').forEach(b=>b.classList.toggle('active', b.dataset.tab===id)); document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id===id)); }
   function renderDetailTabs(n){ const e=n.element||{}; setHtml('summaryTab', sheet([['Elemento', `${e.name||n.elementName} (${n.symbol})`],['Z / N / A', `${n.z} / ${n.n} / ${n.a||n.z+n.n}`],['Estado nuclear', labelForKey('stability',n.stability)],['Vida media', formatHalf(n)],['Abundancia', n.abundance || '—'],['Calidad', labelForKey('quality',n.dataClass||'evaluated')]]) + `<p class="info-paragraph">${e.summary || 'Sin resumen químico disponible para este elemento.'}</p>`);
     setHtml('decayTab', sheet([['Modo principal', labelForKey('decay',n.decay)],['Vida media', formatHalf(n)],['Spin/paridad', n.spin || '—'],['Qα', fmtMaybe(n.qalpha)],['Qβ−', fmtMaybe(n.qbeta)],['Números mágicos', [n.z,n.n].filter(v=>MAGIC_NUMBERS.includes(v)).join(', ') || '—'] ]));
-    setHtml('chemTab', sheet([['Categoría', e.category || '—'],['Bloque', e.block || '—'],['Fase', e.phase || '—'],['Grupo / periodo', `${e.group ?? '—'} / ${e.period ?? '—'}`],['Electronegatividad', fmtMaybe(e.electronegativity_pauling)],['1ª ionización', fmtMaybe(getNumericValue(n,'first_ionization'))],['Afinidad electrónica', fmtMaybe(e.electron_affinity)],['Densidad', fmtMaybe(e.density)],['Fusión / ebullición', `${fmtMaybe(e.melt)} K / ${fmtMaybe(e.boil)} K`],['Configuración', e.electron_configuration_semantic || e.electron_configuration || '—']]));
-    setHtml('massTab', sheet([['Masa isotópica / dato', n.atomic_mass || '—'],['Masa atómica media', e.atomic_mass || '—'],['Calor específico', e.molar_heat ? `${e.molar_heat} J/(mol·K)`:'—'],['Capas electrónicas', Array.isArray(e.shells) ? e.shells.join(' · ') : '—'],['Descubierto por', e.discovered_by || '—'],['Nombrado por', e.named_by || '—']]));
+    setHtml('chemTab', sheet([['Categoría', e.category || '—'],['Tipo general', generalType(e.category)],['Bloque', e.block || '—'],['Fase', e.phase || '—'],['Grupo / periodo', `${e.group ?? '—'} / ${e.period ?? '—'}`],['Apariencia', e.appearance || '—'],['Electronegatividad', fmtMaybe(e.electronegativity_pauling)],['1ª ionización', fmtMaybe(getNumericValue(n,'first_ionization'))],['Afinidad electrónica', fmtMaybe(e.electron_affinity)],['Densidad', fmtMaybe(e.density)],['Fusión / ebullición', `${fmtMaybe(e.melt)} K / ${fmtMaybe(e.boil)} K`],['Radio atómico', e.atomic_radius ? `${e.atomic_radius} pm` : `${formatNumber(estimateAtomicRadius(e))} pm aprox.`],['Configuración', e.electron_configuration_semantic || e.electron_configuration || '—']]));
+    setHtml('massTab', sheet([['Masa isotópica / dato', n.atomic_mass || '—'],['Masa atómica media', e.atomic_mass || '—'],['Calor específico', e.molar_heat ? `${e.molar_heat} J/(mol·K)`:'—'],['Capas electrónicas', Array.isArray(e.shells) ? e.shells.join(' · ') : '—'],['Modelo 3D', e.bohr_model_3d ? 'Disponible' : 'No disponible'],['Imagen Bohr', e.bohr_model_image ? 'Disponible' : 'No disponible'],['Espectro', e.spectral_img ? 'Disponible' : 'No disponible'],['Descubierto por', e.discovered_by || '—'],['Nombrado por', e.named_by || '—']]));
     document.getElementById('rawTab').textContent = JSON.stringify(compactRaw(n), null, 2);
     setHtml('linksTab', `<div class="link-grid">${e.source?`<a href="${e.source}" target="_blank" rel="noreferrer">Wikipedia / fuente del elemento</a>`:''}${e.bohr_model_3d?`<a href="${e.bohr_model_3d}" target="_blank" rel="noreferrer">Modelo 3D del elemento</a>`:''}${e.image?.url?`<a href="${e.image.url}" target="_blank" rel="noreferrer">Imagen del elemento</a>`:''}</div>`);
   }
   function sheet(rows){ return `<div class="info-sheet">${rows.map(([a,b])=>`<div class="info-row"><span>${a}</span><strong>${b}</strong></div>`).join('')}</div>`; } function setHtml(id,html){ document.getElementById(id).innerHTML=html; }
-  function compactRaw(n){ return { id:n.key,z:n.z,n:n.n,a:n.a,symbol:n.symbol,decay:n.decay,stability:n.stability,half_life:n.half_life,element:{ name:n.element?.name, category:n.element?.category, block:n.element?.block, phase:n.element?.phase, density:n.element?.density, electronegativity:n.element?.electronegativity_pauling }}; }
+  function compactRaw(n){ return { id:n.key,z:n.z,n:n.n,a:n.a,symbol:n.symbol,decay:n.decay,stability:n.stability,half_life:n.half_life,element:{ name:n.element?.name, category:n.element?.category, block:n.element?.block, phase:n.element?.phase, density:n.element?.density, melt:n.element?.melt, boil:n.element?.boil, electronegativity:n.element?.electronegativity_pauling, first_ionization:Array.isArray(n.element?.ionization_energies)?n.element.ionization_energies[0]:null, electron_affinity:n.element?.electron_affinity, molar_heat:n.element?.molar_heat, bohr_model_3d:n.element?.bohr_model_3d }}; }
 
   function renderSearchResults(q) { const query=q.trim(); els.searchResults.innerHTML=''; if(!query) return; const matches=state.all.filter(n=>matchesQuery(n, query)).slice(0,80); if(!matches.length){ els.searchResults.innerHTML='<div class="syntax-help">Sin resultados.</div>'; return; } for(const n of matches){ const row=document.createElement('button'); row.type='button'; row.className='result-row'; row.innerHTML=`<strong>${n.symbol}-${n.a||n.z+n.n}</strong><span>${n.elementName}<br>Z=${n.z} · N=${n.n} · ${labelForKey('decay',n.decay)}</span><small>${labelForKey('stability',n.stability)}</small>`; row.addEventListener('click',()=>{centerOn(n);openDetail(n);closePopover('searchPopover');}); els.searchResults.appendChild(row); } }
   function matchesQuery(n,q){ const tokens=q.match(/(?:[^\s"]+|"[^"]*")+/g)||[]; const free=[]; for(const t of tokens){ const m=t.match(/^([a-zA-Z_-]+)(>=|<=|=|>|<)(.+)$/); if(m){ if(!matchExpr(n,m[1].toLowerCase(),m[2],m[3].replace(/"/g,''))) return false; } else free.push(t.replace(/"/g,'').toLowerCase()); } if(!free.length) return true; const e=n.element||{}; const hay=`${n.symbol} ${n.symbol}-${n.a} ${n.a}${n.symbol} ${n.elementName} z${n.z} n${n.n} ${n.decay} ${n.stability} ${e.category||''} ${e.block||''} ${e.phase||''} grupo ${e.group||''} periodo ${e.period||''}`.toLowerCase(); return free.every(t=>hay.includes(t)); }
@@ -533,16 +583,17 @@
   function numberValue(v){ if(v===null||v===undefined||v==='') return NaN; if(typeof v==='number') return v; const s=String(v).replace(',','.').match(/[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?/i); return s?Number(s[0]):NaN; }
   function halfLifeToSeconds(text,unit=''){ const s=String(text||'').toLowerCase(); if(/stable|stbl|∞|inf/.test(s)) return Infinity; const val=numberValue(s); if(!Number.isFinite(val)) return NaN; const u=(String(unit||'')+' '+s).toLowerCase(); if(/ms|millisecond/.test(u)) return val/1000; if(/µs|us|micro/.test(u)) return val/1e6; if(/ns|nano/.test(u)) return val/1e9; if(/min/.test(u)) return val*60; if(/h|hour|hora/.test(u)) return val*3600; if(/d|day|día/.test(u)) return val*86400; if(/y|yr|year|año/.test(u)) return val*31557600; return val; }
   function classifyDecay(decay, half){
-    const s = (String(decay || '') + ' ' + String(half || '')).toLowerCase().replace(/\s+/g,' ');
-    if(/stable|stbl|∞|inf/.test(s)) return 'stable';
-    if(/cluster|cl/.test(s)) return 'cluster';
-    if(/alpha|α|a|a,/.test(s)) return 'alpha';
-    if(/β-|beta-|b-|beta minus/.test(s)) return 'beta-';
-    if(/β\+|beta\+|b\+|ec|electron capture/.test(s)) return 'beta+/EC';
-    if(/sf|fission/.test(s)) return 'sf';
-    if(/2p|p|proton/.test(s)) return 'p';
-    if(/2n|n|neutron/.test(s)) return 'n';
-    if(/it|isomer|meta/.test(s)) return 'it';
+    const raw = `${decay || ''} ${half || ''}`.toLowerCase();
+    const s = raw.replace(/[()\[\],;:]/g, ' ').replace(/\s+/g,' ').trim();
+    if(/stable|stbl|∞|inf|estable/.test(s)) return 'stable';
+    if(/cluster|\bcl\b/.test(s)) return 'cluster';
+    if(/alpha|α|\ba\b/.test(s)) return 'alpha';
+    if(/β\s*-|beta\s*-|\bb\s*-\b|beta minus|\bbm\b/.test(s)) return 'beta-';
+    if(/β\s*\+|beta\s*\+|\bb\s*\+\b|\bec\b|electron capture|captura/.test(s)) return 'beta+/EC';
+    if(/\bsf\b|fission|fis/.test(s)) return 'sf';
+    if(/\b2p\b|\bp\b|proton/.test(s)) return 'p';
+    if(/\b2n\b|\bn\b|neutron/.test(s)) return 'n';
+    if(/\bit\b|isomer|meta/.test(s)) return 'it';
     return 'unknown';
   }
   function classifyStability(decay,half,sec){ if(classifyDecay(decay,half)==='stable'||sec===Infinity) return 'stable'; if(decay||Number.isFinite(sec)) return 'radioactive'; return 'unknown'; }
@@ -550,6 +601,16 @@
   function halfBucket(n){ if(n.stability==='stable'||n.half_life_sec===Infinity) return 'stable'; const s=n.half_life_sec; if(!Number.isFinite(s)) return 'unknown'; if(s>31557600) return 'long'; if(s>3600) return 'medium'; return 'short'; }
   function qBucket(v){ if(!Number.isFinite(v)) return 'unknown'; if(Math.abs(v)<1e-6) return 'zero'; return v>0?'positive':'negative'; }
   function generalType(cat=''){ const s=String(cat).toLowerCase(); if(s.includes('metalloid')) return 'metalloid'; if(s.includes('metal')||s.includes('lanthanide')||s.includes('actinide')) return 'metal'; if(s.includes('nonmetal')||s.includes('gas')||s.includes('halogen')) return 'nonmetal'; return 'unknown'; }
+  function estimateAtomicRadius(e={}) {
+    const period = numberValue(e.period), group = numberValue(e.group);
+    if (!Number.isFinite(period)) return NaN;
+    // Estimación visual para activar el filtro cuando el dataset no trae radio atómico real.
+    // No debe interpretarse como valor evaluado.
+    const g = Number.isFinite(group) ? group : 9;
+    const base = 40 + period * 32;
+    const contraction = Math.max(0, Math.min(17, g - 1)) * 3.1;
+    return Math.max(25, base - contraction + (String(e.block||'') === 'f' ? 18 : 0));
+  }
   function valueToPct(v,r){ return r.max===r.min?0:(v-r.min)/(r.max-r.min)*1000; } function pctToValue(p,r){ return r.min+(r.max-r.min)*(p/1000); }
   function palette(key){ let h=0; const s=String(key); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return BASE_PALETTE[h%BASE_PALETTE.length]; }
   function gradientColor(v,r){ if(!r||!Number.isFinite(v)) return '#aaa39b'; const t=clamp((v-r.min)/(r.max-r.min||1),0,1); return `hsl(${220 - 190*t} 72% ${62 - 6*t}%)`; }
@@ -557,7 +618,23 @@
   function roundRect(c,x,y,w,h,r){ const rr=Math.min(r,w/2,h/2); c.beginPath(); c.moveTo(x+rr,y); c.arcTo(x+w,y,x+w,y+h,rr); c.arcTo(x+w,y+h,x,y+h,rr); c.arcTo(x,y+h,x,y,rr); c.arcTo(x,y,x+w,y,rr); c.closePath(); }
   function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); } function formatNumber(v){ return Number.isFinite(v)? new Intl.NumberFormat('es-ES',{maximumFractionDigits:3}).format(v) : '—'; } function fmtMaybe(v){ return Number.isFinite(Number(v))?formatNumber(Number(v)):(v||'—'); } function formatHalf(n){ if(n.stability==='stable') return 'Estable'; if(n.half_life) return `${n.half_life}${n.half_life_unit?' '+n.half_life_unit:''}`; return '—'; } function getCss(name){ return getComputedStyle(document.body).getPropertyValue(name).trim(); }
 
-  function atomLoop(t){ if(els.detailCard.classList.contains('open') && state.selected && !state.atomPaused) drawAtom(t); requestAnimationFrame(atomLoop); }
+  function setAtomModel(n) {
+    const model = els.atomModel3d;
+    const e = n.element || {};
+    if (model && e.bohr_model_3d) {
+      model.src = e.bohr_model_3d;
+      model.alt = `Modelo 3D de ${e.name || n.elementName}`;
+      model.classList.remove('hidden');
+      atomCanvas.classList.add('hidden');
+      document.getElementById('atomSubtitle').textContent = 'modelo 3D interactivo del elemento';
+    } else {
+      if (model) model.classList.add('hidden');
+      atomCanvas.classList.remove('hidden');
+      document.getElementById('atomSubtitle').textContent = 'modelo Bohr simplificado · clic para pausar';
+    }
+  }
+
+  function atomLoop(t){ if(els.detailCard.classList.contains('open') && state.selected && !state.atomPaused && atomCanvas && !atomCanvas.classList.contains('hidden')) drawAtom(t); requestAnimationFrame(atomLoop); }
   function drawAtom(t){ const dpr=Math.max(1,Math.min(2,devicePixelRatio||1)); const w=atomCanvas.clientWidth, h=atomCanvas.clientHeight; atomCanvas.width=w*dpr; atomCanvas.height=h*dpr; atomCtx.setTransform(dpr,0,0,dpr,0,0); atomCtx.clearRect(0,0,w,h); const cx=w/2, cy=h/2, e=state.selected?.element || {}; atomCtx.fillStyle=getCss('--ink'); atomCtx.beginPath(); atomCtx.arc(cx,cy,22,0,Math.PI*2); atomCtx.fill(); const shells=Array.isArray(e.shells)?e.shells:[state.selected.z]; const maxR=Math.min(w,h)*.42; shells.forEach((count,i)=>{ const r=42+i*(maxR-42)/Math.max(1,shells.length-1); atomCtx.strokeStyle='rgba(93,90,246,.36)'; atomCtx.lineWidth=1.5; atomCtx.beginPath(); atomCtx.arc(cx,cy,r,0,Math.PI*2); atomCtx.stroke(); const shown=Math.min(count,16); for(let j=0;j<shown;j++){ const a=(j/shown)*Math.PI*2 + t*.0005*(i+1); atomCtx.fillStyle='#5d5af6'; atomCtx.beginPath(); atomCtx.arc(cx+Math.cos(a)*r, cy+Math.sin(a)*r, 4, 0, Math.PI*2); atomCtx.fill(); }}); }
 
   init();

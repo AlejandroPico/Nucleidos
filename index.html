@@ -166,6 +166,7 @@
       <div class="atom-head">
         <div><strong id="atomTitle">Modelo atómico</strong><span id="atomSubtitle">clic para pausar</span></div>
       </div>
+      <model-viewer id="atomModel3d" class="atom-model hidden" camera-controls auto-rotate interaction-prompt="none" exposure="1" shadow-intensity="0.65" aria-label="Modelo 3D del átomo"></model-viewer>
       <canvas id="atomCanvas" aria-label="Animación atómica simplificada"></canvas>
       <div id="atomMeta" class="atom-meta">—</div>
     </div>
@@ -176,6 +177,7 @@
 
   <script src="nuclides-data.js"></script>
   <script src="periodic-elements-data.js"></script>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
