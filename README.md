@@ -16,3 +16,14 @@ Esta versión mantiene `nuclides.csv` como dataset principal y usa `PeriodicTabl
 ## Datos
 
 El ZIP incluye los datos periódicos, pero no incluye el CSV oficial de nucleidos si no está presente como `nuclides.csv` o embebido en `nuclides-data.js`. Coloca `nuclides.csv` junto a `index.html` o usa Datos → CSV local.
+
+## v22
+
+- `nuclides.csv` vuelve a estar incluido dentro del paquete y también embebido en `nuclides-data.js`.
+- Corregida clasificación de desintegración para códigos IAEA como `B-`, `EC+B+`, `A`, `SF`, `P`, `N`, `IT`, etc.
+- La leyenda de desintegración conserva todas las categorías nucleares principales.
+- El selector de rango químico usa doble control robusto: al pulsar la barra se selecciona el extremo más cercano y ya no se arrastra siempre el extremo derecho.
+- Los rangos numéricos se inicializan con margen real por debajo y por encima del dataset, de modo que al activar un filtro no se excluyen valores extremos.
+- La capa de no observados genera posiciones teóricas también para Z > 118 hasta Z=130 mediante símbolos sistemáticos.
+- La frontera nuclear se redibuja como dos curvas delimitadoras más visibles.
+- El visor de modelo 3D prioriza `bohr_model_3d`; si no está disponible, usa la imagen Bohr del dataset; si tampoco existe, usa el canvas Bohr simplificado.

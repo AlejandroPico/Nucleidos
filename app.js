@@ -26,6 +26,7 @@
     '#d783a9','#8fb35a','#6aa0b8','#db7e5c','#a685e4','#7cbf74','#d4a14d','#9e9e9e'
   ];
   const DECAY_COLORS = { stable:'#61b37b', alpha:'#d66b5d', 'beta-':'#5e95e8', 'beta+/EC':'#ca7de8', sf:'#d39c4a', p:'#ea8b8b', n:'#6cc2c4', it:'#8e80e6', cluster:'#986e55', unknown:'#b8b4ad' };
+  const DECAY_ORDER = ['stable','beta-','beta+/EC','alpha','sf','p','n','it','cluster','unknown'];
   const QUALITY_COLORS = { evaluated:'#6ea7f4', isomer:'#a887ff', theoretical:'#b7b2aa', fallback:'#d2a25a', unknown:'#b8b4ad' };
   const PHASE_COLORS = { Solid:'#7ea475', Liquid:'#5ea7ce', Gas:'#d56d6d', Unknown:'#aaa39b' };
   const BLOCK_COLORS = { s:'#6ba5ff', p:'#ee7770', d:'#d0a34e', f:'#9c82e6', unknown:'#aaa39b' };
@@ -66,7 +67,7 @@
     searchPopover: document.getElementById('searchPopover'), dataPopover: document.getElementById('dataPopover'), layersPopover: document.getElementById('layersPopover'),
     searchInput: document.getElementById('searchInput'), searchResults: document.getElementById('searchResults'),
     nuclearModes: document.getElementById('nuclearModes'), chemicalClassModes: document.getElementById('chemicalClassModes'), numericModes: document.getElementById('numericModes'), legend: document.getElementById('legend'),
-    rangeControl: document.getElementById('rangeControl'), rangeLabel: document.getElementById('rangeLabel'), rangeUnit: document.getElementById('rangeUnit'), rangeMin: document.getElementById('rangeMin'), rangeMax: document.getElementById('rangeMax'), rangeMinText: document.getElementById('rangeMinText'), rangeMaxText: document.getElementById('rangeMaxText'), rangeFill: document.getElementById('rangeFill'),
+    rangeControl: document.getElementById('rangeControl'), rangeLabel: document.getElementById('rangeLabel'), rangeUnit: document.getElementById('rangeUnit'), rangeMin: document.getElementById('rangeMin'), rangeMax: document.getElementById('rangeMax'), rangeMinText: document.getElementById('rangeMinText'), rangeMaxText: document.getElementById('rangeMaxText'), rangeFill: document.getElementById('rangeFill'), dualRange: document.querySelector('.dual-range'),
     detailCard: document.getElementById('detailCard'), atomModel3d: document.getElementById('atomModel3d'), uiTooltip: document.getElementById('uiTooltip'), miniMap: document.getElementById('miniMap'),
     loadStatus: document.getElementById('loadStatus'), datasetStats: document.getElementById('datasetStats')
   };
@@ -81,7 +82,7 @@
     filters: {}, rangeFilters: {}, numericRanges: {},
     layers: { evaluated:true, theoretical:false, isomer:true, grid:false, magic:false, frontier:false, minimap:true, expert:true },
     renderPending: false,
-    hasNuclideDataset: false, theoreticalGenerated: false
+    hasNuclideDataset: false, theoreticalGenerated: false, activeRangeThumb: null
   };
 
   function init() {
@@ -125,6 +126,7 @@
     document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => selectTab(b.dataset.tab)));
     document.querySelectorAll('.layer-toggle').forEach(b => b.addEventListener('click', (event) => { event.stopPropagation(); const k=b.dataset.layer; state.layers[k]=!state.layers[k]; b.classList.toggle('active', state.layers[k]); els.miniMap.classList.toggle('hidden', !state.layers.minimap); render(); }));
     [els.rangeMin, els.rangeMax].forEach(i => i.addEventListener('input', onRangeInput));
+    setupDualRangeDrag();
     document.addEventListener('click', e => {
       const path = e.composedPath ? e.composedPath() : [];
       const insideFloatingUi = path.some(node => node?.classList && (node.classList.contains('popover') || node.classList.contains('top-tools') || node.classList.contains('range-control')));
@@ -163,7 +165,7 @@
       } catch (_) {
         state.all = [];
         state.hasNuclideDataset = false;
-        rebuildIndexes(); computeRanges(); initFilterSets(); updateBounds(); renderModeButtons(); renderLegend(); fitToEvaluated(true); renderStats('sin CSV de nucleidos');
+        rebuildIndexes(); computeRanges(); initFilterSets(); ensureNuclearFilterCompleteness(); updateBounds(); renderModeButtons(); renderLegend(); fitToEvaluated(true); renderStats('sin CSV de nucleidos');
         els.loadStatus.textContent = 'No se encontró un CSV de nucleidos integrado ni local, y la descarga IAEA no fue posible en este navegador. Importa nuclides.csv desde Datos → CSV local. La tabla periódica queda como capa auxiliar y no sustituye a los nucleidos.';
         render();
       }
@@ -294,6 +296,26 @@
   }
 
 
+  function elementRecordForZ(z) {
+    return ELEMENT_BY_Z.get(z) || {
+      number: z,
+      symbol: systematicSymbol(z),
+      name: `Elemento ${z}`,
+      category: z > 118 ? 'elemento superpesado teórico' : 'unknown',
+      block: z > 118 ? 'g' : 'unknown',
+      phase: 'Unknown',
+      period: '',
+      group: '',
+      atomic_mass: '',
+      summary: 'Elemento no reconocido oficialmente en la tabla periódica actual; se usa solo para extensión visual teórica.',
+      shells: []
+    };
+  }
+  function systematicSymbol(z) {
+    const roots = ['n','u','b','t','q','p','h','s','o','e'];
+    return String(z).split('').map(d => roots[Number(d)] || 'x').join('').replace(/^./, c => c.toUpperCase());
+  }
+
   function generateTheoreticalNuclides(evaluatedRows) {
     const occupied = new Set(evaluatedRows.map(n => `${n.z}-${n.n}`));
     const generated = [];
@@ -302,8 +324,7 @@
       const width = Math.max(7, Math.round(10 + z * 0.30));
       const minN = Math.max(0, center - width);
       const maxN = Math.min(DEFAULT_N_MAX, center + width + Math.round(z * 0.025));
-      const element = ELEMENT_BY_Z.get(z);
-      if (!element) continue;
+      const element = elementRecordForZ(z);
       for (let n = minN; n <= maxN; n++) {
         const key = `${z}-${n}`;
         if (occupied.has(key)) continue;
@@ -334,7 +355,7 @@
       if (vals.length) {
         const rawMin = Math.min(...vals), rawMax = Math.max(...vals);
         const span = Math.max(Math.abs(rawMax - rawMin), Math.abs(rawMax) * 0.02, Math.abs(rawMin) * 0.02, 1);
-        state.numericRanges[key] = { rawMin, rawMax, min: rawMin - span * 0.035, max: rawMax + span * 0.035 };
+        state.numericRanges[key] = { rawMin, rawMax, min: rawMin - span * 0.12, max: rawMax + span * 0.12 };
       }
     }
   }
@@ -344,8 +365,15 @@
     }
     for (const [key] of NUMERIC_MODES) {
       const r = state.numericRanges[key];
-      if (r) state.rangeFilters[key] = { min:r.rawMin ?? r.min, max:r.rawMax ?? r.max };
+      if (r) state.rangeFilters[key] = { min:r.min, max:r.max };
     }
+  }
+
+  function ensureNuclearFilterCompleteness() {
+    if (!state.filters.decay) state.filters.decay = new Set();
+    for (const k of DECAY_ORDER) state.filters.decay.add(k);
+    if (!state.filters.quality) state.filters.quality = new Set();
+    for (const k of ['evaluated','isomer','theoretical','fallback','unknown']) state.filters.quality.add(k);
   }
 
   function renderModeButtons() {
@@ -371,6 +399,13 @@
   }
   function selectMode(key, type) { state.mode = key; state.modeType = type; renderModeButtons(); renderLegend(); updateRangeControl(); render(); }
 
+  function legendKeysForMode(mode) {
+    const found = new Set(state.all.map(n => valueKey(n, mode)).filter(Boolean));
+    if (mode === 'decay') return DECAY_ORDER.filter(k => found.has(k) || state.filters.decay?.has(k));
+    if (mode === 'quality') return ['evaluated','isomer','theoretical','fallback','unknown'].filter(k => found.has(k) || state.filters.quality?.has(k));
+    return [...found].sort((a,b)=>String(a).localeCompare(String(b),'es'));
+  }
+
   function renderLegend() {
     els.legend.innerHTML = '';
     if (state.modeType === 'numeric') {
@@ -381,7 +416,7 @@
     }
     els.rangeControl.classList.add('hidden');
     const active = state.filters[state.mode] || new Set();
-    const keys = [...new Set(state.all.map(n => valueKey(n, state.mode)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'es'));
+    const keys = legendKeysForMode(state.mode);
     for (const k of keys) {
       const chip = document.createElement('button'); chip.type='button'; chip.className = `legend-chip${active.has(k)?'':' off'}`;
       chip.dataset.tip = `Muestra u oculta “${labelForKey(state.mode,k)}” dentro del modo ${labelForMode(state.mode)}.`;
@@ -392,7 +427,7 @@
   }
   function updateRangeControl() {
     if (state.modeType !== 'numeric' || !state.numericRanges[state.mode]) return els.rangeControl.classList.add('hidden');
-    const def = NUMERIC_MODES.find(x=>x[0]===state.mode); const r = state.numericRanges[state.mode]; const f = state.rangeFilters[state.mode] || { min:r.rawMin ?? r.min, max:r.rawMax ?? r.max };
+    const def = NUMERIC_MODES.find(x=>x[0]===state.mode); const r = state.numericRanges[state.mode]; const f = state.rangeFilters[state.mode] || { min:r.min, max:r.max };
     els.rangeControl.classList.remove('hidden'); els.rangeLabel.textContent = def[1]; els.rangeUnit.textContent = def[2];
     els.rangeMin.min = els.rangeMax.min = 0;
     els.rangeMin.max = els.rangeMax.max = 1000;
@@ -401,15 +436,58 @@
   }
   function onRangeInput() {
     const r = state.numericRanges[state.mode]; if (!r) return;
-    let a = Number(els.rangeMin.value), b = Number(els.rangeMax.value); if (a > b) [a,b]=[b,a];
+    let a = Number(els.rangeMin.value), b = Number(els.rangeMax.value);
+    if (a > b) [a,b]=[b,a];
     state.rangeFilters[state.mode] = { min:pctToValue(a,r), max:pctToValue(b,r) };
-    updateRangeTexts(); renderLegend(); render();
+    updateRangeTexts();
+    renderLegend();
+    render();
   }
+
+  function setupDualRangeDrag() {
+    const rail = els.dualRange;
+    if (!rail) return;
+    rail.addEventListener('pointerdown', e => {
+      if (state.modeType !== 'numeric' || !state.numericRanges[state.mode]) return;
+      e.preventDefault();
+      rail.setPointerCapture(e.pointerId);
+      const pct = pointerToRangePct(e);
+      const minPct = Number(els.rangeMin.value);
+      const maxPct = Number(els.rangeMax.value);
+      state.activeRangeThumb = Math.abs(pct - minPct) <= Math.abs(pct - maxPct) ? 'min' : 'max';
+      setActiveRangeThumb(pct);
+    });
+    rail.addEventListener('pointermove', e => {
+      if (!state.activeRangeThumb) return;
+      e.preventDefault();
+      setActiveRangeThumb(pointerToRangePct(e));
+    });
+    const stop = () => { state.activeRangeThumb = null; };
+    rail.addEventListener('pointerup', stop);
+    rail.addEventListener('pointercancel', stop);
+  }
+
+  function pointerToRangePct(e) {
+    const rect = els.dualRange.getBoundingClientRect();
+    return clamp(((e.clientX - rect.left) / Math.max(1, rect.width)) * 1000, 0, 1000);
+  }
+
+  function setActiveRangeThumb(pct) {
+    const otherMin = Number(els.rangeMin.value);
+    const otherMax = Number(els.rangeMax.value);
+    if (state.activeRangeThumb === 'min') {
+      els.rangeMin.value = clamp(pct, 0, otherMax);
+    } else {
+      els.rangeMax.value = clamp(pct, otherMin, 1000);
+    }
+    onRangeInput();
+  }
+
   function updateRangeTexts() {
     const r = state.numericRanges[state.mode], f = state.rangeFilters[state.mode]; if (!r || !f) return;
     const p1 = valueToPct(f.min,r), p2 = valueToPct(f.max,r);
     els.rangeMinText.textContent = formatNumber(f.min); els.rangeMaxText.textContent = formatNumber(f.max);
-    els.rangeFill.style.left = `${clamp(Math.min(p1,p2)/10, 0, 100)}%`; els.rangeFill.style.right = `${clamp(100 - Math.max(p1,p2)/10, 0, 100)}%`; 
+    els.rangeFill.style.left = `${clamp(Math.min(p1,p2)/10, 0, 100)}%`; els.rangeFill.style.right = `${clamp(100 - Math.max(p1,p2)/10, 0, 100)}%`;
   }
 
   function resize() { const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1)); canvas.width = Math.floor(innerWidth*dpr); canvas.height = Math.floor(innerHeight*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); render(); }
@@ -441,9 +519,10 @@
     const dark = document.body.classList.contains('dark'); ctx.fillStyle = dark ? '#121318' : '#f3efe8'; ctx.fillRect(0,0,innerWidth,innerHeight);
     if (!state.all.length) { drawEmptyState(); ctx.restore(); return; }
     if (state.layers.grid) drawGrid();
+    drawCells();
     if (state.layers.frontier) drawFrontier();
     if (state.layers.magic) drawMagicLines();
-    drawCells(); drawAxes(); drawMinimap(); ctx.restore();
+    drawAxes(); drawMinimap(); ctx.restore();
   }
 
   function drawEmptyState() {
@@ -463,7 +542,28 @@
   function visibleWorld() { return { x1:wx(0)-80, x2:wx(innerWidth)+80, y1:wy(0)-80, y2:wy(innerHeight)+80 }; }
   function drawGrid() { const v=visibleWorld(); ctx.save(); ctx.strokeStyle=document.body.classList.contains('dark')?'rgba(255,255,255,.055)':'rgba(0,0,0,.055)'; ctx.lineWidth=1; ctx.beginPath(); const n0=Math.max(0,Math.floor((v.x1-AXIS)/STEP_X)-1), n1=Math.min(state.nMax,Math.ceil((v.x2-AXIS)/STEP_X)+1); const z0=Math.max(1,state.zMax-Math.ceil((v.y2-AXIS)/STEP_Y)-1), z1=Math.min(state.zMax,state.zMax-Math.floor((v.y1-AXIS)/STEP_Y)+1); for(let n=n0;n<=n1;n++){ const x=sx(AXIS+n*STEP_X+STEP_X/2); ctx.moveTo(x,0); ctx.lineTo(x,innerHeight); } for(let z=z0;z<=z1;z++){ const y=sy(AXIS+(state.zMax-z)*STEP_Y+STEP_Y/2); ctx.moveTo(0,y); ctx.lineTo(innerWidth,y); } ctx.stroke(); ctx.restore(); }
   function drawMagicLines() { ctx.save(); ctx.strokeStyle=document.body.classList.contains('dark')?'rgba(255,107,117,.62)':'rgba(158,42,47,.55)'; ctx.lineWidth=1.5; ctx.setLineDash([7,7]); for(const N of MAGIC_NUMBERS){ if(N>state.nMax) continue; const x=sx(AXIS+N*STEP_X+STEP_X/2); ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,innerHeight); ctx.stroke(); } for(const Z of MAGIC_NUMBERS){ if(Z>state.zMax) continue; const y=sy(AXIS+(state.zMax-Z)*STEP_Y+STEP_Y/2); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(innerWidth,y); ctx.stroke(); } ctx.restore(); }
-  function drawFrontier() { ctx.save(); ctx.strokeStyle=document.body.classList.contains('dark')?'rgba(255,255,255,.22)':'rgba(35,32,28,.20)'; ctx.lineWidth=1.2; ctx.setLineDash([4,8]); ctx.beginPath(); for(let z=1; z<=Math.min(130,state.zMax); z++){ const n=Math.round(z*(1+0.0056*z)); const x=sx(AXIS+n*STEP_X+STEP_X/2); const y=sy(AXIS+(state.zMax-z)*STEP_Y+STEP_Y/2); if(z===1) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.stroke(); ctx.restore(); }
+  function drawFrontier() {
+    ctx.save();
+    ctx.strokeStyle = document.body.classList.contains('dark') ? 'rgba(255,118,128,.78)' : 'rgba(148,38,45,.72)';
+    ctx.lineWidth = 2.1;
+    ctx.setLineDash([8, 7]);
+    drawFrontierCurve(-1);
+    drawFrontierCurve(1);
+    ctx.restore();
+  }
+  function drawFrontierCurve(side) {
+    ctx.beginPath();
+    let started = false;
+    for (let z = 1; z <= Math.min(130, state.zMax); z++) {
+      const center = Math.round(z * (1 + 0.0056 * z));
+      const width = Math.max(7, Math.round(10 + z * 0.30));
+      const n = clamp(center + side * width, 0, state.nMax);
+      const x = sx(AXIS + n * STEP_X + STEP_X/2);
+      const y = sy(AXIS + (state.zMax-z) * STEP_Y + STEP_Y/2);
+      if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
   function drawCells() {
     const v=visibleWorld(); const n0=Math.max(0,Math.floor((v.x1-AXIS)/STEP_X)-1), n1=Math.min(state.nMax,Math.ceil((v.x2-AXIS)/STEP_X)+1); const z0=Math.max(1,state.zMax-Math.ceil((v.y2-AXIS)/STEP_Y)-1), z1=Math.min(state.zMax,state.zMax-Math.floor((v.y1-AXIS)/STEP_Y)+1);
     for(let z=z0; z<=z1; z++) for(let n=n0; n<=n1; n++) { const list=state.byCell.get(`${z}-${n}`); if(!list) continue; for(const nuc of list) if(isRenderable(nuc)) drawCell(nuc); }
@@ -546,7 +646,7 @@
   function compare(a,op,b){ if(!Number.isFinite(a)||!Number.isFinite(b)) return false; if(op==='=') return a===b; if(op==='>') return a>b; if(op==='<') return a<b; if(op==='>=') return a>=b; if(op==='<=') return a<=b; return false; }
 
   function renderStats(source){ const total=state.all.length, stable=state.all.filter(n=>n.stability==='stable').length, elements=new Set(state.all.map(n=>n.z)).size; const maxZ=total?Math.max(...state.all.map(n=>n.z)):'—'; const maxN=total?Math.max(...state.all.map(n=>n.n)):'—'; els.datasetStats.innerHTML=[['Nucleidos',total],['Elementos enlazados',elements],['Estables',stable],['Z máximo',maxZ],['N máximo',maxN],['Fuente',source]].map(([k,v])=>`<div class="stat"><strong>${v}</strong><span>${k}</span></div>`).join(''); }
-  function resetFilters(){ selectMode('decay','nuclear'); state.layers.theoretical=false; state.layers.grid=false; state.layers.magic=false; state.layers.frontier=false; state.layers.evaluated=true; state.layers.isomer=true; document.querySelectorAll('.layer-toggle').forEach(b=>b.classList.toggle('active', state.layers[b.dataset.layer])); initFilterSets(); renderLegend(); render(); }
+  function resetFilters(){ selectMode('decay','nuclear'); state.layers.theoretical=false; state.layers.grid=false; state.layers.magic=false; state.layers.frontier=false; state.layers.evaluated=true; state.layers.isomer=true; document.querySelectorAll('.layer-toggle').forEach(b=>b.classList.toggle('active', state.layers[b.dataset.layer])); initFilterSets(); ensureNuclearFilterCompleteness(); renderLegend(); render(); }
   function togglePopover(id){ for(const p of ['searchPopover','dataPopover','layersPopover']) if(p!==id) closePopover(p); document.getElementById(id).classList.toggle('hidden'); }
   function closePopover(id){ document.getElementById(id)?.classList.add('hidden'); } function closeAllPopovers(){ ['searchPopover','dataPopover','layersPopover'].forEach(closePopover); }
 
@@ -587,12 +687,12 @@
     const s = raw.replace(/[()\[\],;:]/g, ' ').replace(/\s+/g,' ').trim();
     if(/stable|stbl|∞|inf|estable/.test(s)) return 'stable';
     if(/cluster|\bcl\b/.test(s)) return 'cluster';
-    if(/alpha|α|\ba\b/.test(s)) return 'alpha';
-    if(/β\s*-|beta\s*-|\bb\s*-\b|beta minus|\bbm\b/.test(s)) return 'beta-';
-    if(/β\s*\+|beta\s*\+|\bb\s*\+\b|\bec\b|electron capture|captura/.test(s)) return 'beta+/EC';
+    if(/(?:^|\s|[+\-])(?:a|alpha|α)(?:$|\s|[+\-])/.test(s)) return 'alpha';
+    if(/2?b\s*-|β\s*-|beta\s*-|beta minus|bm|b-/.test(s)) return 'beta-';
+    if(/ec\+?b\+|2?ec|2?b\s*\+|β\s*\+|beta\s*\+|b\+|electron capture|captura/.test(s)) return 'beta+/EC';
     if(/\bsf\b|fission|fis/.test(s)) return 'sf';
-    if(/\b2p\b|\bp\b|proton/.test(s)) return 'p';
-    if(/\b2n\b|\bn\b|neutron/.test(s)) return 'n';
+    if(/2p|\bp\b|proton/.test(s)) return 'p';
+    if(/2n|\bn\b|neutron/.test(s)) return 'n';
     if(/\bit\b|isomer|meta/.test(s)) return 'it';
     return 'unknown';
   }
@@ -620,18 +720,29 @@
 
   function setAtomModel(n) {
     const model = els.atomModel3d;
+    const img = document.getElementById('bohrImageFallback');
     const e = n.element || {};
     if (model && e.bohr_model_3d) {
       model.src = e.bohr_model_3d;
       model.alt = `Modelo 3D de ${e.name || n.elementName}`;
       model.classList.remove('hidden');
+      if (img) img.classList.add('hidden');
       atomCanvas.classList.add('hidden');
       document.getElementById('atomSubtitle').textContent = 'modelo 3D interactivo del elemento';
-    } else {
-      if (model) model.classList.add('hidden');
-      atomCanvas.classList.remove('hidden');
-      document.getElementById('atomSubtitle').textContent = 'modelo Bohr simplificado · clic para pausar';
+      return;
     }
+    if (model) model.classList.add('hidden');
+    if (img && e.bohr_model_image) {
+      img.src = e.bohr_model_image;
+      img.alt = `Modelo Bohr de ${e.name || n.elementName}`;
+      img.classList.remove('hidden');
+      atomCanvas.classList.add('hidden');
+      document.getElementById('atomSubtitle').textContent = 'imagen Bohr del elemento';
+      return;
+    }
+    if (img) img.classList.add('hidden');
+    atomCanvas.classList.remove('hidden');
+    document.getElementById('atomSubtitle').textContent = 'modelo Bohr simplificado · clic para pausar';
   }
 
   function atomLoop(t){ if(els.detailCard.classList.contains('open') && state.selected && !state.atomPaused && atomCanvas && !atomCanvas.classList.contains('hidden')) drawAtom(t); requestAnimationFrame(atomLoop); }

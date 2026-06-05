@@ -205,3 +205,23 @@ body.dark .filter-column { background: rgba(255,255,255,.035); }
 .layer-toggle.active[data-layer="theoretical"]::after,
 .layer-toggle.active[data-layer="frontier"]::after,
 .layer-toggle.active[data-layer="isomer"]::after { background: var(--accent); }
+
+
+/* v22: slider dual robusto, no observados/frontier visibles y respaldo Bohr */
+.dual-range { cursor: ew-resize; touch-action: none; }
+.dual-range input { pointer-events: none !important; }
+.dual-range input::-webkit-slider-thumb { pointer-events: none !important; }
+.dual-range input::-moz-range-thumb { pointer-events: none !important; }
+.range-fill { pointer-events: none; }
+.atom-image-fallback {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  object-fit: contain;
+  border-radius: 24px;
+  background: radial-gradient(circle at 50% 50%, rgba(93,90,246,.10), transparent 58%);
+  border: 1px solid var(--line);
+  display: block;
+}
+.atom-image-fallback.hidden { display: none !important; }
+.layer-toggle.active[data-layer="frontier"] { box-shadow: inset 0 -2px 0 rgba(158,42,47,.72); }
