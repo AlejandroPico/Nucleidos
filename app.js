@@ -15,6 +15,7 @@
   const DEFAULT_Z_MAX = 130;
   const DEFAULT_N_MAX = 320;
   const MAGIC_NUMBERS = [2, 8, 20, 28, 50, 82, 126, 184];
+  const IAEA_GROUND_STATES_URL = 'https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all';
 
   const ELEMENTS = (window.PERIODIC_ELEMENTS || []).filter(Boolean);
   const ELEMENT_BY_Z = new Map(ELEMENTS.map(e => [Number(e.number), e]));
@@ -79,7 +80,8 @@
     mode: 'decay', modeType: 'nuclear',
     filters: {}, rangeFilters: {}, numericRanges: {},
     layers: { evaluated:true, theoretical:false, isomer:true, grid:false, magic:false, frontier:false, minimap:true, expert:true },
-    renderPending: false
+    renderPending: false,
+    hasNuclideDataset: false
   };
 
   function init() {
@@ -115,6 +117,8 @@
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closePopover(b.dataset.close)));
     document.getElementById('csvInput').addEventListener('change', e => { const file = e.target.files?.[0]; if (file) loadNuclidesFromFile(file); });
     document.getElementById('reloadButton').addEventListener('click', loadNuclidesFromDefault);
+    document.getElementById('iaeaButton')?.addEventListener('click', loadNuclidesFromIAEA);
+    document.getElementById('exportMergedButton')?.addEventListener('click', exportMergedCsv);
     document.getElementById('resetFiltersButton').addEventListener('click', resetFilters);
     els.searchInput.addEventListener('input', () => renderSearchResults(els.searchInput.value));
     document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => selectTab(b.dataset.tab)));
@@ -144,16 +148,40 @@
       const text = await res.text();
       setNuclides(parseNuclideCsv(text), 'nuclides.csv');
     } catch (err) {
-      const fallback = buildPeriodicFallbackNuclides();
-      setNuclides(fallback, 'respaldo químico integrado');
-      els.loadStatus.textContent = 'No se pudo leer nuclides.csv. Se usa un respaldo mínimo por elemento; coloca tu CSV oficial junto a index.html para cargar todos los nucleidos.';
+      state.all = [];
+      state.hasNuclideDataset = false;
+      rebuildIndexes();
+      computeRanges();
+      initFilterSets();
+      updateBounds();
+      renderModeButtons();
+      renderLegend();
+      fitToEvaluated(true);
+      renderStats('sin CSV de nucleidos');
+      els.loadStatus.textContent = 'No se encontró nuclides.csv. La tabla periódica NO se usa como sustituto: importa tu CSV de nucleidos o usa IAEA online. Los datos químicos quedan listos para fusionarse por Z cuando haya nucleidos cargados.';
+      render();
     }
   }
+
+  async function loadNuclidesFromIAEA() {
+    els.loadStatus.textContent = 'Descargando nucleidos desde IAEA LiveChart…';
+    try {
+      const res = await fetch(IAEA_GROUND_STATES_URL, { cache:'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      setNuclides(parseNuclideCsv(text), 'IAEA LiveChart online');
+    } catch (err) {
+      els.loadStatus.textContent = 'No se pudo descargar desde IAEA LiveChart. Puede ser un bloqueo CORS/red. Usa el CSV local nuclides.csv o impórtalo manualmente.';
+      console.warn(err);
+    }
+  }
+
   async function loadNuclidesFromFile(file) { const text = await file.text(); setNuclides(parseNuclideCsv(text), file.name); }
 
   function setNuclides(rows, source) {
     const valid = rows.filter(n => Number.isFinite(n.z) && Number.isFinite(n.n) && n.z > 0 && n.n >= 0);
     for (const n of valid) enrichNuclide(n, source);
+    state.hasNuclideDataset = valid.length > 0 && source !== 'respaldo químico integrado';
     state.all = valid;
     rebuildIndexes();
     computeRanges();
@@ -163,16 +191,16 @@
     renderLegend();
     fitToEvaluated(true);
     renderStats(source);
-    if (!els.loadStatus.textContent.includes('No se pudo')) els.loadStatus.textContent = `${valid.length.toLocaleString('es-ES')} nucleidos cargados desde ${source}. ${ELEMENTS.length} elementos químicos enlazados.`;
+    if (!els.loadStatus.textContent.includes('No se pudo')) els.loadStatus.textContent = `${valid.length.toLocaleString('es-ES')} nucleidos cargados desde ${source}. ${ELEMENTS.length} elementos químicos enlazados por Z; los filtros químicos se aplican a todos los isótopos del elemento.`;
   }
 
   function parseNuclideCsv(text) {
     const rows = parseCsv(text);
     return rows.map(row => {
       const nrow = normaliseRow(row);
-      const z = numberValue(pick(nrow, ['z','protons','proton_number','atomic_number','nprotons']));
-      let nn = numberValue(pick(nrow, ['n','neutrons','neutron_number','nneutrons']));
-      let a = numberValue(pick(nrow, ['a','mass_number','mass','atomic_mass_number']));
+      const z = numberValue(pick(nrow, ['z','protons','proton_number','atomic_number','nprotons','z_protons']));
+      let nn = numberValue(pick(nrow, ['n','neutrons','neutron_number','nneutrons','n_neutrons']));
+      let a = numberValue(pick(nrow, ['a','mass_number','mass_number_a','atomic_mass_number']));
       const symbolRaw = pick(nrow, ['symbol','element','el','name']) || '';
       let symbol = String(symbolRaw).replace(/[^A-Za-z]/g,'');
       if (!symbol && z) symbol = ELEMENT_BY_Z.get(z)?.symbol || '';
@@ -180,7 +208,7 @@
       if (!Number.isFinite(a) && Number.isFinite(nn) && Number.isFinite(z)) a = z + nn;
       const halfText = pick(nrow, ['half_life','halflife','t12','t_1_2','half_life_sec','half_life_seconds']) || '';
       const halfUnit = pick(nrow, ['unit_hl','half_life_unit','unit','hl_unit']) || '';
-      const decayText = pick(nrow, ['decay','decay_1','decay_mode','decaymode','mode']) || '';
+      const decayText = pick(nrow, ['decay','decay_1','decay_mode','decaymode','mode','decay_modes','decaymode_1']) || '';
       const halfSeconds = halfLifeToSeconds(halfText, halfUnit);
       return {
         z, n: nn, a, symbol, raw: row,
@@ -213,6 +241,14 @@
     n.key = `${n.symbol || 'Z'+n.z}-${n.a || n.z+n.n}${n.stateId ? '-' + n.stateId : ''}`;
     n.source = source;
     if (n.raw && /m\d|isomer/i.test(JSON.stringify(n.raw))) n.dataClass = 'isomer';
+    if (e) {
+      n.element_category = e.category || '';
+      n.element_block = e.block || '';
+      n.element_phase = e.phase || '';
+      n.element_group = e.group ?? '';
+      n.element_period = e.period ?? '';
+      n.element_type = generalType(e.category);
+    }
   }
 
   function rebuildIndexes() {
@@ -234,7 +270,10 @@
     state.chartH = AXIS*2 + (state.zMax+1)*STEP_Y;
     state.evaluatedBounds = boundsForRows(rows.length ? rows : state.all);
   }
-  function boundsForRows(rows) { return { minZ: Math.min(...rows.map(n=>n.z)), maxZ: Math.max(...rows.map(n=>n.z)), minN: Math.min(...rows.map(n=>n.n)), maxN: Math.max(...rows.map(n=>n.n)) }; }
+  function boundsForRows(rows) {
+    if (!rows || !rows.length) return { minZ:1, maxZ:118, minN:0, maxN:180 };
+    return { minZ: Math.min(...rows.map(n=>n.z)), maxZ: Math.max(...rows.map(n=>n.z)), minN: Math.min(...rows.map(n=>n.n)), maxN: Math.max(...rows.map(n=>n.n)) };
+  }
 
   function computeRanges() {
     state.numericRanges = {};
@@ -342,11 +381,27 @@
   function draw() {
     state.renderPending = false; ctx.save(); ctx.setTransform(devicePixelRatio||1,0,0,devicePixelRatio||1,0,0);
     const dark = document.body.classList.contains('dark'); ctx.fillStyle = dark ? '#121318' : '#f3efe8'; ctx.fillRect(0,0,innerWidth,innerHeight);
+    if (!state.all.length) { drawEmptyState(); ctx.restore(); return; }
     if (state.layers.grid) drawGrid();
     if (state.layers.frontier) drawFrontier();
     if (state.layers.magic) drawMagicLines();
     drawCells(); drawAxes(); drawMinimap(); ctx.restore();
   }
+
+  function drawEmptyState() {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.88)' : 'rgba(34,32,28,.82)';
+    ctx.font = '900 22px system-ui, sans-serif';
+    ctx.fillText('Falta el CSV de nucleidos', innerWidth/2, innerHeight/2 - 30);
+    ctx.font = '700 14px system-ui, sans-serif';
+    ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.62)' : 'rgba(34,32,28,.58)';
+    ctx.fillText('Coloca nuclides.csv junto a index.html, impórtalo desde Datos o usa IAEA online.', innerWidth/2, innerHeight/2 + 2);
+    ctx.fillText('Los datos químicos ya están cargados y se fusionarán por Z con cada isótopo.', innerWidth/2, innerHeight/2 + 26);
+    ctx.restore();
+  }
+
   function visibleWorld() { return { x1:wx(0)-80, x2:wx(innerWidth)+80, y1:wy(0)-80, y2:wy(innerHeight)+80 }; }
   function drawGrid() { const v=visibleWorld(); ctx.save(); ctx.strokeStyle=document.body.classList.contains('dark')?'rgba(255,255,255,.055)':'rgba(0,0,0,.055)'; ctx.lineWidth=1; ctx.beginPath(); const n0=Math.max(0,Math.floor((v.x1-AXIS)/STEP_X)-1), n1=Math.min(state.nMax,Math.ceil((v.x2-AXIS)/STEP_X)+1); const z0=Math.max(1,state.zMax-Math.ceil((v.y2-AXIS)/STEP_Y)-1), z1=Math.min(state.zMax,state.zMax-Math.floor((v.y1-AXIS)/STEP_Y)+1); for(let n=n0;n<=n1;n++){ const x=sx(AXIS+n*STEP_X+STEP_X/2); ctx.moveTo(x,0); ctx.lineTo(x,innerHeight); } for(let z=z0;z<=z1;z++){ const y=sy(AXIS+(state.zMax-z)*STEP_Y+STEP_Y/2); ctx.moveTo(0,y); ctx.lineTo(innerWidth,y); } ctx.stroke(); ctx.restore(); }
   function drawMagicLines() { ctx.save(); ctx.strokeStyle=document.body.classList.contains('dark')?'rgba(255,107,117,.62)':'rgba(158,42,47,.55)'; ctx.lineWidth=1.5; ctx.setLineDash([7,7]); for(const N of MAGIC_NUMBERS){ if(N>state.nMax) continue; const x=sx(AXIS+N*STEP_X+STEP_X/2); ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,innerHeight); ctx.stroke(); } for(const Z of MAGIC_NUMBERS){ if(Z>state.zMax) continue; const y=sy(AXIS+(state.zMax-Z)*STEP_Y+STEP_Y/2); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(innerWidth,y); ctx.stroke(); } ctx.restore(); }
@@ -393,14 +448,56 @@
   function compactRaw(n){ return { id:n.key,z:n.z,n:n.n,a:n.a,symbol:n.symbol,decay:n.decay,stability:n.stability,half_life:n.half_life,element:{ name:n.element?.name, category:n.element?.category, block:n.element?.block, phase:n.element?.phase, density:n.element?.density, electronegativity:n.element?.electronegativity_pauling }}; }
 
   function renderSearchResults(q) { const query=q.trim(); els.searchResults.innerHTML=''; if(!query) return; const matches=state.all.filter(n=>matchesQuery(n, query)).slice(0,80); if(!matches.length){ els.searchResults.innerHTML='<div class="syntax-help">Sin resultados.</div>'; return; } for(const n of matches){ const row=document.createElement('button'); row.type='button'; row.className='result-row'; row.innerHTML=`<strong>${n.symbol}-${n.a||n.z+n.n}</strong><span>${n.elementName}<br>Z=${n.z} · N=${n.n} · ${labelForKey('decay',n.decay)}</span><small>${labelForKey('stability',n.stability)}</small>`; row.addEventListener('click',()=>{centerOn(n);openDetail(n);closePopover('searchPopover');}); els.searchResults.appendChild(row); } }
-  function matchesQuery(n,q){ const tokens=q.match(/(?:[^\s"]+|"[^"]*")+/g)||[]; const free=[]; for(const t of tokens){ const m=t.match(/^([a-zA-Z_-]+)(>=|<=|=|>|<)(.+)$/); if(m){ if(!matchExpr(n,m[1].toLowerCase(),m[2],m[3].replace(/"/g,''))) return false; } else free.push(t.replace(/"/g,'').toLowerCase()); } if(!free.length) return true; const hay=`${n.symbol} ${n.symbol}-${n.a} ${n.a}${n.symbol} ${n.elementName} z${n.z} n${n.n} ${n.decay} ${n.stability}`.toLowerCase(); return free.every(t=>hay.includes(t)); }
-  function matchExpr(n,field,op,val){ const f=field.replace(/-/g,'_'); if(['z','n','a'].includes(f)) return compare(Number(n[f]),op,Number(val)); if(['symbol','element','decay'].includes(f)){ const actual = f==='element' ? n.elementName : n[f]; return op==='=' && String(actual||'').toLowerCase().includes(String(val).toLowerCase()); } if(f==='stable') return (val==='true'||val==='1'||val==='yes') ? n.stability==='stable' : n.stability!=='stable'; if(f==='half_life'||f==='halflife') return compare(n.half_life_sec,op,halfLifeToSeconds(val,'')); return true; }
+  function matchesQuery(n,q){ const tokens=q.match(/(?:[^\s"]+|"[^"]*")+/g)||[]; const free=[]; for(const t of tokens){ const m=t.match(/^([a-zA-Z_-]+)(>=|<=|=|>|<)(.+)$/); if(m){ if(!matchExpr(n,m[1].toLowerCase(),m[2],m[3].replace(/"/g,''))) return false; } else free.push(t.replace(/"/g,'').toLowerCase()); } if(!free.length) return true; const e=n.element||{}; const hay=`${n.symbol} ${n.symbol}-${n.a} ${n.a}${n.symbol} ${n.elementName} z${n.z} n${n.n} ${n.decay} ${n.stability} ${e.category||''} ${e.block||''} ${e.phase||''} grupo ${e.group||''} periodo ${e.period||''}`.toLowerCase(); return free.every(t=>hay.includes(t)); }
+  function matchExpr(n,field,op,val){
+    const f=field.replace(/-/g,'_');
+    if(['z','n','a'].includes(f)) return compare(Number(n[f]),op,Number(val));
+    if(['symbol','element','decay','category','block','phase','type'].includes(f)){
+      const e=n.element||{};
+      const actual = f==='element' ? n.elementName : f==='category' ? e.category : f==='block' ? e.block : f==='phase' ? e.phase : f==='type' ? generalType(e.category) : n[f];
+      return op==='=' && String(actual||'').toLowerCase().includes(String(val).toLowerCase());
+    }
+    if(['group','period'].includes(f)) return compare(Number((n.element||{})[f]),op,Number(val));
+    const aliases = { electronegativity:'electronegativity_pauling', ionization:'first_ionization', first_ionization:'first_ionization', affinity:'electron_affinity', electron_affinity:'electron_affinity', density:'density', melt:'melt', boil:'boil', atomic_mass:'atomic_mass', molar_heat:'molar_heat' };
+    if (aliases[f]) return compare(getNumericValue(n, aliases[f]), op, Number(val));
+    if(f==='stable') return (val==='true'||val==='1'||val==='yes') ? n.stability==='stable' : n.stability!=='stable';
+    if(f==='half_life'||f==='halflife') return compare(n.half_life_sec,op,halfLifeToSeconds(val,''));
+    return true;
+  }
   function compare(a,op,b){ if(!Number.isFinite(a)||!Number.isFinite(b)) return false; if(op==='=') return a===b; if(op==='>') return a>b; if(op==='<') return a<b; if(op==='>=') return a>=b; if(op==='<=') return a<=b; return false; }
 
-  function renderStats(source){ const total=state.all.length, stable=state.all.filter(n=>n.stability==='stable').length, elements=new Set(state.all.map(n=>n.z)).size; els.datasetStats.innerHTML=[['Registros',total],['Elementos',elements],['Estables',stable],['Z máximo',Math.max(...state.all.map(n=>n.z))],['N máximo',Math.max(...state.all.map(n=>n.n))],['Fuente',source]].map(([k,v])=>`<div class="stat"><strong>${v}</strong><span>${k}</span></div>`).join(''); }
+  function renderStats(source){ const total=state.all.length, stable=state.all.filter(n=>n.stability==='stable').length, elements=new Set(state.all.map(n=>n.z)).size; const maxZ=total?Math.max(...state.all.map(n=>n.z)):'—'; const maxN=total?Math.max(...state.all.map(n=>n.n)):'—'; els.datasetStats.innerHTML=[['Nucleidos',total],['Elementos enlazados',elements],['Estables',stable],['Z máximo',maxZ],['N máximo',maxN],['Fuente',source]].map(([k,v])=>`<div class="stat"><strong>${v}</strong><span>${k}</span></div>`).join(''); }
   function resetFilters(){ selectMode('decay','nuclear'); state.layers.theoretical=false; state.layers.grid=false; state.layers.magic=false; state.layers.frontier=false; state.layers.evaluated=true; state.layers.isomer=true; document.querySelectorAll('.layer-toggle').forEach(b=>b.classList.toggle('active', state.layers[b.dataset.layer])); initFilterSets(); renderLegend(); render(); }
   function togglePopover(id){ for(const p of ['searchPopover','dataPopover','layersPopover']) if(p!==id) closePopover(p); document.getElementById(id).classList.toggle('hidden'); }
   function closePopover(id){ document.getElementById(id)?.classList.add('hidden'); } function closeAllPopovers(){ ['searchPopover','dataPopover','layersPopover'].forEach(closePopover); }
+
+
+  function exportMergedCsv() {
+    if (!state.all.length) {
+      els.loadStatus.textContent = 'No hay nucleidos cargados para exportar. Primero carga nuclides.csv o IAEA online.';
+      return;
+    }
+    const chemFields = ['element_name','element_category','element_block','element_phase','element_group','element_period','element_type','element_atomic_mass','element_density','element_melt_K','element_boil_K','element_electronegativity_pauling','element_first_ionization_kJ_mol','element_electron_affinity_kJ_mol','element_molar_heat_J_mol_K','element_electron_configuration','element_shells','element_source'];
+    const baseFields = ['symbol','Z','N','A','decay','stability','half_life','half_life_unit','abundance','isotopic_mass_or_mass_data','spin_parity','qalpha','qbeta','data_class'];
+    const rows = [baseFields.concat(chemFields)];
+    for (const n of state.all) {
+      const e = n.element || {};
+      rows.push([
+        n.symbol || '', n.z, n.n, n.a || n.z+n.n, n.decay || '', n.stability || '', n.half_life || '', n.half_life_unit || '', n.abundance || '', n.atomic_mass || '', n.spin || '', numOrBlank(n.qalpha), numOrBlank(n.qbeta), n.dataClass || '',
+        e.name || '', e.category || '', e.block || '', e.phase || '', e.group ?? '', e.period ?? '', generalType(e.category), e.atomic_mass ?? '', e.density ?? '', e.melt ?? '', e.boil ?? '', e.electronegativity_pauling ?? '', Array.isArray(e.ionization_energies) ? (e.ionization_energies[0] ?? '') : '', e.electron_affinity ?? '', e.molar_heat ?? '', e.electron_configuration_semantic || e.electron_configuration || '', Array.isArray(e.shells) ? e.shells.join(' ') : '', e.source || ''
+      ]);
+    }
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'nuclides_enriched_with_periodic_table.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    els.loadStatus.textContent = `CSV fusionado exportado: ${state.all.length.toLocaleString('es-ES')} nucleidos con columnas químicas añadidas por Z.`;
+  }
+  function csvEscape(v) { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; }
+  function numOrBlank(v) { return Number.isFinite(v) ? v : ''; }
 
   function parseCsv(text){ const rows=[]; let row=[], field='', quote=false; for(let i=0;i<text.length;i++){ const c=text[i], n=text[i+1]; if(c==='"'){ if(quote && n==='"'){ field+='"'; i++; } else quote=!quote; } else if(c===',' && !quote){ row.push(field); field=''; } else if((c==='\n'||c==='\r') && !quote){ if(c==='\r'&&n==='\n') i++; row.push(field); if(row.some(x=>x!=='')) rows.push(row); row=[]; field=''; } else field+=c; } row.push(field); if(row.some(x=>x!=='')) rows.push(row); const headers=(rows.shift()||[]).map(h=>h.trim()); return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??'']))); }
   function normaliseRow(row){ const o={}; for(const [k,v] of Object.entries(row)) o[norm(k)] = v; return o; } function norm(k){ return String(k).toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); } function pick(o,keys){ for(const k of keys){ const v=o[norm(k)]; if(v!==undefined && v!==null && String(v).trim()!=='') return v; } return ''; }

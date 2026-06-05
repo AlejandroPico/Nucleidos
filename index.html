@@ -59,8 +59,16 @@
         <input id="csvInput" type="file" accept=".csv,text/csv" />
       </label>
       <button id="reloadButton" class="data-card" type="button">
-        <span>Recargar</span>
-        <small>Vuelve a leer <code>nuclides.csv</code>.</small>
+        <span>Recargar nuclides.csv</span>
+        <small>Lee el CSV oficial de nucleidos de la carpeta.</small>
+      </button>
+      <button id="iaeaButton" class="data-card" type="button">
+        <span>IAEA online</span>
+        <small>Intenta descargar estados fundamentales desde LiveChart.</small>
+      </button>
+      <button id="exportMergedButton" class="data-card" type="button">
+        <span>Exportar fusionado</span>
+        <small>Genera CSV de nucleidos + datos químicos por Z.</small>
       </button>
       <button id="resetFiltersButton" class="data-card" type="button">
         <span>Limpiar filtros</span>
@@ -70,7 +78,7 @@
     <div id="loadStatus" class="status-line">Preparando datos…</div>
     <details open class="schema-box">
       <summary>Estructura CSV esperada</summary>
-      <p>La aplicación intenta reconocer columnas habituales como <code>Z</code>, <code>N</code>, <code>A</code>, <code>symbol</code>, <code>element</code>, <code>half_life</code>, <code>decay</code>, <code>abundance</code>, <code>qalpha</code>, <code>qbeta</code>, <code>mass</code> o variantes equivalentes. Los datos químicos de elemento se cruzan automáticamente por <code>Z</code> usando <code>PeriodicTableJSON.json</code>.</p>
+      <p>La base principal sigue siendo el CSV de nucleidos: columnas como <code>Z</code>, <code>N</code>, <code>A</code>, <code>symbol</code>, <code>element</code>, <code>half_life</code>, <code>decay</code>, <code>abundance</code>, <code>qalpha</code>, <code>qbeta</code>, <code>mass</code> o equivalentes. El fichero periódico no sustituye a los nucleidos: se usa como tabla auxiliar por <code>Z</code>. Así, todos los isótopos de hidrógeno heredan categoría, bloque, fase, densidad, electronegatividad, ionización, etc., pero conservan su <code>N</code>, <code>A</code>, vida media y decaimiento nuclear.</p>
     </details>
     <div id="datasetStats" class="stats-grid"></div>
   </section>

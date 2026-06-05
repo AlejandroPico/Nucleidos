@@ -1,34 +1,31 @@
-# Tabla de nucleidos · filtros estilo ZPeriod
+# Tabla de nucleidos · filtros ZPeriod fusionados (v19)
 
-Versión 18 experimental.
+Esta versión corrige el enfoque de la v18: la tabla principal vuelve a ser la tabla de **nucleidos/isótopos**, no una tabla periódica reducida.
 
-## Qué incluye
+## Idea de fusión
 
-- Visor de nucleidos en Canvas 2D.
-- Carga automática de `nuclides.csv` si existe junto a `index.html`.
-- Respaldo mínimo generado desde `PeriodicTableJSON.json` si no se encuentra `nuclides.csv`.
-- Datos químicos integrados desde `PeriodicTableJSON.json` y `PeriodicTableCSV.csv`.
-- Filtros químicos inspirados en ZPeriod:
-  - categoría,
-  - bloque,
-  - fase,
-  - grupo,
-  - periodo,
-  - tipo general,
-  - punto de fusión,
-  - punto de ebullición,
-  - densidad,
-  - electronegatividad,
-  - primera ionización,
-  - afinidad electrónica,
-  - radio atómico,
-  - calor específico / molar,
-  - masa atómica.
-- Barra superior central de rango para filtros numéricos.
-- Búsqueda avanzada por sintaxis.
-- Ficha de nucleido con datos nucleares y químicos del elemento.
+- `nuclides.csv` sigue siendo la fuente principal.
+- `PeriodicTableJSON.json` y `periodic-elements-data.js` funcionan como tabla auxiliar de elementos.
+- Cada nucleido se cruza por `Z` con el elemento químico correspondiente.
+- Todos los isótopos de un elemento heredan sus propiedades químicas comunes: categoría, bloque, fase, densidad, punto de fusión, punto de ebullición, electronegatividad, primera ionización, afinidad electrónica, calor molar, configuración electrónica, etc.
+- Los datos nucleares siguen siendo propios de cada isótopo: `N`, `A`, vida media, decaimiento, abundancia isotópica, Qα, Qβ−, spin/paridad, etc.
 
-## Archivos principales
+## Uso correcto
+
+Coloca tu `nuclides.csv` oficial en la misma carpeta que `index.html` o impórtalo desde el panel **Datos**.
+
+Si `nuclides.csv` no está presente, la aplicación ya no muestra una falsa tabla periódica de respaldo. En su lugar avisa de que falta el CSV de nucleidos.
+
+## Nuevas funciones
+
+- Filtros nucleares anteriores conservados.
+- Filtros químicos estilo ZPeriod añadidos sin sustituir los nucleidos.
+- Rango superior para propiedades numéricas químicas.
+- Búsqueda avanzada ampliada con campos químicos.
+- Botón para exportar un CSV fusionado: `nuclides_enriched_with_periodic_table.csv`.
+- Botón IAEA online como intento de carga directa desde LiveChart si el navegador lo permite.
+
+## Archivos incluidos
 
 - `index.html`
 - `styles.css`
@@ -37,11 +34,4 @@ Versión 18 experimental.
 - `PeriodicTableJSON.json`
 - `PeriodicTableCSV.csv`
 
-## CSV nuclear
-
-Coloca el archivo oficial `nuclides.csv` en la misma carpeta que `index.html`.
-La aplicación intenta reconocer columnas como `Z`, `N`, `A`, `symbol`, `half_life`, `decay`, `abundance`, `qalpha`, `qbeta`, `mass` y variantes equivalentes.
-
-## Nota sobre radio atómico
-
-El filtro de radio atómico queda preparado. Si el JSON/CSV no contiene una columna `atomic_radius`, la opción aparecerá sin datos disponibles.
+El CSV oficial de nucleidos no está incluido en este paquete porque no se ha adjuntado en esta iteración. Debe añadirse como `nuclides.csv`.

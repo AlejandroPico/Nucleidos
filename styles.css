@@ -144,3 +144,5 @@ body.dark .detail-tabs { background: rgba(255,255,255,.04); }
   .atom-panel { padding: 14px; }
   .search-popover, .data-popover, .layers-popover { left: 8px; right: 8px; top: 54px; width: auto; max-height: calc(100vh - 70px); }
 }
+
+.empty-state-note { color: var(--muted); }
