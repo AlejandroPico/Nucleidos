@@ -446,21 +446,33 @@ function drawEvaluatedFrame() {
 }
 
 function drawMagicLines() {
-  const dark = document.body.classList.contains('dark');
+  const accent = document.body.classList.contains('dark') ? 'rgba(255,92,92,.88)' : 'rgba(145,28,44,.86)';
   ctx.save();
-  ctx.strokeStyle = dark ? 'rgba(255,107,117,.64)' : 'rgba(158,42,47,.55)';
-  ctx.lineWidth = 1.55;
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 1.45;
   ctx.setLineDash([7, 7]);
   for (const N of MAGIC_NUMBERS) {
     if (N > N_MAX) continue;
     const x = sx(AXIS + N * TILE_STEP_X + TILE_STEP_X/2);
     ctx.beginPath(); ctx.moveTo(x, sy(AXIS)); ctx.lineTo(x, sy(AXIS + Z_MAX*TILE_STEP_Y)); ctx.stroke();
+    if (N % 10 !== 0) drawMagicAxisLabel(String(N), x, clampNumber(sy(AXIS - 28), 22, window.innerHeight - 22));
   }
   for (const Z of MAGIC_NUMBERS) {
     if (Z > Z_MAX) continue;
     const y = sy(AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y/2);
     ctx.beginPath(); ctx.moveTo(sx(AXIS), y); ctx.lineTo(sx(AXIS + N_MAX*TILE_STEP_X), y); ctx.stroke();
+    if (Z % 10 !== 0) drawMagicAxisLabel(String(Z), clampNumber(sx(AXIS - 18), 28, window.innerWidth - 28), y, 'right');
   }
+  ctx.restore();
+}
+function drawMagicAxisLabel(text, x, y, align = 'center') {
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.font = '950 13px system-ui, sans-serif';
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,92,92,.96)' : 'rgba(145,28,44,.96)';
+  ctx.fillText(text, x, y + 0.5);
   ctx.restore();
 }
 
@@ -490,58 +502,35 @@ function drawAxes() {
   const visible = visibleWorldRect();
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
-  const showMagic = Boolean(state.layers.magic);
-  const drawnN = new Set();
-  const drawnZ = new Set();
   ctx.save();
   ctx.font = '900 12px system-ui, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)';
   for (let N = 0; N <= N_MAX; N += 10) {
     const wx = AXIS + N * TILE_STEP_X + TILE_STEP_X/2;
     if (wx < visible.x1 - 200 || wx > visible.x2 + 200) continue;
-    drawnN.add(N);
-    drawAxisPill(String(N), sx(wx), clampNumber(sy(AXIS - 28), 22, screenH - 22), 38, showMagic && MAGIC_NUMBERS.includes(N));
-  }
-  if (showMagic) {
-    for (const N of MAGIC_NUMBERS) {
-      if (N > N_MAX || drawnN.has(N)) continue;
-      const wx = AXIS + N * TILE_STEP_X + TILE_STEP_X/2;
-      if (wx < visible.x1 - 200 || wx > visible.x2 + 200) continue;
-      drawAxisPill(String(N), sx(wx), clampNumber(sy(AXIS - 28), 22, screenH - 22), 38, true);
-    }
+    drawAxisPill(String(N), sx(wx), clampNumber(sy(AXIS - 28), 22, screenH - 22), 38, state.layers.magic && MAGIC_NUMBERS.includes(N));
   }
   ctx.textAlign = 'right';
   for (let Z = 10; Z <= Z_MAX; Z += 10) {
     const wy = AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y/2;
     if (wy < visible.y1 - 200 || wy > visible.y2 + 200) continue;
-    drawnZ.add(Z);
-    drawAxisPill(String(Z), clampNumber(sx(AXIS - 18), 28, screenW - 28), sy(wy), 38, showMagic && MAGIC_NUMBERS.includes(Z));
-  }
-  if (showMagic) {
-    for (const Z of MAGIC_NUMBERS) {
-      if (Z > Z_MAX || drawnZ.has(Z)) continue;
-      const wy = AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y/2;
-      if (wy < visible.y1 - 200 || wy > visible.y2 + 200) continue;
-      drawAxisPill(String(Z), clampNumber(sx(AXIS - 18), 28, screenW - 28), sy(wy), 38, true);
-    }
+    drawAxisPill(String(Z), clampNumber(sx(AXIS - 18), 28, screenW - 28), sy(wy), 38, state.layers.magic && MAGIC_NUMBERS.includes(Z));
   }
   ctx.textAlign = 'left';
-  drawAxisPill('N →', clampNumber(sx(AXIS), 30, screenW - 30), clampNumber(sy(AXIS - 54), 22, screenH - 22), 48, false);
-  drawAxisPill('Z ↑', clampNumber(sx(AXIS - 48), 30, screenW - 30), clampNumber(sy(AXIS - 20), 54, screenH - 22), 48, false);
+  drawAxisPill('N →', clampNumber(sx(AXIS), 30, screenW - 30), clampNumber(sy(AXIS - 54), 22, screenH - 22), 48);
+  drawAxisPill('Z ↑', clampNumber(sx(AXIS - 48), 30, screenW - 30), clampNumber(sy(AXIS - 20), 54, screenH - 22), 48);
   ctx.restore();
 }
 function clampNumber(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
-function drawAxisPill(text, x, y, width = 38, isMagic = false) {
+function drawAxisPill(text, x, y, width = 38, magic = false) {
   // Ejes limpios: solo texto, sin cápsula ni borde.
-  // Si la capa de números mágicos está activa, sus valores se remarcan sin duplicarse.
+  // Se dibujan al final del frame para que no queden ocultos por las celdas.
   ctx.save();
-  const dark = document.body.classList.contains('dark');
-  ctx.fillStyle = isMagic ? (dark ? 'rgba(255,107,117,.98)' : 'rgba(158,42,47,.98)') : (dark ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)');
-  if (isMagic) {
-    ctx.shadowColor = dark ? 'rgba(255,107,117,.25)' : 'rgba(158,42,47,.18)';
-    ctx.shadowBlur = 4;
-  }
+  ctx.fillStyle = magic
+    ? (document.body.classList.contains('dark') ? 'rgba(255,92,92,.96)' : 'rgba(145,28,44,.96)')
+    : (document.body.classList.contains('dark') ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)');
   ctx.fillText(text, x, y + 0.5);
   ctx.restore();
 }
@@ -753,7 +742,7 @@ function bindEvents() {
   document.getElementById('addCompareButton').addEventListener('click', () => addSelectedToCompare());
   document.getElementById('exportCardButton').addEventListener('click', exportSelectedCardPng);
   document.getElementById('clearCompareButton').addEventListener('click', () => { state.compare = []; renderCompare(); });
-  atomCanvas.addEventListener('click', e => { e.stopPropagation(); state.animationEnabled = !state.animationEnabled; atomCanvas.classList.toggle('paused', !state.animationEnabled); });
+  atomCanvas.addEventListener('click', e => { e.stopPropagation(); state.animationEnabled = !state.animationEnabled; atomCanvas.classList.toggle('paused', !state.animationEnabled); drawAtom(performance.now()); });
   window.addEventListener('resize', () => { resizeCanvases(); fitToScreen(false); resizeAtomCanvas(); scheduleRender(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeNuclideCard(); closeLegendPopover(); closeDataPopover(); closeSearchTool(); } });
 }
@@ -1133,18 +1122,235 @@ function numeric(v) { return toNumber(String(v || '').replace('%','')); }
 function trimNumber(v, d=6) { return Number(v).toLocaleString('es-ES', { maximumFractionDigits: d }); }
 function escapeHtml(t) { return String(t).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
 
-function electronShells(electrons) { const caps = [2,8,18,32,32,18,8]; const shells = []; let left = electrons; for (const cap of caps) { if (left <= 0) break; const c = Math.min(cap, left); shells.push(c); left -= c; } if (left > 0) shells.push(left); return shells; }
-function buildAtomState(n) { return { z:n.z, neutrons:n.n, symbol:n.symbol, a:n.a, shells: electronShells(n.z), particles: buildNucleusParticles(n.z, n.n) }; }
-function buildNucleusParticles(protons, neutrons) { const total = Math.min(90, protons + neutrons); const particles = []; for (let i=0;i<total;i++) { const angle = i*2.399963, radius = Math.sqrt(i/Math.max(1,total))*42; const isProton = i < Math.round(total*protons/Math.max(1, protons+neutrons)); particles.push({ x:Math.cos(angle)*radius+(Math.random()-.5)*5, y:Math.sin(angle)*radius+(Math.random()-.5)*5, z:Math.sin(angle*1.7)*18, proton:isProton, size:9+Math.random()*4 }); } return particles; }
-function resizeAtomCanvas() { const r = atomCanvas.getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1); const w = Math.max(300, Math.floor(r.width*dpr)), h = Math.max(260, Math.floor(r.height*dpr)); if (atomCanvas.width !== w || atomCanvas.height !== h) { atomCanvas.width = w; atomCanvas.height = h; } }
-function drawAtomLoop(time) { if (state.atom && card.classList.contains('open') && state.animationEnabled) drawAtom(time); requestAnimationFrame(drawAtomLoop); }
+function electronShells(electrons) {
+  const caps = [2,8,18,32,32,18,8];
+  const shells = [];
+  let left = electrons;
+  for (const cap of caps) {
+    if (left <= 0) break;
+    const c = Math.min(cap, left);
+    shells.push(c);
+    left -= c;
+  }
+  if (left > 0) shells.push(left);
+  return shells;
+}
+function buildAtomState(n) {
+  return {
+    z: n.z,
+    neutrons: n.n,
+    symbol: n.symbol,
+    a: n.a,
+    shells: electronShells(n.z),
+    particles: buildNucleusParticles(n.z, n.n),
+    seed: `${n.z}-${n.n}-${n.a}`
+  };
+}
+function seededNoise(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < String(seed).length; i++) {
+    h ^= String(seed).charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return () => {
+    h += 0x6D2B79F5;
+    let t = h;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function buildNucleusParticles(protons, neutrons) {
+  const totalReal = Math.max(1, protons + neutrons);
+  const total = Math.min(120, totalReal);
+  const particles = [];
+  const rand = seededNoise(`${protons}:${neutrons}`);
+  const protonSlots = Math.round(total * protons / totalReal);
+  for (let i = 0; i < total; i++) {
+    const a = i * 2.399963 + rand() * 0.45;
+    const r = Math.cbrt((i + 1) / total) * 48;
+    const z = (rand() - .5) * 72;
+    const planar = Math.sqrt(Math.max(4, r*r - z*z*.38));
+    particles.push({
+      x: Math.cos(a) * planar + (rand() - .5) * 5,
+      y: Math.sin(a) * planar + (rand() - .5) * 5,
+      z,
+      proton: i < protonSlots,
+      size: 8.5 + rand() * 4.8
+    });
+  }
+  return particles;
+}
+function resizeAtomCanvas() {
+  const r = atomCanvas.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(300, Math.floor(r.width*dpr));
+  const h = Math.max(260, Math.floor(r.height*dpr));
+  if (atomCanvas.width !== w || atomCanvas.height !== h) { atomCanvas.width = w; atomCanvas.height = h; }
+}
+function drawAtomLoop(time) {
+  if (state.atom && card.classList.contains('open')) drawAtom(time);
+  requestAnimationFrame(drawAtomLoop);
+}
+function rotate3D(p, rx, ry, rz) {
+  let x = p.x, y = p.y, z = p.z;
+  let cy = Math.cos(rx), syy = Math.sin(rx);
+  [y, z] = [y * cy - z * syy, y * syy + z * cy];
+  cy = Math.cos(ry); syy = Math.sin(ry);
+  [x, z] = [x * cy + z * syy, -x * syy + z * cy];
+  cy = Math.cos(rz); syy = Math.sin(rz);
+  [x, y] = [x * cy - y * syy, x * syy + y * cy];
+  return { x, y, z };
+}
+function project3D(p, cx, cy, focal, globalScale = 1) {
+  const depth = focal / (focal - p.z);
+  return { x: cx + p.x * depth * globalScale, y: cy + p.y * depth * globalScale, depth, z: p.z };
+}
+function orbitPoint(radius, angle, planeIndex) {
+  const x = Math.cos(angle) * radius;
+  const y = Math.sin(angle) * radius;
+  let p = { x, y, z: 0 };
+  if (planeIndex === 0) p = rotate3D(p, 1.12, .16, -.18);
+  else if (planeIndex === 1) p = rotate3D(p, .42, 1.05, .28);
+  else p = rotate3D(p, .86, -.82, .68);
+  return p;
+}
 function drawAtom(time) {
-  const atom = state.atom; if (!atom) return; const c = atomCtx; const w = atomCanvas.width, h = atomCanvas.height; c.clearRect(0,0,w,h); const cx=w*.52, cy=h*.54, min=Math.min(w,h), gap=Math.max(38,min*.085), base=Math.max(68,min*.14); const t = state.animationEnabled ? time*.001 : state.atomFrame; if (!state.animationEnabled) state.atomFrame = t;
-  c.save(); c.translate(cx,cy); c.lineWidth = Math.max(1,min*.0024);
-  atom.shells.forEach((count, si) => { const r=base+si*gap; c.save(); c.rotate(si%2?-.38:.30); c.scale(1,.36+si*.018); c.beginPath(); c.ellipse(0,0,r,r,0,0,Math.PI*2); c.strokeStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.18)' : 'rgba(20,20,20,.16)'; c.stroke(); c.restore(); const visible=Math.min(count, si<3?count:18); for(let i=0;i<visible;i++){ const a=(i/visible)*Math.PI*2 + t*(.45+si*.08)*(si%2?-1:1); const tilt=si%2?-.38:.30; const x0=Math.cos(a)*r, y0=Math.sin(a)*r*(.36+si*.018); const x=x0*Math.cos(tilt)-y0*Math.sin(tilt), y=x0*Math.sin(tilt)+y0*Math.cos(tilt); const depth=(Math.sin(a)+1)/2; drawSphere(c,x,y,6+depth*2.5,'#0900b8','#4b57ff',depth); } });
-  const scale = Math.min(1.25, .72 + Math.log10(atom.z+atom.neutrons+3)*.22); [...atom.particles].sort((a,b)=>a.z-b.z).forEach(p => { const wobble=Math.sin(t*1.2+p.x*.02)*1.5; drawSphere(c,p.x*scale+wobble,p.y*scale,p.size*scale,p.proton?'#a93b32':'#595959',p.proton?'#ff4338':'#8b8b8b',(p.z+20)/40); });
+  const atom = state.atom;
+  if (!atom) return;
+  const c = atomCtx;
+  const w = atomCanvas.width, h = atomCanvas.height;
+  c.clearRect(0, 0, w, h);
+
+  const dark = document.body.classList.contains('dark');
+  const cx = w * .52, cy = h * .53;
+  const min = Math.min(w, h);
+  const focal = min * 2.25;
+  const t = state.animationEnabled ? time * .001 : state.atomFrame;
+  if (!state.animationEnabled) state.atomFrame = t;
+
+  // Retícula radial discreta para que el modelo 3D tenga profundidad sin ensuciar.
+  c.save();
+  c.globalAlpha = dark ? .16 : .22;
+  c.strokeStyle = dark ? 'rgba(255,255,255,.16)' : 'rgba(30,30,30,.10)';
+  c.lineWidth = Math.max(1, min * .0016);
+  for (let r = min * .14; r <= min * .46; r += min * .08) {
+    c.beginPath();
+    c.arc(cx, cy, r, 0, Math.PI * 2);
+    c.stroke();
+  }
+  c.restore();
+
+  const base = Math.max(72, min * .145);
+  const gap = Math.max(42, min * .079);
+  const spinY = t * .34;
+  const spinX = Math.sin(t * .18) * .18;
+  const objects = [];
+
+  // Órbitas 3D: se proyectan punto a punto y se separan en segmentos por profundidad.
+  c.save();
+  c.lineWidth = Math.max(1, min * .0022);
+  atom.shells.forEach((count, si) => {
+    const radius = base + si * gap;
+    const planes = Math.min(3, Math.max(1, Math.ceil(count / 14)));
+    for (let plane = 0; plane < planes; plane++) {
+      const pts = [];
+      for (let j = 0; j <= 192; j++) {
+        const a = (j / 192) * Math.PI * 2;
+        const p = rotate3D(orbitPoint(radius, a, (plane + si) % 3), spinX, spinY + si * .06, 0);
+        pts.push(project3D(p, cx, cy, focal));
+      }
+      for (let j = 1; j < pts.length; j++) {
+        const d = (pts[j].z + pts[j-1].z) * .5;
+        c.beginPath();
+        c.moveTo(pts[j-1].x, pts[j-1].y);
+        c.lineTo(pts[j].x, pts[j].y);
+        const alpha = d > 0 ? .24 : .09;
+        c.strokeStyle = dark ? `rgba(255,255,255,${alpha})` : `rgba(20,20,20,${alpha})`;
+        c.stroke();
+      }
+    }
+
+    const visible = Math.min(count, si < 3 ? count : 28);
+    for (let i = 0; i < visible; i++) {
+      const plane = (i + si) % 3;
+      const a = (i / visible) * Math.PI * 2 + t * (.56 + si * .075) * (si % 2 ? -1 : 1);
+      const p = rotate3D(orbitPoint(radius, a, plane), spinX, spinY + si * .06, 0);
+      const pr = project3D(p, cx, cy, focal);
+      objects.push({ kind: 'electron', x: pr.x, y: pr.y, z: pr.z, depth: pr.depth, r: (5.7 + Math.max(0, pr.z) / focal * 6) * Math.max(.88, pr.depth) });
+    }
+  });
+  c.restore();
+
+  const nucleusScale = Math.min(1.28, .72 + Math.log10(atom.z + atom.neutrons + 3) * .22);
+  for (const part of atom.particles) {
+    const p = rotate3D({ x: part.x, y: part.y, z: part.z }, spinX + .34, spinY * 1.45, t * .11);
+    const pr = project3D(p, cx, cy, focal, nucleusScale);
+    objects.push({ kind: part.proton ? 'proton' : 'neutron', x: pr.x, y: pr.y, z: pr.z, depth: pr.depth, r: part.size * nucleusScale * Math.max(.84, pr.depth) });
+  }
+
+  objects.sort((a, b) => a.z - b.z);
+  for (const o of objects) {
+    if (o.kind === 'electron') drawSphere(c, o.x, o.y, o.r, '#0a0a9f', '#5d7cff', normalizedDepth(o.z, focal));
+    else if (o.kind === 'proton') drawSphere(c, o.x, o.y, o.r, '#a93b32', '#ff574f', normalizedDepth(o.z, focal));
+    else drawSphere(c, o.x, o.y, o.r, '#55565d', '#a3a5ad', normalizedDepth(o.z, focal));
+  }
+
+  // Halo del núcleo por delante, sutil, para remarcar la composición 3D.
+  const halo = c.createRadialGradient(cx, cy, min * .025, cx, cy, min * .16);
+  halo.addColorStop(0, dark ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.35)');
+  halo.addColorStop(1, 'rgba(93,90,246,0)');
+  c.fillStyle = halo;
+  c.beginPath();
+  c.arc(cx, cy, min * .18, 0, Math.PI * 2);
+  c.fill();
+
+  c.save();
+  c.font = `900 ${Math.max(12, min * .026)}px system-ui, sans-serif`;
+  c.textAlign = 'left';
+  c.textBaseline = 'top';
+  c.fillStyle = dark ? 'rgba(255,255,255,.68)' : 'rgba(28,28,28,.58)';
+  c.fillText('3D', Math.max(18, min * .035), Math.max(18, min * .035));
+  if (!state.animationEnabled) {
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = dark ? 'rgba(255,255,255,.74)' : 'rgba(20,20,20,.62)';
+    c.font = `900 ${Math.max(14, min * .032)}px system-ui, sans-serif`;
+    c.fillText('Pausado', cx, h - Math.max(28, min * .055));
+  }
   c.restore();
 }
-function drawSphere(c,x,y,r,dark,light,depth=.5){ const g=c.createRadialGradient(x-r*.35,y-r*.45,r*.12,x,y,r); g.addColorStop(0,light); g.addColorStop(1,dark); c.globalAlpha=.72+depth*.28; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fillStyle=g; c.fill(); c.globalAlpha=1; }
+function normalizedDepth(z, focal) {
+  return Math.max(.05, Math.min(.95, (z / (focal * .42) + 1) / 2));
+}
+function drawSphere(c, x, y, r, dark, light, depth = .5) {
+  const g = c.createRadialGradient(x - r*.35, y - r*.45, r*.08, x, y, r);
+  g.addColorStop(0, light);
+  g.addColorStop(.55, mixColor(light, dark, .45));
+  g.addColorStop(1, dark);
+  c.globalAlpha = .66 + depth * .34;
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.fillStyle = g;
+  c.fill();
+  c.globalAlpha = 1;
+  c.lineWidth = Math.max(.75, r * .08);
+  c.strokeStyle = 'rgba(255,255,255,.22)';
+  c.stroke();
+}
+function mixColor(a, b, t) {
+  const pa = hexToRgb(a), pb = hexToRgb(b);
+  if (!pa || !pb) return a;
+  const r = Math.round(pa.r + (pb.r - pa.r) * t);
+  const g = Math.round(pa.g + (pb.g - pa.g) * t);
+  const bl = Math.round(pa.b + (pb.b - pa.b) * t);
+  return `rgb(${r},${g},${bl})`;
+}
+function hexToRgb(hex) {
+  const m = String(hex).replace('#','').match(/^([0-9a-f]{6})$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
 
 init();

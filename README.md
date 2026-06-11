@@ -1,36 +1,24 @@
-# Tabla de nucleidos — versión 12
+# Tabla de nucleidos — versión 18
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript.
 
-## Cambios principales de esta versión
+## Cambios principales
 
-- La tabla principal se renderiza en Canvas 2D para mejorar el rendimiento con miles de nucleidos.
-- El renderizado recorre únicamente las celdas visibles, no toda la colección de datos en cada frame.
-- La vista inicial se ajusta al rango evaluado del CSV oficial.
-- El lienzo queda extendido para permitir una capa teórica/no observada más allá de los datos evaluados.
-- La capa **No observados** arranca deshabilitada.
-- La capa **Números mágicos** arranca deshabilitada.
-- La capa **Frontera nuclear** arranca deshabilitada.
-- Se añade un marco sutil para delimitar el área de nucleidos evaluados.
-- Se mantiene `nuclides.csv` como fuente principal y `nuclides-data.js` como respaldo embebido.
+- Render principal de la tabla en Canvas 2D para mejorar el rendimiento con miles de nucleidos.
+- Vista inicial ajustada al rango evaluado del CSV oficial.
+- Extensión teórica limitada hasta Z=130 y N≈320 para evitar una zona excesivamente vacía.
+- Capas auxiliares desactivadas por defecto: no observados, números mágicos, frontera nuclear, marco evaluado y cuadrícula.
+- Barra superior compacta con búsqueda, datos, modo claro/oscuro, capas y zoom.
+- Panel de capas/filtros rediseñado con mensajes contextuales.
+- Ficha de nucleido con fondo sólido, sin semitransparencia, y pestañas compactas.
+- Valores de ejes N/Z como texto simple en negrita, sin cápsulas.
+- Números mágicos resaltados visualmente cuando se activa su capa.
+- Modelo atómico cambiado a una representación 3D esquemática en Canvas.
+- Añadido favicon propio de la web en SVG, PNG 32x32 y Apple touch icon.
 
 ## Datos
 
 La aplicación carga `nuclides.csv` desde la misma carpeta que `index.html`. Si el navegador bloquea esa lectura local, usa el respaldo embebido en `nuclides-data.js`.
-
-## Capas
-
-En el botón de capas se pueden activar o desactivar:
-
-- Evaluados
-- No observados
-- Isómeros
-- Números mágicos
-- Frontera nuclear
-- Minimapa
-- Modo experto
-
-La capa de no observados es una extensión visual/extrapolada, no un sustituto de datos evaluados.
 
 ## Uso
 
@@ -39,28 +27,14 @@ La capa de no observados es una extensión visual/extrapolada, no un sustituto d
 - Móvil: un dedo mueve, dos dedos hacen zoom.
 - Clic sobre un nucleido: abre la ficha.
 - Clic fuera: cierra la ficha.
-- Doble clic/doble toque sobre un nucleido: centra y acerca.
+- Doble clic/doble toque sobre un nucleido: centra la vista.
+- Clic sobre el modelo atómico 3D: pausa o reanuda la animación.
 
+## Archivos
 
-## Cambios v13
-
-- Extensión teórica limitada hasta Z=130 y N≈320.
-- La vista inicial sigue encuadrando solo el rango evaluado del CSV principal.
-- Las capas de no observados, números mágicos, frontera nuclear y marco evaluado vienen desactivadas por defecto.
-- Los ejes N/Z se dibujan como capa superior para que sus valores no queden tapados por las celdas.
-
-
-## v14
-
-- Corrige los arcos gigantes provocados por radios excesivos en las etiquetas de eje dibujadas en Canvas.
-- Añade la capa Cuadrícula, desactivada por defecto, para dejar la vista inicial limpia.
-- Mantiene números mágicos, frontera nuclear y marco evaluado como capas desactivadas por defecto.
-- Limita la extensión teórica hasta Z=130 y N≈320, con vista inicial encuadrada en los nucleidos evaluados.
-
-
-## Versión 15
-
-- Extensión teórica reducida a Z=130 para evitar un mapa excesivamente vacío.
-- Eje de neutrones reducido a N≈320, suficiente para la extensión superpesada planteada.
-- Los valores de los ejes se muestran como números simples, sin cápsula ni borde redondeado.
-- La vista inicial sigue encuadrando únicamente los nucleidos evaluados del CSV.
+- `index.html`: estructura de la aplicación.
+- `styles.css`: estilos visuales.
+- `app.js`: motor de datos, renderizado y lógica interactiva.
+- `nuclides.csv`: datos principales.
+- `nuclides-data.js`: respaldo embebido.
+- `favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`: iconos del sitio.
