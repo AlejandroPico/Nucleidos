@@ -1,4 +1,4 @@
-# Tabla de nucleidos — versión 19
+# Tabla de nucleidos — versión 20
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript.
 
@@ -9,10 +9,11 @@ Visor interactivo de nucleidos en HTML, CSS y JavaScript.
 - Extensión teórica limitada hasta Z=130 y N≈320 para evitar una zona excesivamente vacía.
 - Capas auxiliares desactivadas por defecto: no observados, números mágicos, frontera nuclear, marco evaluado y cuadrícula.
 - Barra superior compacta con búsqueda, datos, modo claro/oscuro, capas y zoom.
-- Restaurado el set visual anterior de iconos de la barra superior.
+- Sustituidos los iconos superiores por pictogramas SVG de estilo Material/Android más reconocibles.
 - Búsqueda desplegable hacia la izquierda, más ancha y sin quedar recortada.
 - El indicador de zoom queda como texto; al clicar vuelve a ajustar la vista al 100%.
 - Minimapa recolocado para no tapar los valores principales de los ejes.
+- Reposicionado el botón de cierre de la ficha para no tapar el modelo 3D ni la configuración electrónica.
 - Añadido botón discreto de cierre dentro de la ficha del nucleido.
 - Panel de capas/filtros rediseñado con mensajes contextuales.
 - Ficha de nucleido con fondo sólido, sin semitransparencia, y pestañas compactas.
@@ -43,3 +44,9 @@ La aplicación carga `nuclides.csv` desde la misma carpeta que `index.html`. Si 
 - `nuclides.csv`: datos principales.
 - `nuclides-data.js`: respaldo embebido.
 - `favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`: iconos del sitio.
+
+## Cambios v20
+
+- Iconos superiores sustituidos por SVG locales de estilo Material/Android.
+- Panel de Mapa/Filtros/Capas compactado: menos cajas, controles en varias columnas y selectores tipo swatch.
+- Cierre de ficha movido a la esquina superior izquierda con margen interno para evitar solaparse con el modelo atómico 3D.
