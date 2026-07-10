@@ -35,11 +35,9 @@
       <button id="legendButton" class="tool-button" aria-label="Mostrar capas" title="Capas, filtros y mapas">
         <span class="layers-icon" aria-hidden="true"></span>
       </button>
-      <div id="zoomHud" class="zoom-hud" aria-live="polite">
-        <button id="zoomOutButton" aria-label="Alejar">−</button>
+      <button id="zoomHud" class="zoom-hud" type="button" aria-live="polite" aria-label="Ajustar zoom al 100%" title="Ajustar zoom al 100%">
         <span id="zoomValue">100%</span>
-        <button id="zoomInButton" aria-label="Acercar">+</button>
-      </div>
+      </button>
     </div>
 
     <div id="dataPopover" class="data-popover popover" aria-hidden="true">
@@ -124,6 +122,7 @@
     </section>
 
     <article id="nuclideCard" class="nuclide-card" aria-label="Ficha del nucleido" aria-hidden="true">
+      <button id="closeDetailButton" class="card-close" type="button" aria-label="Cerrar ficha" title="Cerrar ficha">×</button>
       <section class="card-info">
         <div class="identity-row">
           <div class="mass-stack"><span id="detailA">40</span><span id="detailZ">20</span></div>
