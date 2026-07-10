@@ -216,37 +216,34 @@
       .legend, .layer-toggles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
-
-    /* === v21: cierre derecha + configuración electrónica en footer === */
+    /* === v21: cierre a derecha, shell abajo e iconos Material limpios === */
     .card-close {
-      top: 14px !important;
-      right: 14px !important;
       left: auto !important;
+      right: 14px !important;
+      top: 14px;
     }
     .identity-row {
       padding-left: 0 !important;
-      padding-right: 42px;
+      padding-right: 44px;
     }
     .atom-toolbar {
       padding-right: 0;
     }
+    .atom-toolbar .shell-text {
+      display: none !important;
+    }
     .atom-footer {
       display: grid;
-      grid-template-columns: auto auto auto;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      gap: 10px;
     }
     .atom-footer .shell-text {
-      justify-self: end;
+      justify-self: center;
+      display: inline-grid;
     }
-    .tool-button .theme-icon .sun-shape,
-    .mobile-menu-action .theme-icon .sun-shape { display: none; }
-    .tool-button .theme-icon .moon-shape,
-    .mobile-menu-action .theme-icon .moon-shape { display: block; }
-    .tool-button .theme-icon.sun-icon .sun-shape,
-    .mobile-menu-action .theme-icon.sun-icon .sun-shape { display: block; }
-    .tool-button .theme-icon.sun-icon .moon-shape,
-    .mobile-menu-action .theme-icon.sun-icon .moon-shape { display: none; }
+    .atom-footer #nucleusText { justify-self: start; }
+    .atom-footer span:last-child { justify-self: end; }
+
     @media (max-width: 780px) {
       .card-close { top: 10px !important; right: 10px !important; left: auto !important; }
       .identity-row { padding-left: 0 !important; padding-right: 38px; }
@@ -373,25 +370,6 @@
         color: var(--ink);
         font-weight: 900;
       }
-      .mobile-zoom-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-top: 10px;
-        font-size: 12px;
-        color: var(--muted);
-        font-weight: 850;
-      }
-      .mobile-zoom-row button {
-        flex: 1;
-        min-height: 34px;
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        background: transparent;
-        color: var(--ink);
-        font-weight: 900;
-      }
       .popover {
         right: 10px !important;
         left: 10px !important;
@@ -467,6 +445,89 @@
       }
     }
 
+    /* === v24: móvil limpio, tabs como selector técnico y lienzo a pantalla completa === */
+    .detail-tabs {
+      background: transparent !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      gap: 6px 10px !important;
+    }
+    .tab-button {
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: var(--muted) !important;
+      opacity: .72;
+      font-weight: 760 !important;
+      padding: 4px 2px !important;
+      text-align: left;
+    }
+    .tab-button:hover {
+      background: transparent !important;
+      color: var(--ink) !important;
+      opacity: .92;
+      transform: none !important;
+    }
+    .tab-button.active {
+      background: transparent !important;
+      box-shadow: none !important;
+      color: var(--ink) !important;
+      opacity: 1;
+      font-weight: 950 !important;
+    }
+    .tab-button.active::before,
+    .tab-button.active::after { display: none !important; content: none !important; }
+    .card-close { z-index: 30 !important; pointer-events: auto; touch-action: manipulation; }
+
+    @media (max-width: 640px) {
+      html, body, #app, .viewport, .chart-canvas {
+        width: 100dvw !important;
+        height: 100dvh !important;
+        min-width: 100dvw !important;
+        min-height: 100dvh !important;
+      }
+      .viewport, .chart-canvas { inset: 0 !important; }
+      .mobile-menu-panel { max-height: calc(100dvh - 68px); }
+      .mobile-menu-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .mobile-menu-action { min-height: 50px; }
+      .nuclide-card {
+        display: flex !important;
+        flex-direction: column;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+      }
+      .card-info {
+        overflow: visible !important;
+        flex: 0 0 auto;
+        min-height: auto;
+      }
+      .atom-panel {
+        flex: 0 0 auto;
+        min-height: 260px;
+      }
+      #atomCanvas { min-height: 190px; }
+      .detail-tabs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px 8px !important;
+      }
+      .tab-button {
+        font-size: 10px !important;
+        min-height: 22px;
+      }
+      .card-close {
+        position: sticky !important;
+        top: 10px !important;
+        margin-left: auto;
+        margin-right: 10px;
+        margin-bottom: -42px;
+        right: 10px !important;
+        left: auto !important;
+        z-index: 40 !important;
+        width: 36px !important;
+        height: 36px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -481,7 +542,7 @@
       </button>
       <div id="searchTool" class="search-tool" aria-label="Buscar nucleido">
         <button id="searchToggleButton" class="tool-button" aria-label="Abrir búsqueda" title="Buscar nucleido">
-          <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 0 1 5.2 10.4l5.45 5.45-1.4 1.4-5.45-5.45A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+          <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 0 1 5.18 10.43l5.44 5.44-1.41 1.41-5.44-5.44A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
         </button>
         <div class="top-search-box" aria-hidden="true">
           <input id="searchInput" type="search" placeholder="Ca-40, 40Ca, Z=20, N=20, decay:alpha..." autocomplete="off" />
@@ -498,7 +559,7 @@
       <button id="legendButton" class="tool-button" aria-label="Mostrar capas" title="Capas, filtros y mapas">
         <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Zm0 2.2L17.6 7 12 9.8 6.4 7 12 4.2ZM2 12l10 5 10-5-2.2-1.1L12 14.8l-7.8-3.9L2 12Zm0 5 10 5 10-5-2.2-1.1L12 19.8l-7.8-3.9L2 17Z"/></svg>
       </button>
-      <div id="zoomHud" class="zoom-hud" aria-live="polite" aria-label="Ajustar zoom al 100%" title="Ajustar zoom al 100%" onclick="event.stopPropagation(); fitToScreen(true);">
+      <div id="zoomHud" class="zoom-hud" aria-live="polite" aria-label="Restablecer zoom" title="100%" onclick="event.stopPropagation(); fitToScreen(true);">
         <button id="zoomOutButton" aria-label="Alejar">−</button>
         <span id="zoomValue">100%</span>
         <button id="zoomInButton" aria-label="Acercar">+</button>
@@ -515,10 +576,6 @@
       <div class="mobile-search-row">
         <input id="mobileSearchInput" type="search" placeholder="Buscar nucleido…" autocomplete="off" />
         <button id="mobileSearchGoButton" type="button">Ir</button>
-      </div>
-      <div class="mobile-zoom-row" aria-label="Zoom móvil">
-        <span>Zoom con pellizco en la tabla</span>
-        <button type="button" onclick="event.stopPropagation(); fitToScreen(true);">Ajustar</button>
       </div>
     </div>
 
@@ -688,18 +745,19 @@
           <div><p class="eyebrow">Modelo visual 3D</p><h2 id="atomTitle">Átomo neutro</h2></div>
         </div>
         <canvas id="atomCanvas" width="900" height="620" aria-label="Simulación atómica 3D" title="Clicar para pausar o reanudar la animación 3D"></canvas>
-        <div class="atom-footer"><span id="nucleusText">20 p⁺ · 20 n⁰</span><span>Modelo 3D esquemático</span><div id="shellText" class="shell-text">2 · 8 · 8 · 2</div></div>
+        <div class="atom-footer"><span id="nucleusText">20 p⁺ · 20 n⁰</span><span id="shellText" class="shell-text">2 · 8 · 8 · 2</span><span>Modelo 3D esquemático</span></div>
       </section>
     </article>
   </main>
 
   <script src="nuclides-data.js"></script>
   <script src="app.js"></script>
-
   <script>
     (() => {
-      const STORAGE_KEY = 'nucleidos-theme-mode';
-      const MODES = ['auto', 'day', 'night'];
+      'use strict';
+
+      const THEME_KEY = 'nucleidos-theme-mode';
+      const MODES = ['auto', 'light', 'dark'];
       const SOLAR_ZENITH = 90.833;
       const DEFAULT_SOLAR_LOCATION = { latitude: 41.3874, longitude: 2.1686 };
       let temporalTimer = null;
@@ -777,43 +835,56 @@
       }
 
       function initTemporalTheme() {
-        const mode = safeMode(localStorage.getItem(STORAGE_KEY));
-        document.documentElement.dataset.themeMode = mode;
+        const mode = safeMode(localStorage.getItem(THEME_KEY) || 'auto');
+        localStorage.setItem(THEME_KEY, mode);
         applyThemeMode(mode);
-        window.clearInterval(temporalTimer);
+        clearInterval(temporalTimer);
         temporalTimer = window.setInterval(() => {
-          if ((document.documentElement.dataset.themeMode || 'auto') === 'auto') applyThemeMode('auto');
-        }, 60000);
+          if (safeMode(localStorage.getItem(THEME_KEY) || 'auto') === 'auto') applyThemeMode('auto', false);
+        }, 60_000);
       }
+
       function cycleThemeMode() {
-        const current = safeMode(document.documentElement.dataset.themeMode || localStorage.getItem(STORAGE_KEY));
+        const current = safeMode(localStorage.getItem(THEME_KEY) || 'auto');
         const next = MODES[(MODES.indexOf(current) + 1) % MODES.length];
-        localStorage.setItem(STORAGE_KEY, next);
-        document.documentElement.dataset.themeMode = next;
+        localStorage.setItem(THEME_KEY, next);
         applyThemeMode(next);
       }
-      function applyThemeMode(mode) {
-        const temporal = getTemporalTheme(new Date());
-        const resolved = mode === 'auto' ? temporal : mode;
-        const dark = resolved === 'night';
-        document.body.classList.toggle('dark', dark);
-        const label = mode === 'auto'
-          ? `Modo automático · ${dark ? 'noche' : 'día'}`
-          : (dark ? 'Modo noche fijo' : 'Modo día fijo');
-        themeButtons().forEach(button => {
-          button.title = label;
-          button.setAttribute('aria-label', `${label}. Pulsar para cambiar entre automático, día y noche.`);
+
+      function applyThemeMode(mode, announce = true) {
+        const resolved = mode === 'auto' ? resolveAutoTheme() : mode;
+        document.body.classList.toggle('dark', resolved === 'dark');
+        document.documentElement.dataset.themeMode = mode;
+        document.documentElement.dataset.themeResolved = resolved;
+        updateThemeButtons(mode, resolved);
+        if (announce) window.dispatchEvent(new CustomEvent('nucleidos-theme-change', { detail: { mode, resolved } }));
+      }
+
+      function updateThemeButtons(mode, resolved) {
+        const iconClass = resolved === 'dark' ? 'moon-icon' : 'sun-icon';
+        themeIcons().forEach(icon => {
+          icon.classList.remove('sun-icon', 'moon-icon', 'auto-icon');
+          icon.classList.add(iconClass);
+          icon.setAttribute('data-mode', mode);
         });
-        const cls = `theme-icon ${dark ? 'moon-icon' : 'sun-icon'}`;
-        themeIcons().forEach(icon => icon.setAttribute('class', cls));
-        if (typeof window.scheduleRender === 'function') window.scheduleRender();
-        if (typeof window.drawAtom === 'function') window.drawAtom(performance.now());
+        const label = resolved === 'dark' ? 'Modo oscuro' : 'Modo claro';
+        const next = mode === 'auto' ? 'cambiar modo' : 'cambiar modo';
+        themeButtons().forEach(button => {
+          button.title = `${label} · ${mode === 'auto' ? 'automático' : 'manual'}`;
+          button.setAttribute('aria-label', `${label}. Pulsar para ${next}.`);
+        });
       }
-      function getTemporalTheme(date) {
-        const solar = getSolarDay(date, DEFAULT_SOLAR_LOCATION);
-        const minute = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
-        return (minute < solar.sunrise - 45 || minute > solar.sunset + 45) ? 'night' : 'day';
+
+      function resolveAutoTheme() {
+        const hour = new Date().getHours();
+        const solar = getSolarDay(new Date(), DEFAULT_SOLAR_LOCATION);
+        if (Number.isFinite(solar.sunrise) && Number.isFinite(solar.sunset)) {
+          const minutes = new Date().getHours() * 60 + new Date().getMinutes();
+          return minutes < solar.sunrise - 25 || minutes > solar.sunset + 35 ? 'dark' : 'light';
+        }
+        return hour < 7 || hour >= 20 ? 'dark' : 'light';
       }
+
       function getSolarDay(date, location) {
         const day = dayOfYear(date);
         const gamma = (2 * Math.PI / 365) * (day - 1);
@@ -824,15 +895,12 @@
         const hourAngle = Math.acos(clamp((Math.cos(zenith) / (Math.cos(latitude) * Math.cos(declination))) - Math.tan(latitude) * Math.tan(declination), -1, 1));
         const hourAngleDegrees = toDegrees(hourAngle);
         const timezoneOffsetHours = -date.getTimezoneOffset() / 60;
-        const sunrise = 720 - (4 * (location.longitude + hourAngleDegrees)) - equationOfTime + (timezoneOffsetHours * 60);
-        const sunset = 720 - (4 * (location.longitude - hourAngleDegrees)) - equationOfTime + (timezoneOffsetHours * 60);
-        return { sunrise: clamp(sunrise, 0, 1440), sunset: clamp(sunset, 0, 1440) };
+        return {
+          sunrise: clamp(720 - (4 * (location.longitude + hourAngleDegrees)) - equationOfTime + (timezoneOffsetHours * 60), 0, 1440),
+          sunset: clamp(720 - (4 * (location.longitude - hourAngleDegrees)) - equationOfTime + (timezoneOffsetHours * 60), 0, 1440)
+        };
       }
-      function dayOfYear(date) {
-        const start = new Date(date.getFullYear(), 0, 0);
-        const diff = date - start + ((start.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000);
-        return Math.floor(diff / 86400000);
-      }
+      function dayOfYear(date) { const start = new Date(date.getFullYear(), 0, 0); return Math.floor((date - start + ((start.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000)) / 86400000); }
       function toRadians(value) { return value * Math.PI / 180; }
       function toDegrees(value) { return value * 180 / Math.PI; }
       function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
