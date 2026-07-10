@@ -216,6 +216,33 @@
       .legend, .layer-toggles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
+
+    /* === v21: cierre arriba-derecha, icono database Material y capas compactas estables === */
+    .card-close {
+      top: 14px !important;
+      right: 14px !important;
+      left: auto !important;
+      width: 32px;
+      height: 32px;
+      border-radius: 11px;
+      font-size: 20px;
+    }
+    .identity-row { padding-left: 0 !important; padding-right: 44px; }
+    .atom-toolbar { padding-right: 48px; }
+    .atom-footer { align-items: center; }
+    .atom-footer .shell-text {
+      margin-left: auto;
+      padding: 6px 10px;
+      font-size: 11px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    @media (max-width: 780px) {
+      .card-close { top: 10px !important; right: 10px !important; left: auto !important; }
+      .identity-row { padding-left: 0 !important; padding-right: 38px; }
+      .atom-toolbar { padding-right: 42px; }
+    }
+
   </style>
 </head>
 <body>
@@ -227,7 +254,7 @@
     <div class="top-tools" aria-label="Herramientas de vista">
       <div id="searchTool" class="search-tool" aria-label="Buscar nucleido">
         <button id="searchToggleButton" class="tool-button" aria-label="Abrir búsqueda" title="Buscar nucleido">
-          <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 0 1 5.18 10.43l5.44 5.44-1.41 1.41-5.44-5.44A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+          <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 0 1 5.2 10.4l5.45 5.45-1.4 1.4-5.45-5.45A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
         </button>
         <div class="top-search-box" aria-hidden="true">
           <input id="searchInput" type="search" placeholder="Ca-40, 40Ca, Z=20, N=20, decay:alpha..." autocomplete="off" />
@@ -236,7 +263,7 @@
       </div>
 
       <button id="dataButton" class="tool-button" aria-label="Abrir datos" title="Datos">
-        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20 6H4V4h16v2Zm0 2H4v5h16V8ZM4 20h16v-5H4v5Zm3-9.5h2v-1H7v1Zm0 7h2v-1H7v1Z"/></svg>
+        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4Zm0 2c3.87 0 6 1.3 6 2s-2.13 2-6 2-6-1.3-6-2 2.13-2 6-2Zm0 14c-3.87 0-6-1.3-6-2v-2.08C7.45 15.62 9.6 16 12 16s4.55-.38 6-1.08V17c0 .7-2.13 2-6 2Zm0-5c-3.87 0-6-1.3-6-2V9.92C7.45 10.62 9.6 11 12 11s4.55-.38 6-1.08V12c0 .7-2.13 2-6 2Z"/></svg>
       </button>
       <button id="darkModeButton" class="tool-button" aria-label="Cambiar a modo oscuro" title="Modo oscuro">
         <svg id="themeIcon" class="theme-icon moon-icon" aria-hidden="true" viewBox="0 0 24 24"><path class="moon-shape" d="M21 14.4A8.6 8.6 0 0 1 9.6 3a7.6 7.6 0 1 0 11.4 11.4Z"/><path class="sun-shape" d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0-5h1v3h-2V2h1Zm0 17h1v3h-2v-3h1ZM4.22 3.51 6.34 5.63 4.93 7.05 2.81 4.93l1.41-1.42Zm14.85 14.85 2.12 2.12-1.41 1.41-2.12-2.12 1.41-1.41ZM2 11h3v2H2v-2Zm17 0h3v2h-3v-2ZM4.93 19.07l1.41 1.41-2.12 2.12-1.41-1.41 2.12-2.12ZM19.78 3.51l1.41 1.42-2.12 2.12-1.41-1.42 2.12-2.12Z"/></svg>
@@ -415,10 +442,9 @@
       <section class="atom-panel">
         <div class="atom-toolbar">
           <div><p class="eyebrow">Modelo visual 3D</p><h2 id="atomTitle">Átomo neutro</h2></div>
-          <div id="shellText" class="shell-text">2 · 8 · 8 · 2</div>
         </div>
         <canvas id="atomCanvas" width="900" height="620" aria-label="Simulación atómica 3D" title="Clicar para pausar o reanudar la animación 3D"></canvas>
-        <div class="atom-footer"><span id="nucleusText">20 p⁺ · 20 n⁰</span><span>Modelo 3D esquemático</span></div>
+        <div class="atom-footer"><span id="nucleusText">20 p⁺ · 20 n⁰</span><span>Modelo 3D esquemático</span><div id="shellText" class="shell-text">2 · 8 · 8 · 2</div></div>
       </section>
     </article>
   </main>
