@@ -37,6 +37,185 @@
     .card-close:hover { color: var(--ink); background: rgba(93,90,246,.10); }
     @media (max-width: 780px) { .top-search-box { position: fixed; left: 10px; right: 10px; top: 56px; width: auto; transform: translateY(-8px) scale(.985); } .search-tool.open .top-search-box { transform: translateY(0) scale(1); } .zoom-hud { height: 38px; min-width: 60px; padding: 0 10px; } #zoomValue { display: block; font-size: 11px; } .minimap-panel { right: 10px; top: 58px; width: 180px; height: 108px; } .card-close { top: 10px; right: 10px; width: 32px; height: 32px; } }
     @media (max-width: 480px) { .minimap-panel { display: none; } }
+  
+
+    /* === v20: iconos Material, panel de capas compacto y cierre reposicionado === */
+    .tool-button .material-icon,
+    .tool-button .theme-icon {
+      width: 23px;
+      height: 23px;
+      display: block;
+      color: var(--ink);
+      fill: currentColor;
+      flex: 0 0 auto;
+    }
+    .tool-button .theme-icon .sun-shape { display: none; }
+    .tool-button .theme-icon .moon-shape { display: block; }
+    .tool-button .theme-icon.sun-icon .sun-shape { display: block; }
+    .tool-button .theme-icon.sun-icon .moon-shape { display: none; }
+    .tool-button .search-icon::before,
+    .tool-button .search-icon::after,
+    .tool-button .database-icon::before,
+    .tool-button .database-icon::after,
+    .tool-button .layers-icon::before,
+    .tool-button .layers-icon::after,
+    .tool-button .moon-icon::before,
+    .tool-button .moon-icon::after,
+    .tool-button .sun-icon::before { display: none !important; content: none !important; }
+
+    .legend-popover {
+      width: min(380px, calc(100vw - 36px));
+      max-height: min(70vh, 620px);
+      overflow: hidden;
+      padding: 12px;
+      border-radius: 22px;
+    }
+    .legend-popover .popover-section + .popover-section {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+    .legend-popover .popover-section h2 {
+      margin: 0 0 7px;
+      font-size: 10px;
+      letter-spacing: .14em;
+    }
+    .legend-modes {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 5px;
+    }
+    .legend-mode-btn {
+      min-height: 0;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      padding: 6px 5px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-align: center;
+      line-height: 1.08;
+      cursor: pointer;
+    }
+    .legend-mode-btn small { display: none; }
+    .legend-mode-btn::before { display: none; }
+    .legend-mode-btn:hover,
+    .legend-mode-btn.active {
+      background: rgba(93,90,246,.09);
+      color: var(--ink);
+    }
+    .legend-mode-btn.active { box-shadow: inset 0 -2px 0 var(--accent); }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px 7px;
+    }
+    .legend-item {
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      padding: 3px 2px;
+      display: grid;
+      grid-template-columns: 15px minmax(0, 1fr);
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 850;
+      color: var(--ink);
+      min-height: 22px;
+      text-align: left;
+    }
+    .legend-item:hover { background: rgba(93,90,246,.07); transform: none; }
+    .legend-item.muted { opacity: .42; }
+    .legend-item .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,0,0,.18);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.36);
+    }
+    .legend-item:not(.muted) .legend-swatch {
+      outline: 2px solid rgba(93,90,246,.38);
+      outline-offset: 1px;
+    }
+    .legend-item span:last-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .layer-toggles {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px 7px;
+    }
+    .layer-toggle {
+      position: relative;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      padding: 4px 2px 4px 20px;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 850;
+      text-align: left;
+      min-height: 22px;
+      line-height: 1.08;
+    }
+    .layer-toggle::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: 50%;
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      transform: translateY(-50%);
+      border: 1px solid rgba(0,0,0,.18);
+      background: rgba(0,0,0,.08);
+    }
+    .layer-toggle::after { display: none; }
+    .layer-toggle:hover { background: rgba(93,90,246,.07); transform: none; }
+    .layer-toggle.active { background: transparent; color: var(--ink); }
+    .layer-toggle.active::before {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-color: rgba(93,90,246,.45);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.35), 0 0 0 2px rgba(93,90,246,.18);
+    }
+    body.dark .legend-mode-btn:hover,
+    body.dark .legend-mode-btn.active,
+    body.dark .legend-item:hover,
+    body.dark .layer-toggle:hover { background: rgba(255,255,255,.055); }
+    body.dark .layer-toggle::before,
+    body.dark .legend-swatch { border-color: rgba(255,255,255,.22); }
+
+    .card-close {
+      top: 14px;
+      left: 14px;
+      right: auto;
+      width: 32px;
+      height: 32px;
+      border-radius: 11px;
+      font-size: 20px;
+    }
+    .identity-row { padding-left: 44px; }
+    @media (max-width: 780px) {
+      .legend-popover { width: calc(100vw - 20px); right: 10px; max-height: 72vh; overflow: auto; }
+      .legend-modes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .legend, .layer-toggles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .card-close { left: 10px; right: auto; top: 10px; }
+      .identity-row { padding-left: 40px; }
+    }
+    @media (max-width: 520px) {
+      .legend-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .legend, .layer-toggles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
   </style>
 </head>
 <body>
@@ -48,7 +227,7 @@
     <div class="top-tools" aria-label="Herramientas de vista">
       <div id="searchTool" class="search-tool" aria-label="Buscar nucleido">
         <button id="searchToggleButton" class="tool-button" aria-label="Abrir búsqueda" title="Buscar nucleido">
-          <span class="search-icon" aria-hidden="true"></span>
+          <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 0 1 5.18 10.43l5.44 5.44-1.41 1.41-5.44-5.44A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
         </button>
         <div class="top-search-box" aria-hidden="true">
           <input id="searchInput" type="search" placeholder="Ca-40, 40Ca, Z=20, N=20, decay:alpha..." autocomplete="off" />
@@ -57,13 +236,13 @@
       </div>
 
       <button id="dataButton" class="tool-button" aria-label="Abrir datos" title="Datos">
-        <span class="database-icon" aria-hidden="true"></span>
+        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20 6H4V4h16v2Zm0 2H4v5h16V8ZM4 20h16v-5H4v5Zm3-9.5h2v-1H7v1Zm0 7h2v-1H7v1Z"/></svg>
       </button>
       <button id="darkModeButton" class="tool-button" aria-label="Cambiar a modo oscuro" title="Modo oscuro">
-        <span id="themeIcon" class="theme-icon moon-icon" aria-hidden="true"></span>
+        <svg id="themeIcon" class="theme-icon moon-icon" aria-hidden="true" viewBox="0 0 24 24"><path class="moon-shape" d="M21 14.4A8.6 8.6 0 0 1 9.6 3a7.6 7.6 0 1 0 11.4 11.4Z"/><path class="sun-shape" d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0-5h1v3h-2V2h1Zm0 17h1v3h-2v-3h1ZM4.22 3.51 6.34 5.63 4.93 7.05 2.81 4.93l1.41-1.42Zm14.85 14.85 2.12 2.12-1.41 1.41-2.12-2.12 1.41-1.41ZM2 11h3v2H2v-2Zm17 0h3v2h-3v-2ZM4.93 19.07l1.41 1.41-2.12 2.12-1.41-1.41 2.12-2.12ZM19.78 3.51l1.41 1.42-2.12 2.12-1.41-1.42 2.12-2.12Z"/></svg>
       </button>
       <button id="legendButton" class="tool-button" aria-label="Mostrar capas" title="Capas, filtros y mapas">
-        <span class="layers-icon" aria-hidden="true"></span>
+        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Zm0 2.2L17.6 7 12 9.8 6.4 7 12 4.2ZM2 12l10 5 10-5-2.2-1.1L12 14.8l-7.8-3.9L2 12Zm0 5 10 5 10-5-2.2-1.1L12 19.8l-7.8-3.9L2 17Z"/></svg>
       </button>
       <div id="zoomHud" class="zoom-hud" aria-live="polite" aria-label="Ajustar zoom al 100%" title="Ajustar zoom al 100%" onclick="event.stopPropagation(); fitToScreen(true);">
         <button id="zoomOutButton" aria-label="Alejar">−</button>
