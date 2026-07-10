@@ -1,4 +1,4 @@
-# Tabla de nucleidos — versión 18
+# Tabla de nucleidos — versión 19
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript.
 
@@ -9,6 +9,11 @@ Visor interactivo de nucleidos en HTML, CSS y JavaScript.
 - Extensión teórica limitada hasta Z=130 y N≈320 para evitar una zona excesivamente vacía.
 - Capas auxiliares desactivadas por defecto: no observados, números mágicos, frontera nuclear, marco evaluado y cuadrícula.
 - Barra superior compacta con búsqueda, datos, modo claro/oscuro, capas y zoom.
+- Restaurado el set visual anterior de iconos de la barra superior.
+- Búsqueda desplegable hacia la izquierda, más ancha y sin quedar recortada.
+- El indicador de zoom queda como texto; al clicar vuelve a ajustar la vista al 100%.
+- Minimapa recolocado para no tapar los valores principales de los ejes.
+- Añadido botón discreto de cierre dentro de la ficha del nucleido.
 - Panel de capas/filtros rediseñado con mensajes contextuales.
 - Ficha de nucleido con fondo sólido, sin semitransparencia, y pestañas compactas.
 - Valores de ejes N/Z como texto simple en negrita, sin cápsulas.
@@ -26,7 +31,7 @@ La aplicación carga `nuclides.csv` desde la misma carpeta que `index.html`. Si 
 - Arrastrar: mover la tabla.
 - Móvil: un dedo mueve, dos dedos hacen zoom.
 - Clic sobre un nucleido: abre la ficha.
-- Clic fuera: cierra la ficha.
+- Clic fuera o botón ×: cierra la ficha.
 - Doble clic/doble toque sobre un nucleido: centra la vista.
 - Clic sobre el modelo atómico 3D: pausa o reanuda la animación.
 
