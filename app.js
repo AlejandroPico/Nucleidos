@@ -121,7 +121,8 @@ const ctx = canvas.getContext('2d');
 const minimapCanvas = document.getElementById('minimapCanvas');
 const miniCtx = minimapCanvas.getContext('2d');
 const zoomValue = document.getElementById('zoomValue');
-const zoomHud = document.getElementById('zoomHud');
+const zoomInButton = document.getElementById('zoomInButton');
+const zoomOutButton = document.getElementById('zoomOutButton');
 const legendButton = document.getElementById('legendButton');
 const legendPopover = document.getElementById('legendPopover');
 const legendModes = document.getElementById('legendModes');
@@ -136,10 +137,8 @@ const searchInput = document.getElementById('searchInput');
 const searchButton = document.getElementById('searchButton');
 const darkModeButton = document.getElementById('darkModeButton');
 const themeIcon = document.getElementById('themeIcon');
-const mobileThemeIcon = document.getElementById('mobileThemeIcon');
 const cursorHud = document.getElementById('cursorHud');
 const card = document.getElementById('nuclideCard');
-const closeDetailButton = document.getElementById('closeDetailButton');
 const atomCanvas = document.getElementById('atomCanvas');
 const atomCtx = atomCanvas.getContext('2d');
 const csvInput = document.getElementById('csvInput');
@@ -149,29 +148,13 @@ const minimapPanel = document.getElementById('minimapPanel');
 const compareTray = document.getElementById('compareTray');
 const compareTable = document.getElementById('compareTable');
 
-let detailHistoryPushed = false;
-
-function mobileViewportSize() {
-  const vv = window.visualViewport;
-  return {
-    width: Math.max(1, Math.round(vv?.width || window.innerWidth || document.documentElement.clientWidth || 1)),
-    height: Math.max(1, Math.round(vv?.height || window.innerHeight || document.documentElement.clientHeight || 1))
-  };
-}
-function isMobileViewport() {
-  const { width, height } = mobileViewportSize();
-  return Math.min(width, height) <= 640 || Boolean(window.matchMedia?.('(max-width: 640px)').matches);
-}
-
 async function init() {
   updateChartMetrics();
   resizeCanvases();
   state.official = await loadInitialNuclides();
   rebuildDerivedData();
   bindEvents();
-  initTemporalTheme();
   bindTooltips();
-  installMobileDetailStyles();
   renderLegend();
   fitToScreen(true);
   requestAnimationFrame(drawAtomLoop);
@@ -195,15 +178,6 @@ async function loadInitialNuclides() {
   }
   dataStatus.textContent = 'No se pudo leer nuclides.csv. Usando malla interna mínima.';
   return generateFallbackNuclides();
-}
-
-function generateFallbackNuclides() {
-  const samples = [
-    [1,0,'H','Estable','stable'], [1,1,'H','Estable','stable'], [1,2,'H','12,32 a','beta-'], [2,2,'He','Estable','stable'], [6,6,'C','Estable','stable'], [6,8,'C','5730 a','beta-'], [8,8,'O','Estable','stable'], [20,20,'Ca','Estable','stable'], [26,30,'Fe','Estable','stable'], [53,78,'I','8 d','beta-'], [82,126,'Pb','Estable','stable'], [92,143,'U','7,04e8 a','alpha']
-  ];
-  return samples.map(([z,n,symbol,half_life,decay]) => ({
-    uid: `fallback-${z}-${n}`, z, n, a:z+n, symbol, element: elementInfo(z)[1], stateId:'gs', dataClass:'evaluated', decay, half_life, abundance:'—', atomic_mass:'—', spin:'—', q_value:'—', mass_excess:'—', binding:'—', sn:'—', sp:'—', notes:'Muestra integrada.', applications:'—', raw:{}
-  }));
 }
 
 function rebuildDerivedData() {
@@ -397,11 +371,8 @@ function toggleButtonState(id, active) { document.getElementById(id)?.classList.
 
 function resizeCanvases() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const { width, height } = mobileViewportSize();
-  canvas.width = Math.floor(width * dpr);
-  canvas.height = Math.floor(height * dpr);
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
+  canvas.width = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const mrect = minimapCanvas.getBoundingClientRect();
   minimapCanvas.width = Math.max(10, Math.floor(mrect.width * dpr));
@@ -416,7 +387,7 @@ function scheduleRender() {
 }
 
 function drawScene() {
-  const { width: w, height: h } = mobileViewportSize();
+  const w = window.innerWidth, h = window.innerHeight;
   ctx.clearRect(0, 0, w, h);
   if (state.layers.grid) drawWorldGrid(w, h);
   if (state.layers.evaluatedFrame) drawEvaluatedFrame();
@@ -457,63 +428,6 @@ function drawWorldGrid(w, h) {
   for (let r = startZrow; r <= endZrow; r++) { const y = sy(AXIS + r * stepY + stepY/2); ctx.moveTo(0, y); ctx.lineTo(w, y); }
   ctx.stroke();
   ctx.restore();
-}
-
-function categoryForMode(n) {
-  if (state.colorMode === 'decay') return n.decay || 'unknown';
-  if (state.colorMode === 'stability') return n.decay === 'stable' ? 'stable' : (n.decay ? 'radioactive' : 'unknown');
-  if (state.colorMode === 'halflife') return halfLifeBucket(n);
-  if (state.colorMode === 'quality') return n.dataClass || 'unknown';
-  if (state.colorMode === 'abundance') return abundanceBucket(n);
-  if (state.colorMode === 'binding') return bindingBucket(n);
-  if (state.colorMode === 'qalpha') return signedBucket(n.qalpha);
-  if (state.colorMode === 'qbeta') return signedBucket(n.qbeta);
-  return 'unknown';
-}
-function colorForNuclide(n) {
-  const category = categoryForMode(n);
-  if (state.colorMode === 'decay') return PALETTES.decay[category] || PALETTES.decay.unknown;
-  if (state.colorMode === 'stability') return PALETTES.stability[category] || PALETTES.stability.unknown;
-  if (state.colorMode === 'halflife') return PALETTES.halflife[category] || PALETTES.halflife.unknown;
-  if (state.colorMode === 'quality') return PALETTES.quality[category] || PALETTES.quality.unknown;
-  if (state.colorMode === 'abundance') return PALETTES.abundance[category] || PALETTES.abundance.none;
-  if (state.colorMode === 'binding') return PALETTES.binding[category] || PALETTES.binding.unknown;
-  if (state.colorMode === 'qalpha' || state.colorMode === 'qbeta') return PALETTES.signed[category] || PALETTES.signed.unknown;
-  return PALETTES.decay.unknown;
-}
-function isRenderable(n) {
-  if (n.dataClass === 'theoretical' && !state.layers.theoretical) return false;
-  if (n.dataClass === 'evaluated' && !state.layers.evaluated) return false;
-  if (n.dataClass === 'isomer' && !state.layers.isomer) return false;
-  const category = categoryForMode(n);
-  return (state.filters[state.colorMode] || new Set()).has(category);
-}
-function halfLifeBucket(n) {
-  if (n.decay === 'stable' || /stable/i.test(n.half_life || '')) return 'stable';
-  const sec = numeric(n.half_life_seconds);
-  if (!Number.isFinite(sec)) return 'unknown';
-  if (sec > 31557600 * 100) return 'long';
-  if (sec > 3600) return 'medium';
-  return 'short';
-}
-function abundanceBucket(n) {
-  const v = numeric(n.abundance);
-  if (!Number.isFinite(v) || v <= 0) return 'none';
-  if (v < 0.01) return 'trace';
-  return 'natural';
-}
-function bindingBucket(n) {
-  const v = numeric(n.binding);
-  if (!Number.isFinite(v)) return 'unknown';
-  if (v >= 8000) return 'high';
-  if (v >= 6000) return 'medium';
-  return 'low';
-}
-function signedBucket(v) {
-  const n = numeric(v);
-  if (!Number.isFinite(n)) return 'unknown';
-  if (Math.abs(n) < 1e-6) return 'zero';
-  return n > 0 ? 'positive' : 'negative';
 }
 
 function drawEvaluatedFrame() {
@@ -586,7 +500,8 @@ function drawFrontierCurve(side) {
 
 function drawAxes() {
   const visible = visibleWorldRect();
-  const { width: screenW, height: screenH } = mobileViewportSize();
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
   ctx.save();
   ctx.font = '900 12px system-ui, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -629,37 +544,109 @@ function drawNuclideCell(n, rect) {
   roundedRect(ctx, x, y, w, h, Math.max(4, 11 * state.scale));
   ctx.fillStyle = colorForNuclide(n);
   ctx.fill();
-  ctx.lineWidth = state.selected && state.selected.uid === n.uid ? Math.max(2.2, 2.2 * state.scale) : Math.max(.7, .9 * state.scale);
-  ctx.strokeStyle = state.selected && state.selected.uid === n.uid ? 'rgba(25,24,22,.78)' : 'rgba(0,0,0,.13)';
-  if (n.dataClass === 'theoretical') ctx.setLineDash([Math.max(4, 6 * state.scale), Math.max(3, 5 * state.scale)]);
+  ctx.lineWidth = Math.max(0.75, state.scale);
+  ctx.strokeStyle = n.uid === state.selected?.uid ? 'rgba(93,90,246,.90)' : (n.dataClass === 'theoretical' ? 'rgba(40,40,40,.18)' : 'rgba(0,0,0,.10)');
+  if (n.dataClass === 'theoretical') ctx.setLineDash([Math.max(2, 5*state.scale), Math.max(2, 4*state.scale)]);
   ctx.stroke();
   ctx.setLineDash([]);
-  if (n.dataClass === 'isomer') {
-    ctx.fillStyle = 'rgba(93,90,246,.72)';
-    ctx.beginPath(); ctx.arc(x + w - 8*state.scale, y + 8*state.scale, Math.max(2, 3.7*state.scale), 0, Math.PI*2); ctx.fill();
+  if (n.uid === state.selected?.uid) {
+    ctx.lineWidth = Math.max(2, 3 * state.scale);
+    ctx.strokeStyle = 'rgba(93,90,246,.72)';
+    ctx.stroke();
   }
-  const drawText = w > 18 && h > 16;
-  if (drawText) {
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#121212';
+
+  ctx.fillStyle = 'rgba(16,16,16,.88)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (w > 16 && h > 14) {
+    ctx.font = `${Math.max(8, Math.min(23, 21 * state.scale))}px system-ui, sans-serif`;
     ctx.font = `900 ${Math.max(8, Math.min(23, 21 * state.scale))}px system-ui, sans-serif`;
-    ctx.fillText(n.symbol, x + w/2, y + h/2 - Math.min(5, h*.08));
-    if (w > 46 && h > 42) {
-      ctx.font = `800 ${Math.max(7, Math.min(10, 9 * state.scale))}px system-ui, sans-serif`;
-      ctx.fillStyle = 'rgba(18,18,18,.72)';
-      ctx.textAlign='left'; ctx.fillText(String(n.a), x + w*.15, y + h*.20);
-      ctx.textAlign='right'; ctx.fillText(`N${n.n}`, x + w*.85, y + h*.20);
-      ctx.textAlign='left'; ctx.fillText(`Z${n.z}`, x + w*.15, y + h*.83);
-      ctx.textAlign='right'; ctx.fillText(DECAY_LABELS[n.decay] || n.decay, x + w*.85, y + h*.83);
-    }
+    ctx.fillText(n.symbol, x + w/2, y + h/2 + (w > 44 ? 1 : 0));
+  }
+  if (w > 50 && h > 45) {
+    ctx.font = `800 ${Math.max(7, Math.min(10, 9 * state.scale))}px system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(26,26,26,.54)';
+    ctx.textBaseline = 'top';
+    ctx.fillText(String(n.a), x + w/2 - w*0.28, y + 5 * state.scale);
+    ctx.fillText(`N${n.n}`, x + w/2 + w*0.26, y + 5 * state.scale);
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`Z${n.z}`, x + w/2 - w*0.27, y + h - 5 * state.scale);
+    ctx.fillText(DECAY_LABELS[n.decay] || n.decay, x + w/2 + w*0.26, y + h - 5 * state.scale);
+  }
+  const sameCell = state.byCell.get(`${n.z}-${n.n}`) || [];
+  if (sameCell.some(x => x.dataClass === 'isomer') && w > 22) {
+    ctx.fillStyle = '#5d5af6';
+    ctx.beginPath(); ctx.arc(x + w - 8*state.scale, y + 8*state.scale, Math.max(2.4, 4*state.scale), 0, Math.PI*2); ctx.fill();
   }
   ctx.restore();
 }
 
+function visibleWorldRect() {
+  return { x1: (0 - state.tx) / state.scale, y1: (0 - state.ty) / state.scale, x2: (window.innerWidth - state.tx) / state.scale, y2: (window.innerHeight - state.ty) / state.scale };
+}
+function sx(x) { return state.tx + x * state.scale; }
+function sy(y) { return state.ty + y * state.scale; }
+function wx(x) { return (x - state.tx) / state.scale; }
+function wy(y) { return (y - state.ty) / state.scale; }
+function cellRect(Z, N) { return { x: AXIS + N * TILE_STEP_X + (TILE_STEP_X - CELL_W)/2, y: AXIS + (Z_MAX - Z) * TILE_STEP_Y + (TILE_STEP_Y - CELL_H)/2, w: CELL_W, h: CELL_H }; }
+function roundedRect(c, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(Number(r) || 0, Math.abs(w) / 2, Math.abs(h) / 2));
+  c.beginPath();
+  c.moveTo(x + rr, y);
+  c.arcTo(x + w, y, x + w, y + h, rr);
+  c.arcTo(x + w, y + h, x, y + h, rr);
+  c.arcTo(x, y + h, x, y, rr);
+  c.arcTo(x, y, x + w, y, rr);
+  c.closePath();
+}
+
+function isRenderable(n) {
+  if (n.dataClass === 'theoretical' && !state.layers.theoretical) return false;
+  if (n.dataClass === 'isomer' && !state.layers.isomer) return false;
+  if (n.dataClass === 'evaluated' && !state.layers.evaluated) return false;
+  return true;
+}
+function categoryForMode(n, mode = state.colorMode) {
+  if (mode === 'stability') return stabilityCategory(n);
+  if (mode === 'halflife') return halflifeCategory(n);
+  if (mode === 'quality') return n.dataClass || 'unknown';
+  if (mode === 'abundance') return abundanceCategory(n);
+  if (mode === 'binding') return bindingCategory(n);
+  if (mode === 'qalpha') return signedCategory(n.qa);
+  if (mode === 'qbeta') return signedCategory(n.qbm);
+  return n.decay || 'unknown';
+}
+function colorForNuclide(n) {
+  const mode = state.colorMode;
+  if (mode === 'stability') return PALETTES.stability[stabilityCategory(n)] || PALETTES.stability.unknown;
+  if (mode === 'halflife') return PALETTES.halflife[halflifeCategory(n)] || PALETTES.halflife.unknown;
+  if (mode === 'quality') return PALETTES.quality[n.dataClass] || PALETTES.quality.unknown;
+  if (mode === 'abundance') return PALETTES.abundance[abundanceCategory(n)] || PALETTES.abundance.none;
+  if (mode === 'binding') return PALETTES.binding[bindingCategory(n)] || PALETTES.binding.unknown;
+  if (mode === 'qalpha') return PALETTES.signed[signedCategory(n.qa)] || PALETTES.signed.unknown;
+  if (mode === 'qbeta') return PALETTES.signed[signedCategory(n.qbm)] || PALETTES.signed.unknown;
+  return PALETTES.decay[n.decay] || PALETTES.decay.unknown;
+}
+function stabilityCategory(n) { if (!n || n.decay === 'unknown') return 'unknown'; return n.decay === 'stable' ? 'stable' : 'radioactive'; }
+function halflifeCategory(n) {
+  if (!n || n.dataClass === 'theoretical') return 'unknown';
+  const sec = toNumber(n.half_life_sec);
+  const h = String(n.half_life || '').toLowerCase();
+  if (n.decay === 'stable' || h.includes('estable') || h.includes('stable')) return 'stable';
+  if (Number.isFinite(sec)) { if (sec > 31557600) return 'long'; if (sec > 3600) return 'medium'; return 'short'; }
+  if (h.includes('año') || h.includes('y') || h.includes('10')) return 'long';
+  if (h.includes('d') || h.includes('h')) return 'medium';
+  if (h.includes('s') || h.includes('ms') || h.includes('ns')) return 'short';
+  return 'unknown';
+}
+function abundanceCategory(n) { const ab = numeric(n.abundance); if (!Number.isFinite(ab) || ab <= 0) return 'none'; if (ab < 0.01) return 'trace'; return 'natural'; }
+function bindingCategory(n) { const b = numeric(n.binding); if (!Number.isFinite(b)) return 'unknown'; if (b >= 8200) return 'high'; if (b >= 7000) return 'medium'; return 'low'; }
+function signedCategory(v) { const n = numeric(v); if (!Number.isFinite(n)) return 'unknown'; if (Math.abs(n) < 1e-9) return 'zero'; return n > 0 ? 'positive' : 'negative'; }
+
 function drawMinimap() {
-  if (!state.layers.minimap || minimapPanel.classList.contains('hidden')) return;
-  const w = minimapCanvas.clientWidth, h = minimapCanvas.clientHeight;
-  if (!w || !h) return;
+  if (!state.layers.minimap) return;
+  const rect = minimapCanvas.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
   miniCtx.clearRect(0, 0, w, h);
   miniCtx.fillStyle = document.body.classList.contains('dark') ? 'rgba(24,27,36,.72)' : 'rgba(255,255,255,.62)';
   miniCtx.fillRect(0, 0, w, h);
@@ -678,26 +665,19 @@ function drawMinimap() {
 }
 
 function fitToScreen(force = false) {
-  const mobile = isMobileViewport();
-  const { width: viewW, height: viewH } = mobileViewportSize();
-  const pad = mobile ? 0 : 64;
-  const fullSx = Math.max(1, viewW - pad*2) / CHART_W;
-  const fullSy = Math.max(1, viewH - pad*2) / CHART_H;
+  const pad = 64;
+  const fullSx = (window.innerWidth - pad*2) / CHART_W;
+  const fullSy = (window.innerHeight - pad*2) / CHART_H;
   state.fullFitScale = Math.min(fullSx, fullSy);
 
-  const r = worldRectForBounds(state.evaluatedBounds || { minZ: 1, maxZ: 118, minN: 0, maxN: 178 }, mobile ? 0 : 28);
+  const r = worldRectForBounds(state.evaluatedBounds || { minZ: 1, maxZ: 118, minN: 0, maxN: 178 }, 28);
   const rw = Math.max(1, r.x2 - r.x1), rh = Math.max(1, r.y2 - r.y1);
-  const evalSx = Math.max(1, viewW - pad*2) / rw;
-  const evalSy = Math.max(1, viewH - pad*2) / rh;
-  state.fitScale = mobile ? Math.max(evalSx, evalSy) : Math.min(evalSx, evalSy);
+  const evalSx = (window.innerWidth - pad*2) / rw;
+  const evalSy = (window.innerHeight - pad*2) / rh;
+  state.fitScale = Math.min(evalSx, evalSy);
   if (force || state.scale < state.fullFitScale) state.scale = state.fitScale;
-  if (mobile) {
-    state.tx = -r.x1 * state.scale;
-    state.ty = -r.y1 * state.scale;
-  } else {
-    state.tx = (viewW - rw * state.scale) / 2 - r.x1 * state.scale;
-    state.ty = (viewH - rh * state.scale) / 2 - r.y1 * state.scale;
-  }
+  state.tx = (window.innerWidth - rw * state.scale) / 2 - r.x1 * state.scale;
+  state.ty = (window.innerHeight - rh * state.scale) / 2 - r.y1 * state.scale;
   updateView();
 }
 
@@ -716,9 +696,9 @@ function worldRectForBounds(b, margin = 0) {
 
 function updateView() { clampTransform(); zoomValue.textContent = `${Math.round(state.scale / state.fitScale * 100)}%`; scheduleRender(); }
 function clampTransform() {
-  const { width: viewW, height: viewH } = mobileViewportSize();
+  const viewW = window.innerWidth, viewH = window.innerHeight;
   const scaledW = CHART_W * state.scale, scaledH = CHART_H * state.scale;
-  const margin = isMobileViewport() ? 0 : 80;
+  const margin = 80;
   if (scaledW <= viewW - margin*2) state.tx = (viewW - scaledW) / 2; else state.tx = Math.min(margin, Math.max(viewW - scaledW - margin, state.tx));
   if (scaledH <= viewH - margin*2) state.ty = (viewH - scaledH) / 2; else state.ty = Math.min(margin, Math.max(viewH - scaledH - margin, state.ty));
 }
@@ -732,19 +712,6 @@ function zoomAt(clientX, clientY, factor) {
   updateView();
 }
 
-function installMobileDetailStyles() {
-  if (document.getElementById('mobileDetailBackStyles')) return;
-  const style = document.createElement('style');
-  style.id = 'mobileDetailBackStyles';
-  style.textContent = `
-    @media (max-width: 640px) {
-      .card-close { display: none !important; }
-      .nuclide-card.open { overflow-y: auto !important; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
-    }
-  `;
-  document.head.append(style);
-}
-
 function bindEvents() {
   viewport.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.14 : 1/1.14); }, { passive: false });
   viewport.addEventListener('pointermove', e => { updateCursorHud(e); handlePointerMove(e); }, { passive: false });
@@ -753,25 +720,18 @@ function bindEvents() {
   viewport.addEventListener('pointerup', handlePointerUp);
   viewport.addEventListener('pointercancel', handlePointerCancel);
   canvas.addEventListener('dblclick', e => { const n = hitTest(e.clientX, e.clientY); if (n) centerOnNuclide(n); else fitToScreen(true); });
-  zoomHud?.addEventListener('click', e => { e.stopPropagation(); fitToScreen(true); });
+  zoomInButton.addEventListener('click', e => { e.stopPropagation(); zoomAt(window.innerWidth/2, window.innerHeight/2, 1.25); });
+  zoomOutButton.addEventListener('click', e => { e.stopPropagation(); zoomAt(window.innerWidth/2, window.innerHeight/2, 1/1.25); });
   legendButton.addEventListener('click', toggleLegendPopover);
   legendPopover.addEventListener('click', e => e.stopPropagation());
   dataButton.addEventListener('click', toggleDataPopover);
   dataPopover.addEventListener('click', e => e.stopPropagation());
-  document.addEventListener('click', () => { closeLegendPopover(); closeDataPopover(); closeSearchTool(); closeMobileMenu(); });
+  document.addEventListener('click', () => { closeLegendPopover(); closeDataPopover(); closeSearchTool(); });
   searchToggleButton.addEventListener('click', e => { e.stopPropagation(); toggleSearchTool(); });
   searchTool.addEventListener('click', e => e.stopPropagation());
   searchButton.addEventListener('click', runSearch);
   searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
-  darkModeButton.addEventListener('click', e => { e.stopPropagation(); cycleThemeMode(); });
-  mobileMenuButton?.addEventListener('click', e => { e.stopPropagation(); toggleMobileMenu(); });
-  mobileMenuPanel?.addEventListener('click', e => e.stopPropagation());
-  mobileDataButton?.addEventListener('click', e => { e.stopPropagation(); closeMobileMenu(); toggleDataPopover(e); });
-  mobileLayersButton?.addEventListener('click', e => { e.stopPropagation(); closeMobileMenu(); toggleLegendPopover(e); });
-  mobileThemeButton?.addEventListener('click', e => { e.stopPropagation(); cycleThemeMode(); });
-  mobileResetZoomButton?.addEventListener('click', e => { e.stopPropagation(); closeMobileMenu(); fitToScreen(true); });
-  mobileSearchGoButton?.addEventListener('click', runMobileSearch);
-  mobileSearchInput?.addEventListener('keydown', e => { if (e.key === 'Enter') runMobileSearch(); });
+  darkModeButton.addEventListener('click', e => { e.stopPropagation(); setDarkMode(!document.body.classList.contains('dark')); scheduleRender(); drawAtom(performance.now()); });
   csvInput.addEventListener('change', handleCsvInput);
   secondaryCsvInput.addEventListener('change', handleSecondaryInput);
   loadIaeaButton.addEventListener('click', loadIaeaData);
@@ -782,18 +742,9 @@ function bindEvents() {
   document.getElementById('addCompareButton').addEventListener('click', () => addSelectedToCompare());
   document.getElementById('exportCardButton').addEventListener('click', exportSelectedCardPng);
   document.getElementById('clearCompareButton').addEventListener('click', () => { state.compare = []; renderCompare(); });
-  closeDetailButton?.addEventListener('click', e => { e.stopPropagation(); closeNuclideCard(); });
   atomCanvas.addEventListener('click', e => { e.stopPropagation(); state.animationEnabled = !state.animationEnabled; atomCanvas.classList.toggle('paused', !state.animationEnabled); drawAtom(performance.now()); });
   window.addEventListener('resize', () => { resizeCanvases(); fitToScreen(false); resizeAtomCanvas(); scheduleRender(); });
-  window.visualViewport?.addEventListener('resize', () => { resizeCanvases(); if (isMobileViewport()) fitToScreen(false); resizeAtomCanvas(); scheduleRender(); });
-  window.addEventListener('orientationchange', () => { window.setTimeout(() => { resizeCanvases(); fitToScreen(true); resizeAtomCanvas(); scheduleRender(); }, 180); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeNuclideCard(); closeLegendPopover(); closeDataPopover(); closeSearchTool(); closeMobileMenu(); } });
-  window.addEventListener('popstate', () => {
-    if (card.classList.contains('open')) {
-      detailHistoryPushed = false;
-      closeNuclideCard({ fromHistory: true });
-    }
-  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeNuclideCard(); closeLegendPopover(); closeDataPopover(); closeSearchTool(); } });
 }
 
 function handlePointerDown(e) {
@@ -871,39 +822,16 @@ function centerOnNuclide(n, zoomMultiplier = 7) {
   const r = cellRect(n.z, n.n);
   const x = r.x + CELL_W/2, y = r.y + CELL_H/2;
   state.scale = Math.max(state.fitScale, Math.min(state.fitScale * zoomMultiplier, 1.85));
-  const { width, height } = mobileViewportSize();
-  state.tx = width/2 - x * state.scale;
-  state.ty = height/2 - y * state.scale;
+  state.tx = window.innerWidth/2 - x * state.scale;
+  state.ty = window.innerHeight/2 - y * state.scale;
   updateView();
 }
 
 function selectNuclide(n) {
   state.selected = n; fillDetail(n); openCard(); state.atom = buildAtomState(n); resizeAtomCanvas(); drawAtom(performance.now()); scheduleRender();
 }
-function openCard() {
-  const wasOpen = card.classList.contains('open');
-  card.classList.add('open');
-  card.setAttribute('aria-hidden', 'false');
-  if (isMobileViewport() && !wasOpen && !detailHistoryPushed) {
-    try {
-      history.pushState({ nucleidosDetail: true }, '', location.href);
-      detailHistoryPushed = true;
-    } catch (_) {
-      detailHistoryPushed = false;
-    }
-  }
-}
-function closeNuclideCard(options = {}) {
-  const wasOpen = card.classList.contains('open');
-  card.classList.remove('open');
-  card.setAttribute('aria-hidden', 'true');
-  state.selected = null;
-  scheduleRender();
-  if (wasOpen && detailHistoryPushed && isMobileViewport() && !options.fromHistory) {
-    detailHistoryPushed = false;
-    try { history.back(); } catch (_) {}
-  }
-}
+function openCard() { card.classList.add('open'); card.setAttribute('aria-hidden', 'false'); }
+function closeNuclideCard() { card.classList.remove('open'); card.setAttribute('aria-hidden', 'true'); state.selected = null; scheduleRender(); }
 function activateTab(name) {
   document.querySelectorAll('.tab-button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
@@ -990,262 +918,325 @@ function applicationText(n) {
   };
   if (known[id]) return known[id];
   if (n.dataClass === 'theoretical') return 'Interés en modelos de masa, frontera nuclear, líneas de goteo e isla de estabilidad.';
-  return 'No especificado en el dataset cargado.';
+  if (n.abundance && numeric(n.abundance) > 0) return 'Isótopo natural; interés geoquímico, analítico o metrológico según el elemento.';
+  if (n.decay === 'alpha') return 'Emisor alfa; relevante en radioprotección, cadenas naturales y estudios de núcleos pesados.';
+  if (n.decay === 'beta-' || n.decay === 'beta+/EC') return 'Emisor beta; puede ser relevante en trazadores, medicina nuclear o estudios de decaimiento.';
+  return n.applications || 'Sin aplicación específica cargada en el dataset.';
 }
 
-function addSelectedToCompare() { if (!state.selected) return; if (!state.compare.find(n => n.uid === state.selected.uid)) state.compare.push(state.selected); renderCompare(); }
+function addSelectedToCompare() {
+  if (!state.selected) return;
+  if (!state.compare.some(n => n.uid === state.selected.uid)) state.compare.push(state.selected);
+  if (state.compare.length > 4) state.compare.shift();
+  renderCompare();
+}
 function renderCompare() {
   compareTray.classList.toggle('open', state.compare.length > 0);
   compareTray.setAttribute('aria-hidden', String(!state.compare.length));
-  if (!state.compare.length) return;
-  const fields = [['Vida media','half_life'], ['Decaimiento','decay'], ['Masa','atomic_mass'], ['Enlace','binding'], ['Clase','dataClass']];
-  compareTable.innerHTML = `<table><thead><tr><th>Campo</th>${state.compare.map(n => `<th>${n.symbol}-${n.a}</th>`).join('')}</tr></thead><tbody>${fields.map(([label,key]) => `<tr><td>${label}</td>${state.compare.map(n => `<td>${key === 'decay' ? (DECAY_LABELS[n.decay] || n.decay) : (n[key] || '—')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  if (!state.compare.length) { compareTable.innerHTML = ''; return; }
+  const rows = [['Clase','dataClass'],['Z','z'],['N','n'],['A','a'],['Vida media','half_life'],['Decaimiento','decay'],['Abundancia','abundance'],['Masa','atomic_mass'],['Spin','spin']];
+  let html = '<table><thead><tr><th>Dato</th>' + state.compare.map(n => `<th>${escapeHtml(n.symbol)}-${n.a}</th>`).join('') + '</tr></thead><tbody>';
+  for (const [label, field] of rows) html += `<tr><th>${label}</th>${state.compare.map(n => `<td>${escapeHtml(field === 'decay' ? (DECAY_LABELS[n.decay] || n.decay) : (n[field] || '—'))}</td>`).join('')}</tr>`;
+  compareTable.innerHTML = html + '</tbody></table>';
 }
-function exportSelectedCardPng() { if (!state.selected) return; const a = document.createElement('a'); a.download = `${state.selected.symbol}-${state.selected.a}.png`; a.href = atomCanvas.toDataURL('image/png'); a.click(); }
+function exportSelectedCardPng() {
+  const n = state.selected; if (!n) return;
+  const c = document.createElement('canvas'); c.width = 1100; c.height = 650; const g = c.getContext('2d');
+  g.fillStyle = '#f7f5f0'; g.fillRect(0,0,c.width,c.height);
+  g.fillStyle = '#222'; g.font = '900 80px system-ui'; g.fillText(`${n.symbol}-${n.a}`, 60, 120);
+  g.font = '700 30px system-ui'; g.fillText(`${n.element} · Z=${n.z} · N=${n.n}`, 60, 170);
+  g.font = '600 24px system-ui';
+  const lines = [`Clase: ${classLabel(n)}`, `Vida media: ${n.half_life || '—'}`, `Decaimiento: ${DECAY_LABELS[n.decay] || n.decay || '—'}`, `Abundancia: ${n.abundance || '—'}`, `Masa: ${n.atomic_mass || '—'}`, `Spin/paridad: ${n.spin || '—'}`];
+  lines.forEach((line, i) => g.fillText(line, 60, 245 + i*42));
+  g.font = '500 22px system-ui'; wrapText(g, detailNotes(n), 60, 530, 980, 30);
+  const a = document.createElement('a'); a.download = `${n.symbol}-${n.a}.png`; a.href = c.toDataURL('image/png'); a.click();
+}
+function wrapText(g, text, x, y, maxW, lh) { const words = String(text).split(/\s+/); let line = ''; for (const word of words) { const test = line ? `${line} ${word}` : word; if (g.measureText(test).width > maxW) { g.fillText(line, x, y); y += lh; line = word; } else line = test; } if (line) g.fillText(line, x, y); }
 
 function runSearch() {
-  const query = searchInput.value.trim();
-  if (!query) return;
-  const found = findNuclide(query);
-  if (found) { centerOnNuclide(found, 7); selectNuclide(found); closeSearchTool(); }
-}
-window.runSearch = runSearch;
-function runMobileSearch() {
-  if (mobileSearchInput && searchInput) searchInput.value = mobileSearchInput.value;
-  closeMobileMenu(); runSearch();
+  const q = searchInput.value.trim(); if (!q) return;
+  const found = findNuclide(q);
+  if (!found) { dataStatus.textContent = `No he encontrado “${q}”.`; openDataPopover(); return; }
+  selectNuclide(found); centerOnNuclide(found); closeSearchTool();
 }
 function findNuclide(query) {
-  const s = query.toLowerCase().replace(/\s+/g,'');
-  const zn = s.match(/^z[=:]?(\d+)[,;]?n[=:]?(\d+)$/); if (zn) return firstRenderableByZN(+zn[1], +zn[2]);
-  const a1 = s.match(/^([a-z]{1,3})-?(\d+)$/i); if (a1) return firstRenderableBySymbolA(cap(a1[1]), +a1[2]);
-  const a2 = s.match(/^(\d+)([a-z]{1,3})$/i); if (a2) return firstRenderableBySymbolA(cap(a2[2]), +a2[1]);
-  return state.all.find(n => isRenderable(n) && (n.element.toLowerCase().startsWith(s) || `${n.symbol}-${n.a}`.toLowerCase() === s));
+  const q = query.trim().toLowerCase().replace(/\s+/g, '');
+  let m = q.match(/^z=(\d+)$/); if (m) return state.all.find(n => n.z === Number(m[1]) && isRenderable(n));
+  m = q.match(/^n=(\d+)$/); if (m) return state.all.find(n => n.n === Number(m[1]) && isRenderable(n));
+  m = q.match(/^decay:([a-z+\-/αβ]+)$/); if (m) { const d = normalizeDecay(m[1], ''); return state.all.find(n => n.decay === d && isRenderable(n)); }
+  m = q.match(/^([a-z]{1,3})-?(\d+)(m\d+)?$/i); if (m) { const s = normalizeSymbol(m[1]), A = Number(m[2]); return state.all.find(n => n.symbol === s && n.a === A && isRenderable(n)); }
+  m = q.match(/^(\d+)-?([a-z]{1,3})(m\d+)?$/i); if (m) { const A = Number(m[1]), s = normalizeSymbol(m[2]); return state.all.find(n => n.symbol === s && n.a === A && isRenderable(n)); }
+  return state.all.find(n => (n.symbol.toLowerCase() === q || n.element.toLowerCase() === q || `${n.symbol.toLowerCase()}${n.a}` === q) && isRenderable(n));
 }
-function firstRenderableByZN(z,n) { return (state.byCell.get(`${z}-${n}`) || []).find(isRenderable) || null; }
-function firstRenderableBySymbolA(symbol,a) { return state.all.find(n => isRenderable(n) && n.symbol === symbol && n.a === a) || null; }
-function cap(v) { return String(v).slice(0,1).toUpperCase()+String(v).slice(1).toLowerCase(); }
+
 
 function bindTooltips() {
-  document.addEventListener('mouseover', e => { const target = e.target.closest('[data-tip]'); if (!target) return; showTip(target); });
-  document.addEventListener('mouseout', e => { if (e.target.closest('[data-tip]')) hideTip(); });
-  document.addEventListener('focusin', e => { const target = e.target.closest('[data-tip]'); if (target) showTip(target); });
-  document.addEventListener('focusout', hideTip);
-}
-function showTip(target) { uiTooltip.textContent = target.dataset.tip; uiTooltip.classList.add('visible'); uiTooltip.setAttribute('aria-hidden','false'); const r=target.getBoundingClientRect(); uiTooltip.style.left=`${Math.min(window.innerWidth-280, Math.max(12,r.left))}px`; uiTooltip.style.top=`${Math.min(window.innerHeight-60,r.bottom+8)}px`; }
-function hideTip() { uiTooltip.classList.remove('visible'); uiTooltip.setAttribute('aria-hidden','true'); }
-
-function toggleLegendPopover(e) { e?.stopPropagation?.(); legendPopover.classList.toggle('open'); legendPopover.setAttribute('aria-hidden', String(!legendPopover.classList.contains('open'))); dataPopover.classList.remove('open'); }
-function closeLegendPopover() { legendPopover.classList.remove('open'); legendPopover.setAttribute('aria-hidden','true'); }
-function toggleDataPopover(e) { e?.stopPropagation?.(); dataPopover.classList.toggle('open'); dataPopover.setAttribute('aria-hidden', String(!dataPopover.classList.contains('open'))); legendPopover.classList.remove('open'); }
-function closeDataPopover() { dataPopover.classList.remove('open'); dataPopover.setAttribute('aria-hidden','true'); }
-function toggleSearchTool() { searchTool.classList.toggle('open'); searchTool.querySelector('.top-search-box')?.setAttribute('aria-hidden', String(!searchTool.classList.contains('open'))); if (searchTool.classList.contains('open')) searchInput.focus(); }
-function closeSearchTool() { searchTool.classList.remove('open'); searchTool.querySelector('.top-search-box')?.setAttribute('aria-hidden','true'); }
-function toggleMobileMenu() { mobileMenuPanel?.classList.toggle('open'); mobileMenuPanel?.setAttribute('aria-hidden', String(!mobileMenuPanel.classList.contains('open'))); }
-function closeMobileMenu() { mobileMenuPanel?.classList.remove('open'); mobileMenuPanel?.setAttribute('aria-hidden','true'); }
-
-function mobileElements() { return {
-  mobileMenuButton: document.getElementById('mobileMenuButton'), mobileMenuPanel: document.getElementById('mobileMenuPanel'),
-  mobileDataButton: document.getElementById('mobileDataButton'), mobileLayersButton: document.getElementById('mobileLayersButton'), mobileThemeButton: document.getElementById('mobileThemeButton'),
-  mobileResetZoomButton: document.getElementById('mobileResetZoomButton'), mobileSearchInput: document.getElementById('mobileSearchInput'), mobileSearchGoButton: document.getElementById('mobileSearchGoButton')
-}; }
-const { mobileMenuButton, mobileMenuPanel, mobileDataButton, mobileLayersButton, mobileThemeButton, mobileResetZoomButton, mobileSearchInput, mobileSearchGoButton } = mobileElements();
-
-const THEME_KEY = 'nucleidos-theme-mode';
-const THEME_MODES = ['auto', 'day', 'night'];
-const SOLAR_ZENITH = 90.833;
-const DEFAULT_SOLAR_LOCATION = { latitude: 41.3874, longitude: 2.1686 };
-let temporalThemeTimer = null;
-function initTemporalTheme() {
-  const mode = normalizeThemeMode(localStorage.getItem(THEME_KEY) || 'auto');
-  localStorage.setItem(THEME_KEY, mode);
-  applyThemeMode(mode);
-  window.clearInterval(temporalThemeTimer);
-  temporalThemeTimer = window.setInterval(() => { if (normalizeThemeMode(localStorage.getItem(THEME_KEY) || 'auto') === 'auto') applyThemeMode('auto'); }, 60_000);
-}
-function cycleThemeMode() {
-  const current = normalizeThemeMode(localStorage.getItem(THEME_KEY) || 'auto');
-  const next = THEME_MODES[(THEME_MODES.indexOf(current) + 1) % THEME_MODES.length];
-  localStorage.setItem(THEME_KEY, next);
-  applyThemeMode(next);
-}
-function normalizeThemeMode(mode) { return THEME_MODES.includes(mode) ? mode : 'auto'; }
-function applyThemeMode(mode) {
-  const resolved = mode === 'auto' ? temporalTheme(new Date()) : mode;
-  const dark = resolved === 'night';
-  document.body.classList.toggle('dark', dark);
-  document.documentElement.dataset.themeMode = mode;
-  document.documentElement.dataset.themeResolved = dark ? 'dark' : 'light';
-  updateThemeIcon(dark, mode);
-  scheduleRender();
-  if (state.atom) drawAtom(performance.now());
-}
-function updateThemeIcon(dark, mode) {
-  const cls = `theme-icon ${dark ? 'moon-icon' : 'sun-icon'}`;
-  for (const icon of [themeIcon, mobileThemeIcon].filter(Boolean)) icon.setAttribute('class', cls);
-  const label = dark ? 'Modo noche' : 'Modo día';
-  for (const button of [darkModeButton, mobileThemeButton].filter(Boolean)) {
-    button.title = `${label}${mode === 'auto' ? ' · automático' : ''}`;
-    button.setAttribute('aria-label', `${label}. Pulsar para cambiar modo.`);
-  }
-}
-function temporalTheme(date) {
-  const minute = date.getHours() * 60 + date.getMinutes() + date.getSeconds()/60;
-  const solar = getSolarDay(date, DEFAULT_SOLAR_LOCATION);
-  return minute < solar.sunrise - 35 || minute > solar.sunset + 45 ? 'night' : 'day';
-}
-function getSolarDay(date, location) {
-  const day = dayOfYear(date);
-  const gamma = (2 * Math.PI / 365) * (day - 1);
-  const equationOfTime = 229.18 * (0.000075 + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma) - 0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma));
-  const declination = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma) - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma) - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
-  const latitude = toRadians(location.latitude);
-  const zenith = toRadians(SOLAR_ZENITH);
-  const hourAngle = Math.acos(clampValue((Math.cos(zenith) / (Math.cos(latitude) * Math.cos(declination))) - Math.tan(latitude) * Math.tan(declination), -1, 1));
-  const hourAngleDegrees = toDegrees(hourAngle);
-  const timezoneOffsetHours = -date.getTimezoneOffset() / 60;
-  return {
-    sunrise: clampValue(720 - (4 * (location.longitude + hourAngleDegrees)) - equationOfTime + (timezoneOffsetHours * 60), 0, 1440),
-    sunset: clampValue(720 - (4 * (location.longitude - hourAngleDegrees)) - equationOfTime + (timezoneOffsetHours * 60), 0, 1440)
+  let activeTarget = null;
+  const hide = () => {
+    activeTarget = null;
+    uiTooltip?.classList.remove('visible');
+    uiTooltip?.setAttribute('aria-hidden', 'true');
   };
+  const show = (target, x, y) => {
+    const text = target?.dataset?.tip;
+    if (!text || !uiTooltip) return;
+    activeTarget = target;
+    uiTooltip.textContent = text;
+    uiTooltip.setAttribute('aria-hidden', 'false');
+    uiTooltip.classList.add('visible');
+    positionTooltip(x, y);
+  };
+  document.addEventListener('pointerover', e => {
+    const target = e.target.closest('[data-tip]');
+    if (!target) return;
+    show(target, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (activeTarget) positionTooltip(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    if (activeTarget && !e.relatedTarget?.closest?.('[data-tip]')) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const target = e.target.closest('[data-tip]');
+    if (!target) return;
+    const r = target.getBoundingClientRect();
+    show(target, r.left + r.width / 2, r.bottom + 4);
+  });
+  document.addEventListener('focusout', e => {
+    if (activeTarget && e.target === activeTarget) hide();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
 }
-function dayOfYear(date) { const start = new Date(date.getFullYear(), 0, 0); return Math.floor((date - start + ((start.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000)) / 86400000); }
-function toRadians(value) { return value * Math.PI / 180; }
-function toDegrees(value) { return value * 180 / Math.PI; }
-function clampValue(value, min, max) { return Math.min(max, Math.max(min, value)); }
+
+function positionTooltip(x, y) {
+  if (!uiTooltip) return;
+  const margin = 12;
+  const rect = uiTooltip.getBoundingClientRect();
+  let left = x + 14;
+  let top = y + 16;
+  if (left + rect.width + margin > window.innerWidth) left = x - rect.width - 14;
+  if (top + rect.height + margin > window.innerHeight) top = y - rect.height - 14;
+  uiTooltip.style.left = `${Math.max(margin, left)}px`;
+  uiTooltip.style.top = `${Math.max(margin, top)}px`;
+}
+
+function toggleLegendPopover(e) { e.stopPropagation(); closeDataPopover(); closeSearchTool(); const open = legendPopover.classList.toggle('open'); legendPopover.setAttribute('aria-hidden', String(!open)); }
+function closeLegendPopover() { legendPopover.classList.remove('open'); legendPopover.setAttribute('aria-hidden', 'true'); }
+function toggleDataPopover(e) { e.stopPropagation(); closeLegendPopover(); closeSearchTool(); const open = dataPopover.classList.toggle('open'); dataPopover.setAttribute('aria-hidden', String(!open)); }
+function openDataPopover() { closeLegendPopover(); closeSearchTool(); dataPopover.classList.add('open'); dataPopover.setAttribute('aria-hidden', 'false'); }
+function closeDataPopover() { dataPopover.classList.remove('open'); dataPopover.setAttribute('aria-hidden', 'true'); }
+function toggleSearchTool() { searchTool.classList.contains('open') ? closeSearchTool() : openSearchTool(); }
+function openSearchTool() { closeLegendPopover(); closeDataPopover(); searchTool.classList.add('open'); searchTool.querySelector('.top-search-box').setAttribute('aria-hidden','false'); requestAnimationFrame(() => searchInput.focus()); }
+function closeSearchTool() { searchTool.classList.remove('open'); searchTool.querySelector('.top-search-box').setAttribute('aria-hidden','true'); }
+function setDarkMode(enabled) { document.body.classList.toggle('dark', enabled); darkModeButton.title = enabled ? 'Modo claro' : 'Modo oscuro'; darkModeButton.setAttribute('aria-label', enabled ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'); themeIcon.className = `theme-icon ${enabled ? 'sun-icon' : 'moon-icon'}`; }
 
 async function loadIaeaData() {
-  dataStatus.textContent = 'Cargando IAEA LiveChart...';
+  dataStatus.textContent = 'Intentando cargar IAEA LiveChart...';
   try {
     const response = await fetch(IAEA_URL);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const mapped = parseCsv(await response.text()).map(row => rowToNuclide(row, 'IAEA LiveChart', 'evaluated')).filter(n => n && n.z > 0);
-    if (!mapped.length) throw new Error('Sin datos reconocibles');
-    state.official = mapped; state.secondary = []; rebuildDerivedData(); renderLegend(); fitToScreen(true); closeDataPopover(); closeNuclideCard();
-    dataStatus.textContent = `Cargados ${mapped.length.toLocaleString('es-ES')} nucleidos desde IAEA.`;
-  } catch (err) { dataStatus.textContent = 'No se pudo cargar desde IAEA por CORS/conectividad. Usa CSV local.'; }
+    const rows = parseCsv(await response.text());
+    const mapped = rows.map(r => rowToNuclide(r, 'IAEA LiveChart', 'evaluated')).filter(n => n && n.z > 0);
+    if (!mapped.length) throw new Error('CSV vacío o no reconocido');
+    state.official = mapped; state.secondary = []; rebuildDerivedData(); fitToScreen(true); closeNuclideCard();
+    dataStatus.textContent = `Cargados ${mapped.length.toLocaleString('es-ES')} nucleidos evaluados desde IAEA.`;
+    closeDataPopover();
+  } catch (err) { dataStatus.textContent = `No se pudo cargar IAEA automáticamente. Descarga el CSV e impórtalo manualmente. ${err.message}`; }
 }
-function handleCsvInput(event) {
-  const file = event.target.files?.[0]; if (!file) return;
-  readFile(file, text => { const mapped = parseCsv(text).map(row => rowToNuclide(row, file.name, 'evaluated')).filter(n => n && n.z > 0); state.official = mapped; state.secondary = []; rebuildDerivedData(); renderLegend(); fitToScreen(true); closeDataPopover(); closeNuclideCard(); dataStatus.textContent = `Importados ${mapped.length.toLocaleString('es-ES')} nucleidos desde ${file.name}.`; });
-}
-function handleSecondaryInput(event) {
-  const file = event.target.files?.[0]; if (!file) return;
-  readFile(file, text => { const mapped = parseCsv(text).map(row => rowToNuclide(row, file.name, detectDataClass(row))).filter(n => n && n.z > 0); state.secondary = mapped; rebuildDerivedData(); renderLegend(); dataStatus.textContent = `Dataset secundario: ${mapped.length.toLocaleString('es-ES')} registros.`; closeDataPopover(); });
-}
-function readFile(file, cb) { const reader = new FileReader(); reader.onload = () => cb(String(reader.result || '')); reader.readAsText(file); }
+function handleCsvInput(e) { const f = e.target.files?.[0]; if (!f) return; readFileAsText(f, text => { const mapped = parseCsv(text).map(r => rowToNuclide(r, f.name, 'evaluated')).filter(n => n && n.z > 0); if (!mapped.length) throw new Error('No se reconocieron columnas z/n o a/symbol.'); state.official = mapped; state.secondary = []; rebuildDerivedData(); fitToScreen(true); closeNuclideCard(); dataStatus.textContent = `Importados ${mapped.length.toLocaleString('es-ES')} nucleidos desde ${f.name}.`; closeDataPopover(); }); }
+function handleSecondaryInput(e) { const f = e.target.files?.[0]; if (!f) return; readFileAsText(f, text => { const rows = text.includes(',') ? parseCsv(text) : parseDelimitedText(text); const mapped = rows.map(r => rowToNuclide(r, f.name, detectDataClass(r))).filter(n => n && n.z > 0); if (!mapped.length) throw new Error('No se reconoció el dataset secundario.'); state.secondary = mapped; rebuildDerivedData(); dataStatus.textContent = `Añadidos ${mapped.length.toLocaleString('es-ES')} registros secundarios desde ${f.name}.`; closeDataPopover(); }); }
+function readFileAsText(file, cb) { const r = new FileReader(); r.onload = () => { try { cb(String(r.result || '')); } catch (err) { dataStatus.textContent = `Error importando: ${err.message}`; openDataPopover(); } }; r.readAsText(file); }
 
-function parseCsv(text) {
-  const rows = []; let row = [], cell = '', quoted = false;
-  for (let i=0; i<text.length; i++) {
-    const ch=text[i], next=text[i+1];
-    if (ch === '"') { if (quoted && next === '"') { cell+='"'; i++; } else quoted=!quoted; }
-    else if (ch === ',' && !quoted) { row.push(cell); cell=''; }
-    else if ((ch === '\n' || ch === '\r') && !quoted) { if (ch === '\r' && next === '\n') i++; row.push(cell); if (row.some(v => String(v).trim())) rows.push(row); row=[]; cell=''; }
-    else cell += ch;
-  }
-  row.push(cell); if (row.some(v => String(v).trim())) rows.push(row);
-  if (!rows.length) return [];
-  const headers = rows.shift().map(normalizeKey);
-  return rows.map(values => Object.fromEntries(headers.map((h,i) => [h, values[i] ?? ''])));
-}
-function normalizeKey(k) { return String(k||'').trim().toLowerCase().replace(/[%()\s\-]+/g,'_').replace(/_+$/,''); }
-function rowToNuclide(row, source, fallbackClass) {
-  const z = number(row.z ?? row.protons ?? row.atomic_number) ?? zFromSymbol(row.symbol);
-  const mass = number(row.a ?? row.mass_number ?? row.mass);
-  const n = number(row.n ?? row.neutrons) ?? (mass != null && z != null ? mass - z : null);
-  if (z == null || n == null) return null;
-  const a = mass ?? z + n;
-  const [fallbackSymbol, fallbackElement] = elementInfo(z);
-  const symbol = cleanSymbol(row.symbol) || fallbackSymbol;
-  const element = clean(row.element || row.name) || fallbackElement;
-  const dataClass = detectDataClass(row, fallbackClass);
-  const stateId = clean(row.state || row.isomer || row.energy_level) || 'gs';
-  const decay = classifyDecay(row);
+function rowToNuclide(row, sourceName, fallbackClass = 'evaluated') {
+  const zValue = pick(row, ['z','Z','protons','Protons']);
+  let z = toNumber(zValue); let n = toNumber(pick(row, ['n','N','neutrons','Neutrons'])); let a = toNumber(pick(row, ['a','A','mass_number','MassNumber']));
+  let symbol = cleanSymbol(pick(row, ['symbol','Symbol','elem','element_symbol','Element']), z);
+  if (!Number.isFinite(z) && symbol) { const idx = ELEMENTS.findIndex(e => e && e[0].toLowerCase() === symbol.toLowerCase()); if (idx >= 0) z = idx; }
+  if (!Number.isFinite(z)) return null;
+  if (!symbol) symbol = elementInfo(z)[0]; if (!Number.isFinite(n) && Number.isFinite(a)) n = a - z; if (!Number.isFinite(a) && Number.isFinite(n)) a = z + n;
+  if (!Number.isFinite(n) || !Number.isFinite(a)) return null;
+  const element = pick(row, ['element','Element','name','Name']) || elementInfo(z)[1] || symbol;
+  const halfLife = formatHalfLife(row); const decayRaw = String(pick(row, ['decay','decay_1','decay mode','decayMode','Decay','decay_modes']) || '').toLowerCase();
+  const decay = normalizeDecay(decayRaw, halfLife);
+  const dataClass = normalizeDataClass(pick(row, ['data_class','quality','source_type','class','state_type']) || fallbackClass, row);
+  const stateId = pick(row, ['state','isomer','level','stateId']) || (dataClass === 'isomer' ? 'm1' : 'gs');
+  const qValue = firstFormattedEnergy(row, [['qa','Qα'],['qec','QEC'],['qbm','Qβ−'],['sn','Sₙ'],['sp','Sₚ']]);
+  const binding = formatEnergy(pick(row, ['binding']), 'keV/n');
+  const discovery = pick(row, ['discovery','Discovery']);
+  const decayDetails = formatDecayDetails(row);
+  const notes = [decayDetails, binding ? `Energía de enlace: ${binding}` : '', discovery ? `Descubrimiento: ${discovery}` : '', pick(row, ['notes','Notes'])].filter(Boolean).join(' · ') || 'Dato importado. Los campos disponibles dependen del CSV usado.';
   return {
-    uid: `${dataClass}-${z}-${n}-${stateId}-${symbol}`, z, n, a, symbol, element, stateId, dataClass,
-    decay, half_life: halfLifeLabel(row, decay), half_life_seconds: number(row.half_life_sec || row.halflife_seconds), abundance: clean(row.abundance),
-    atomic_mass: clean(row.atomic_mass), mass_excess: clean(row.massexcess || row.mass_excess), binding: clean(row.binding), qalpha: clean(row.qa), qbeta: clean(row.qbm || row.qbeta || row.qb), qec: clean(row.qec), sn: clean(row.sn), sp: clean(row.sp), spin: clean(row.jp || row.spin || row.spin_parity),
-    notes: clean(row.notes), applications: clean(row.application || row.applications), wikipedia: clean(row.wikipedia), livechart: clean(row.livechart), raw: row, source
+    uid: `${dataClass}-${z}-${n}-${stateId}-${Math.random().toString(36).slice(2,8)}`, z, n, a, symbol, element, decay, dataClass, stateId,
+    half_life: halfLife || (decay === 'stable' ? 'Estable' : '—'), half_life_sec: pick(row, ['half_life_sec','T12_sec']), abundance: formatPercent(pick(row, ['abundance','Abundance','natural_abundance'])) || '—',
+    atomic_mass: formatAtomicMass(pick(row, ['atomic_mass','mass','Mass','atomic mass','ame2020'])) || '—', mass_excess: formatEnergy(pick(row, ['mass_excess','Mass excess','massexcess']), 'keV') || '—',
+    binding: binding || '—', spin: pick(row, ['spin','Spin','jp','Jpi','parity']) || '—', q_value: qValue || '—',
+    qa: pick(row, ['qa']), qbm: pick(row, ['qbm']), qec: pick(row, ['qec']), sn: formatEnergy(pick(row, ['sn']), 'keV') || '—', sp: formatEnergy(pick(row, ['sp']), 'keV') || '—',
+    notes, applications: pick(row, ['application','applications','uses']), wikipedia: pick(row, ['wikipedia']) || (z > 0 ? `https://es.wikipedia.org/wiki/Is%C3%B3topos_de_${encodeURIComponent(element)}` : `https://es.wikipedia.org/wiki/Neutr%C3%B3n`), livechart: pick(row, ['livechart']) || `https://www-nds.iaea.org/relnsd/vcharthtml/VChartHTML.html?z=${z}&n=${n}`, raw: row
   };
 }
-function classifyDecay(row) {
-  const vals = [row.decay_1,row.decay_2,row.decay_3,row.decay,row.decay_mode,row.decay_type].map(v => String(v||'').toLowerCase()).join(' ');
-  const hl = String(row.half_life||row.halflife||'').toLowerCase();
-  if (vals.includes('stable') || hl.includes('stable') || hl === 'stbl') return 'stable';
-  if (/(^|\s|,)(b-|β-|beta-|β−)/.test(vals)) return 'beta-';
-  if (vals.includes('b+') || vals.includes('β+') || vals.includes('ec') || vals.includes('epsilon')) return 'beta+/EC';
-  if (vals.includes('alpha') || /(^|\s)a(\s|,|$)/.test(vals)) return 'alpha';
-  if (vals.includes('sf')) return 'sf';
-  if (vals.includes('cluster')) return 'cluster';
-  if (vals.includes('it') || vals.includes('isomer')) return 'it';
-  if (/(^|\s|,)p(\s|,|$)/.test(vals)) return 'p';
-  if (/(^|\s|,)n(\s|,|$)/.test(vals)) return 'n';
-  return 'unknown';
-}
-function halfLifeLabel(row, decay) {
-  const raw = clean(row.half_life || row.halflife);
-  if (!raw) return decay === 'stable' ? 'Estable' : '—';
-  return `${clean(row.operator_hl)||''}${raw}${row.unit_hl ? ` ${row.unit_hl}` : ''}`.trim();
-}
-function detectDataClass(row, fallback='evaluated') {
-  const val = String(row.data_class || row.quality || row.source_type || row.state_type || '').toLowerCase();
-  if (val.includes('isomer') || /^m\d+/.test(String(row.state || '').toLowerCase())) return 'isomer';
-  if (val.includes('theor') || val.includes('estim') || val.includes('unobserved') || val.includes('pred')) return 'theoretical';
-  return fallback;
-}
-function clean(v) { const s=String(v??'').trim(); return s && s !== 'NaN' ? s : ''; }
-function cleanSymbol(v) { const s=clean(v); return s ? cap(s) : ''; }
-function number(v) { const n = Number(String(v??'').replace(',','.')); return Number.isFinite(n) ? n : null; }
-function numeric(v) { const n = Number(String(v??'').replace(',','.').replace(/[≈<>]/g,'')); return Number.isFinite(n) ? n : NaN; }
-function zFromSymbol(sym) { const s=cleanSymbol(sym); const idx=ELEMENTS.findIndex(e => e && e[0] === s); return idx > 0 ? idx : null; }
+function normalizeDataClass(value, row = {}) { const t = String(value || '').toLowerCase(); if (t.includes('theor') || t.includes('calc') || t.includes('estim')) return 'theoretical'; if (t.includes('isomer') || t === 'm' || /m\d+/.test(String(pick(row, ['state','isomer','level'])))) return 'isomer'; if (t.includes('unknown')) return 'unknown'; return 'evaluated'; }
+function detectDataClass(row) { return normalizeDataClass(pick(row, ['data_class','quality','source_type','class','state_type','state','isomer']) || 'theoretical', row); }
 
-function electronShells(z) {
-  const caps = [2,8,18,32,32,18,8]; let left = Math.max(0,z), out=[];
-  for (const cap of caps) { if (left <= 0) break; const take=Math.min(cap,left); out.push(take); left-=take; }
-  if (left>0) out.push(left); return out;
+function parseDelimitedText(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if (!lines.length) return [];
+  const header = lines[0].split(/\s+/);
+  if (header.some(h => ['z','n','a','symbol'].includes(h.toLowerCase()))) {
+    return lines.slice(1).map(line => { const cols = line.split(/\s+/); const row = {}; header.forEach((h,i) => row[h] = cols[i] || ''); return row; });
+  }
+  return [];
+}
+function generateFallbackNuclides() {
+  const out = [];
+  for (let z = 1; z <= 118; z++) { const [symbol, element] = elementInfo(z); const n = stableNFor(z); out.push({ uid:`fallback-${z}-${n}`, z, n, a:z+n, symbol, element, dataClass:'evaluated', stateId:'gs', decay: z < 84 ? 'stable' : 'alpha', half_life:'—', abundance:'—', atomic_mass:`≈${z+n} u`, spin:'—', q_value:'—', binding:'—', mass_excess:'—', notes:'Malla mínima de respaldo.', raw:{} }); }
+  return out;
+}
+
+function parseCsv(text) {
+  const rows = []; let current = [], field = '', inQuotes = false;
+  for (let i=0;i<text.length;i++) { const ch = text[i], nx = text[i+1];
+    if (ch === '"' && inQuotes && nx === '"') { field += '"'; i++; }
+    else if (ch === '"') inQuotes = !inQuotes;
+    else if (ch === ',' && !inQuotes) { current.push(field); field = ''; }
+    else if ((ch === '\n' || ch === '\r') && !inQuotes) { if (ch === '\r' && nx === '\n') i++; current.push(field); field=''; if (current.some(v => String(v).trim() !== '')) rows.push(current); current=[]; }
+    else field += ch;
+  }
+  if (field || current.length) { current.push(field); if (current.some(v => String(v).trim() !== '')) rows.push(current); }
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(cols => { const row = {}; headers.forEach((h,i) => row[h] = (cols[i] || '').trim()); return row; });
+}
+function pick(row, names) { const lower = Object.fromEntries(Object.keys(row || {}).map(k => [k.toLowerCase().trim(), k])); for (const name of names) { const k = lower[name.toLowerCase().trim()]; if (k && row[k] != null && String(row[k]).trim() !== '') return row[k]; } return ''; }
+function cleanSymbol(value, z = NaN) { const raw = String(value || '').trim(); if (Number(z) === 0 || raw.toLowerCase() === 'n') return 'n'; const s = raw.replace(/[^a-z]/gi, ''); return s ? normalizeSymbol(s.slice(0,3)) : ''; }
+function normalizeSymbol(s) { if (String(s).trim().toLowerCase() === 'n') return 'n'; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
+function normalizeDecay(text, halfLife) { const t = String(text || '').toLowerCase().replace(/\s+/g,''); const h = String(halfLife || '').toLowerCase(); if (!t && (h.includes('stable') || h.includes('estable'))) return 'stable'; if (t.includes('stable') || t.includes('stbl') || h.includes('stable') || h.includes('inf')) return 'stable'; if (t.includes('cluster') || t === 'cl') return 'cluster'; if (t === 'a' || t.includes('alpha') || t.includes('α')) return 'alpha'; if (t.includes('b-') || t.includes('beta-') || t.includes('β-')) return 'beta-'; if (t.includes('ec') || t.includes('b+') || t.includes('beta+') || t.includes('β+')) return 'beta+/EC'; if (t.includes('sf') || t.includes('fission')) return 'sf'; if (t.includes('it') || t.includes('isomer')) return 'it'; if (t === 'p' || t.includes('2p') || t.includes('proton')) return 'p'; if (t === 'n' || t.includes('2n') || t.includes('neutron')) return 'n'; return 'unknown'; }
+function formatHalfLife(row) { const raw = pick(row, ['half_life','Half-life','halflife','T1/2']); const op = pick(row, ['operator_hl','operator','Operator']); const unit = pick(row, ['unit_hl','unit','Unit']); if (!raw) return ''; if (String(raw).toUpperCase() === 'STABLE') return 'Estable'; return `${op ? `${op} ` : ''}${raw}${unit ? ` ${unit}` : ''}`; }
+function formatDecayDetails(row) { const parts = []; for (let i=1; i<=3; i++) { const mode = pick(row, [`decay_${i}`,`decay${i}`]); if (!mode) continue; const pct = pick(row, [`decay_${i}_%`,`decay${i}_%`]); parts.push(`${mode}${pct ? ` ${pct}%` : ''}`); } return parts.length ? `Desintegración: ${parts.join(' / ')}` : ''; }
+function formatPercent(v) { if (v == null || String(v).trim() === '') return ''; const text = String(v).trim(); return text.endsWith('%') ? text : `${text}%`; }
+function formatAtomicMass(v) { const n = toNumber(v); if (!Number.isFinite(n)) return ''; const u = Math.abs(n) > 100000 ? n / 1000000 : n; return `${trimNumber(u, 9)} u`; }
+function formatEnergy(v, unit) { const n = toNumber(v); if (!Number.isFinite(n)) return ''; return `${trimNumber(n, 5)} ${unit}`; }
+function firstFormattedEnergy(row, entries) { for (const [field, label] of entries) { const f = formatEnergy(pick(row, [field]), 'keV'); if (f) return `${label} ${f}`; } return ''; }
+function toNumber(v) { if (v == null || v === '') return NaN; const n = Number(String(v).replace(',', '.').replace(/[^0-9.+-eE]/g, '')); return Number.isFinite(n) ? n : NaN; }
+function numeric(v) { return toNumber(String(v || '').replace('%','')); }
+function trimNumber(v, d=6) { return Number(v).toLocaleString('es-ES', { maximumFractionDigits: d }); }
+function escapeHtml(t) { return String(t).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
+
+function electronShells(electrons) {
+  const caps = [2,8,18,32,32,18,8];
+  const shells = [];
+  let left = electrons;
+  for (const cap of caps) {
+    if (left <= 0) break;
+    const c = Math.min(cap, left);
+    shells.push(c);
+    left -= c;
+  }
+  if (left > 0) shells.push(left);
+  return shells;
 }
 function buildAtomState(n) {
-  const shells = electronShells(n.z);
-  const particles = [];
-  const total = Math.min(190, n.z + n.n);
-  for (let i=0; i<total; i++) {
-    const phi = Math.acos(1 - 2*(i+0.5)/total), theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    const r = 15 + Math.pow(i/Math.max(1,total), .55) * 38;
-    particles.push({ x: Math.cos(theta)*Math.sin(phi)*r, y: Math.sin(theta)*Math.sin(phi)*r, z: Math.cos(phi)*r, proton: i < Math.min(n.z,total), size: 5.5 + (i%5)*.35 });
+  return {
+    z: n.z,
+    neutrons: n.n,
+    symbol: n.symbol,
+    a: n.a,
+    shells: electronShells(n.z),
+    particles: buildNucleusParticles(n.z, n.n),
+    seed: `${n.z}-${n.n}-${n.a}`
+  };
+}
+function seededNoise(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < String(seed).length; i++) {
+    h ^= String(seed).charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
-  return { z:n.z, neutrons:n.n, shells, particles, title:`${n.symbol}-${n.a}` };
+  return () => {
+    h += 0x6D2B79F5;
+    let t = h;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function buildNucleusParticles(protons, neutrons) {
+  const totalReal = Math.max(1, protons + neutrons);
+  const total = Math.min(120, totalReal);
+  const particles = [];
+  const rand = seededNoise(`${protons}:${neutrons}`);
+  const protonSlots = Math.round(total * protons / totalReal);
+  for (let i = 0; i < total; i++) {
+    const a = i * 2.399963 + rand() * 0.45;
+    const r = Math.cbrt((i + 1) / total) * 48;
+    const z = (rand() - .5) * 72;
+    const planar = Math.sqrt(Math.max(4, r*r - z*z*.38));
+    particles.push({
+      x: Math.cos(a) * planar + (rand() - .5) * 5,
+      y: Math.sin(a) * planar + (rand() - .5) * 5,
+      z,
+      proton: i < protonSlots,
+      size: 8.5 + rand() * 4.8
+    });
+  }
+  return particles;
 }
 function resizeAtomCanvas() {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
   const r = atomCanvas.getBoundingClientRect();
-  atomCanvas.width = Math.max(10, Math.floor(r.width*dpr)); atomCanvas.height = Math.max(10, Math.floor(r.height*dpr));
-  atomCtx.setTransform(dpr,0,0,dpr,0,0);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(300, Math.floor(r.width*dpr));
+  const h = Math.max(260, Math.floor(r.height*dpr));
+  if (atomCanvas.width !== w || atomCanvas.height !== h) { atomCanvas.width = w; atomCanvas.height = h; }
 }
-function drawAtomLoop(now) {
-  if (!state.animationEnabled) { requestAnimationFrame(drawAtomLoop); return; }
-  if (state.atom) drawAtom(now);
+function drawAtomLoop(time) {
+  if (state.atom && card.classList.contains('open')) drawAtom(time);
   requestAnimationFrame(drawAtomLoop);
 }
-function drawAtom(now) {
-  const atom = state.atom; if (!atom) return;
-  const c = atomCtx, w = atomCanvas.clientWidth, h = atomCanvas.clientHeight, min = Math.min(w,h);
-  c.clearRect(0,0,w,h);
-  const dark = document.body.classList.contains('dark');
-  const bg = c.createRadialGradient(w*.5,h*.44,min*.05,w*.5,h*.5,min*.62);
-  bg.addColorStop(0, dark ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.95)');
-  bg.addColorStop(1, dark ? 'rgba(20,24,33,.74)' : 'rgba(232,226,214,.72)');
-  c.fillStyle = bg; roundedRect(c, 0, 0, w, h, 22); c.fill();
-  const cx=w/2, cy=h/2, focal = Math.max(260, min*.78);
-  const t = now/1000;
+function rotate3D(p, rx, ry, rz) {
+  let x = p.x, y = p.y, z = p.z;
+  let cy = Math.cos(rx), syy = Math.sin(rx);
+  [y, z] = [y * cy - z * syy, y * syy + z * cy];
+  cy = Math.cos(ry); syy = Math.sin(ry);
+  [x, z] = [x * cy + z * syy, -x * syy + z * cy];
+  cy = Math.cos(rz); syy = Math.sin(rz);
+  [x, y] = [x * cy - y * syy, x * syy + y * cy];
+  return { x, y, z };
+}
+function project3D(p, cx, cy, focal, globalScale = 1) {
+  const depth = focal / (focal - p.z);
+  return { x: cx + p.x * depth * globalScale, y: cy + p.y * depth * globalScale, depth, z: p.z };
+}
+function orbitPoint(radius, angle, planeIndex) {
+  const x = Math.cos(angle) * radius;
+  const y = Math.sin(angle) * radius;
+  let p = { x, y, z: 0 };
+  if (planeIndex === 0) p = rotate3D(p, 1.12, .16, -.18);
+  else if (planeIndex === 1) p = rotate3D(p, .42, 1.05, .28);
+  else p = rotate3D(p, .86, -.82, .68);
+  return p;
+}
+function drawAtom(time) {
+  const atom = state.atom;
+  if (!atom) return;
+  const c = atomCtx;
+  const w = atomCanvas.width, h = atomCanvas.height;
+  c.clearRect(0, 0, w, h);
 
-  // Fondo de profundidad: meridianos tenues para que el modelo no parezca plano.
+  const dark = document.body.classList.contains('dark');
+  const cx = w * .52, cy = h * .53;
+  const min = Math.min(w, h);
+  const focal = min * 2.25;
+  const t = state.animationEnabled ? time * .001 : state.atomFrame;
+  if (!state.animationEnabled) state.atomFrame = t;
+
+  // Retícula radial discreta para que el modelo 3D tenga profundidad sin ensuciar.
   c.save();
-  c.translate(cx, cy);
-  c.strokeStyle = dark ? 'rgba(255,255,255,.045)' : 'rgba(40,38,35,.055)';
-  c.lineWidth = 1;
-  for (let i=0; i<5; i++) {
+  c.globalAlpha = dark ? .16 : .22;
+  c.strokeStyle = dark ? 'rgba(255,255,255,.16)' : 'rgba(30,30,30,.10)';
+  c.lineWidth = Math.max(1, min * .0016);
+  for (let r = min * .14; r <= min * .46; r += min * .08) {
     c.beginPath();
-    c.ellipse(0, 0, min*.30, min*.30*(.25+i*.12), (i*.35)+t*.045, 0, Math.PI*2);
+    c.arc(cx, cy, r, 0, Math.PI * 2);
     c.stroke();
   }
   c.restore();
