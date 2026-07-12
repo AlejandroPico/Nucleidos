@@ -3,532 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f5f0" />
   <title>Nucleidos — visor interactivo</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="styles.css" />
-
-  <style id="v19-main-fixes">
-    .top-tools { z-index: 700; }
-    .search-tool { position: relative; display: flex; align-items: center; }
-    .top-search-box { position: absolute; left: 0; right: auto; top: 0; z-index: 720; width: min(520px, calc(100vw - 140px)); height: 44px; min-height: 44px; padding: 0; border-radius: 16px; overflow: hidden; display: flex; align-items: stretch; background: var(--panel-solid); transform: translateX(calc(-100% - 10px)) translateY(0) scale(.985); opacity: 0; pointer-events: none; box-shadow: var(--shadow); }
-    .search-tool.open .top-search-box { opacity: 1; transform: translateX(calc(-100% - 10px)) translateY(0) scale(1); pointer-events: auto; }
-    .top-search-box input { height: 100%; border: 0; border-radius: 0; padding: 0 15px; background: transparent; }
-    .top-search-go { min-height: 100%; border-radius: 0; border-left: 1px solid var(--line); background: rgba(93,90,246,.10); color: var(--ink); padding: 0 16px; }
-    .tool-button { width: 42px; height: 42px; min-width: 42px; min-height: 42px; border-radius: 15px; }
-    .search-icon, .layers-icon, .database-icon, .theme-icon { position: relative; width: 20px; height: 20px; display: block; color: var(--ink); }
-    .search-icon::before { content: ""; position: absolute; left: 2px; top: 2px; width: 11px; height: 11px; border: 2px solid currentColor; border-radius: 50%; }
-    .search-icon::after { content: ""; position: absolute; right: 2px; bottom: 3px; width: 8px; height: 2px; background: currentColor; transform: rotate(45deg); border-radius: 99px; }
-    .database-icon::before { content: ""; position: absolute; left: 3px; top: 2px; width: 14px; height: 16px; border: 2px solid currentColor; border-radius: 50% / 16%; }
-    .database-icon::after { content: ""; position: absolute; left: 5px; top: 7px; width: 10px; height: 8px; border-top: 2px solid currentColor; border-bottom: 2px solid currentColor; opacity: .75; }
-    .layers-icon::before, .layers-icon::after { content: ""; position: absolute; left: 3px; width: 14px; height: 10px; border: 2px solid currentColor; border-radius: 4px; transform: rotate(-18deg); }
-    .layers-icon::before { top: 3px; opacity: .95; }
-    .layers-icon::after { top: 8px; opacity: .55; }
-    .moon-icon::before { content: ""; position: absolute; inset: 1px 4px 2px 1px; border-radius: 50%; background: currentColor; }
-    .moon-icon::after { content: ""; position: absolute; right: 2px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--panel-solid); }
-    .sun-icon::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 -10px 0 -7px currentColor, 0 10px 0 -7px currentColor, 10px 0 0 -7px currentColor, -10px 0 0 -7px currentColor, 7px 7px 0 -7px currentColor, -7px -7px 0 -7px currentColor, 7px -7px 0 -7px currentColor, -7px 7px 0 -7px currentColor; }
-    .zoom-hud { position: relative; z-index: auto; right: auto; bottom: auto; width: auto; height: 42px; min-width: 76px; border-radius: 15px; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel-solid) 92%, transparent); box-shadow: 0 12px 28px rgba(31,27,21,.12); opacity: 1; transform: none; pointer-events: auto; display: grid; place-items: center; padding: 0 13px; cursor: pointer; color: var(--muted); backdrop-filter: blur(14px); }
-    .zoom-hud:hover { transform: translateY(-1px); box-shadow: 0 16px 32px rgba(31,27,21,.16); }
-    .zoom-hud button { display: none !important; }
-    #zoomValue { min-width: 0; display: block; text-align: center; font-size: 12px; font-weight: 900; }
-    .minimap-panel { left: auto; right: 18px; top: 74px; width: 240px; height: 138px; z-index: 120; }
-    .card-close { position: absolute; z-index: 4; top: 14px; right: 14px; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--panel-solid) 92%, transparent); color: var(--muted); display: grid; place-items: center; font-size: 22px; line-height: 1; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(31,27,21,.10); }
-    .card-close:hover { color: var(--ink); background: rgba(93,90,246,.10); }
-    @media (max-width: 780px) { .top-search-box { position: fixed; left: 10px; right: 10px; top: 56px; width: auto; transform: translateY(-8px) scale(.985); } .search-tool.open .top-search-box { transform: translateY(0) scale(1); } .zoom-hud { height: 38px; min-width: 60px; padding: 0 10px; } #zoomValue { display: block; font-size: 11px; } .minimap-panel { right: 10px; top: 58px; width: 180px; height: 108px; } .card-close { top: 10px; right: 10px; width: 32px; height: 32px; } }
-    @media (max-width: 480px) { .minimap-panel { display: none; } }
-  
-
-    /* === v20: iconos Material, panel de capas compacto y cierre reposicionado === */
-    .tool-button .material-icon,
-    .tool-button .theme-icon {
-      width: 23px;
-      height: 23px;
-      display: block;
-      color: var(--ink);
-      fill: currentColor;
-      flex: 0 0 auto;
-    }
-    .tool-button .theme-icon .sun-shape { display: none; }
-    .tool-button .theme-icon .moon-shape { display: block; }
-    .tool-button .theme-icon.sun-icon .sun-shape { display: block; }
-    .tool-button .theme-icon.sun-icon .moon-shape { display: none; }
-    .tool-button .search-icon::before,
-    .tool-button .search-icon::after,
-    .tool-button .database-icon::before,
-    .tool-button .database-icon::after,
-    .tool-button .layers-icon::before,
-    .tool-button .layers-icon::after,
-    .tool-button .moon-icon::before,
-    .tool-button .moon-icon::after,
-    .tool-button .sun-icon::before { display: none !important; content: none !important; }
-
-    .legend-popover {
-      width: min(380px, calc(100vw - 36px));
-      max-height: min(70vh, 620px);
-      overflow: hidden;
-      padding: 12px;
-      border-radius: 22px;
-    }
-    .legend-popover .popover-section + .popover-section {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid var(--line);
-    }
-    .legend-popover .popover-section h2 {
-      margin: 0 0 7px;
-      font-size: 10px;
-      letter-spacing: .14em;
-    }
-    .legend-modes {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 5px;
-    }
-    .legend-mode-btn {
-      min-height: 0;
-      border: 0;
-      border-radius: 10px;
-      background: transparent;
-      padding: 6px 5px;
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 900;
-      text-align: center;
-      line-height: 1.08;
-      cursor: pointer;
-    }
-    .legend-mode-btn small { display: none; }
-    .legend-mode-btn::before { display: none; }
-    .legend-mode-btn:hover,
-    .legend-mode-btn.active {
-      background: rgba(93,90,246,.09);
-      color: var(--ink);
-    }
-    .legend-mode-btn.active { box-shadow: inset 0 -2px 0 var(--accent); }
-
-    .legend {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 5px 7px;
-    }
-    .legend-item {
-      border: 0;
-      border-radius: 8px;
-      background: transparent;
-      padding: 3px 2px;
-      display: grid;
-      grid-template-columns: 15px minmax(0, 1fr);
-      align-items: center;
-      gap: 5px;
-      cursor: pointer;
-      font-size: 10px;
-      font-weight: 850;
-      color: var(--ink);
-      min-height: 22px;
-      text-align: left;
-    }
-    .legend-item:hover { background: rgba(93,90,246,.07); transform: none; }
-    .legend-item.muted { opacity: .42; }
-    .legend-item .legend-swatch {
-      width: 14px;
-      height: 14px;
-      border-radius: 4px;
-      border: 1px solid rgba(0,0,0,.18);
-      box-shadow: inset 0 0 0 2px rgba(255,255,255,.36);
-    }
-    .legend-item:not(.muted) .legend-swatch {
-      outline: 2px solid rgba(93,90,246,.38);
-      outline-offset: 1px;
-    }
-    .legend-item span:last-child {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .layer-toggles {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 5px 7px;
-    }
-    .layer-toggle {
-      position: relative;
-      border: 0;
-      border-radius: 8px;
-      background: transparent;
-      padding: 4px 2px 4px 20px;
-      color: var(--ink);
-      cursor: pointer;
-      font-size: 10px;
-      font-weight: 850;
-      text-align: left;
-      min-height: 22px;
-      line-height: 1.08;
-    }
-    .layer-toggle::before {
-      content: "";
-      position: absolute;
-      left: 2px;
-      top: 50%;
-      width: 13px;
-      height: 13px;
-      border-radius: 4px;
-      transform: translateY(-50%);
-      border: 1px solid rgba(0,0,0,.18);
-      background: rgba(0,0,0,.08);
-    }
-    .layer-toggle::after { display: none; }
-    .layer-toggle:hover { background: rgba(93,90,246,.07); transform: none; }
-    .layer-toggle.active { background: transparent; color: var(--ink); }
-    .layer-toggle.active::before {
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      border-color: rgba(93,90,246,.45);
-      box-shadow: inset 0 0 0 2px rgba(255,255,255,.35), 0 0 0 2px rgba(93,90,246,.18);
-    }
-    body.dark .legend-mode-btn:hover,
-    body.dark .legend-mode-btn.active,
-    body.dark .legend-item:hover,
-    body.dark .layer-toggle:hover { background: rgba(255,255,255,.055); }
-    body.dark .layer-toggle::before,
-    body.dark .legend-swatch { border-color: rgba(255,255,255,.22); }
-
-    .card-close {
-      top: 14px;
-      left: 14px;
-      right: auto;
-      width: 32px;
-      height: 32px;
-      border-radius: 11px;
-      font-size: 20px;
-    }
-    .identity-row { padding-left: 44px; }
-    @media (max-width: 780px) {
-      .legend-popover { width: calc(100vw - 20px); right: 10px; max-height: 72vh; overflow: auto; }
-      .legend-modes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .legend, .layer-toggles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .card-close { left: 10px; right: auto; top: 10px; }
-      .identity-row { padding-left: 40px; }
-    }
-    @media (max-width: 520px) {
-      .legend-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .legend, .layer-toggles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-
-    /* === v21: cierre a derecha, shell abajo e iconos Material limpios === */
-    .card-close {
-      left: auto !important;
-      right: 14px !important;
-      top: 14px;
-    }
-    .identity-row {
-      padding-left: 0 !important;
-      padding-right: 44px;
-    }
-    .atom-toolbar {
-      padding-right: 0;
-    }
-    .atom-toolbar .shell-text {
-      display: none !important;
-    }
-    .atom-footer {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-    }
-    .atom-footer .shell-text {
-      justify-self: center;
-      display: inline-grid;
-    }
-    .atom-footer #nucleusText { justify-self: start; }
-    .atom-footer span:last-child { justify-self: end; }
-
-    @media (max-width: 780px) {
-      .card-close { top: 10px !important; right: 10px !important; left: auto !important; }
-      .identity-row { padding-left: 0 !important; padding-right: 38px; }
-      .atom-toolbar { padding-right: 42px; }
-    }
-
-
-    /* === v22: tema temporal, móvil compacto y mapa selector limpio === */
-    .legend-modes {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 5px 10px;
-    }
-    .legend-mode-btn {
-      border-radius: 0;
-      background: transparent !important;
-      box-shadow: none !important;
-      padding: 4px 2px;
-      color: var(--muted);
-      opacity: .72;
-      font-weight: 760;
-      text-align: left;
-      min-height: 20px;
-    }
-    .legend-mode-btn:hover {
-      background: transparent !important;
-      color: var(--ink);
-      opacity: .92;
-    }
-    .legend-mode-btn.active {
-      color: var(--ink);
-      opacity: 1;
-      font-weight: 950;
-      background: transparent !important;
-      box-shadow: none !important;
-    }
-    .legend-mode-btn.active::after { display: none !important; content: none !important; }
-
-    .mobile-menu-button,
-    .mobile-menu-panel { display: none; }
-
-    .theme-icon .auto-dot,
-    .theme-icon.auto-icon .auto-dot { display: none !important; }
-
-    @media (max-width: 640px) {
-      .top-tools {
-        top: max(10px, env(safe-area-inset-top));
-        right: max(10px, env(safe-area-inset-right));
-        gap: 0;
-      }
-      .mobile-menu-button {
-        display: grid;
-      }
-      .top-tools > :not(.mobile-menu-button) {
-        display: none !important;
-      }
-      .mobile-menu-panel {
-        position: fixed;
-        z-index: 740;
-        right: max(10px, env(safe-area-inset-right));
-        top: calc(max(10px, env(safe-area-inset-top)) + 48px);
-        width: min(330px, calc(100vw - 20px));
-        max-height: calc(100dvh - 74px);
-        overflow: auto;
-        border: 1px solid var(--line);
-        border-radius: 20px;
-        background: var(--panel-solid);
-        color: var(--ink);
-        box-shadow: var(--shadow);
-        padding: 12px;
-        transform: translateY(-8px) scale(.98);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 140ms ease, transform 140ms ease;
-      }
-      .mobile-menu-panel.open {
-        display: block;
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        pointer-events: auto;
-      }
-      .mobile-menu-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-      }
-      .mobile-menu-action {
-        min-height: 54px;
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        background: color-mix(in srgb, var(--panel-solid) 92%, transparent);
-        color: var(--ink);
-        display: grid;
-        place-items: center;
-        gap: 3px;
-        font-size: 10px;
-        font-weight: 850;
-        cursor: pointer;
-      }
-      .mobile-menu-action svg {
-        width: 22px;
-        height: 22px;
-        fill: currentColor;
-      }
-      .mobile-search-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 8px;
-        margin-top: 10px;
-      }
-      .mobile-search-row input {
-        min-width: 0;
-        height: 42px;
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        background: transparent;
-        color: var(--ink);
-        padding: 0 12px;
-      }
-      .mobile-search-row button {
-        min-width: 48px;
-        border: 0;
-        border-radius: 14px;
-        background: rgba(93,90,246,.12);
-        color: var(--ink);
-        font-weight: 900;
-      }
-      .popover {
-        right: 10px !important;
-        left: 10px !important;
-        top: calc(max(10px, env(safe-area-inset-top)) + 58px) !important;
-        width: auto !important;
-        max-height: calc(100dvh - 78px) !important;
-        border-radius: 20px !important;
-      }
-      .legend-popover {
-        max-height: calc(100dvh - 78px) !important;
-        overflow: auto !important;
-      }
-      .legend-modes,
-      .legend,
-      .layer-toggles {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .minimap-panel { display: none !important; }
-      .cursor-hud { display: none !important; }
-      .nuclide-card {
-        inset: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
-        width: auto !important;
-        height: auto !important;
-        max-height: none !important;
-        border-radius: 22px;
-        grid-template-columns: 1fr !important;
-        grid-template-rows: minmax(0, 1.08fr) minmax(190px, .72fr) !important;
-      }
-      .card-info {
-        overflow: auto;
-        padding: 14px;
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-      }
-      .identity-row {
-        padding-left: 0 !important;
-        padding-right: 42px;
-        min-height: 58px;
-      }
-      .card-close {
-        top: 10px !important;
-        right: 10px !important;
-        left: auto !important;
-        width: 32px;
-        height: 32px;
-      }
-      .detail-tabs {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 3px;
-        margin-bottom: 8px;
-      }
-      .tab-button {
-        font-size: 10px;
-        padding: 6px 2px;
-      }
-      .detail-row { padding: 6px 0; }
-      .info-block p { -webkit-line-clamp: 3; }
-      .atom-panel {
-        padding: 12px;
-        gap: 8px;
-        min-height: 0;
-      }
-      .atom-toolbar h2 { font-size: 16px; }
-      #atomCanvas {
-        min-height: 150px;
-        border-radius: 16px;
-      }
-      .atom-footer {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 7px 10px;
-        font-size: 11px;
-      }
-    }
-
-    /* === v24: móvil limpio, tabs como selector técnico y lienzo a pantalla completa === */
-    .detail-tabs {
-      background: transparent !important;
-      border-radius: 0 !important;
-      padding: 0 !important;
-      gap: 6px 10px !important;
-    }
-    .tab-button {
-      border-radius: 0 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      color: var(--muted) !important;
-      opacity: .72;
-      font-weight: 760 !important;
-      padding: 4px 2px !important;
-      text-align: left;
-    }
-    .tab-button:hover {
-      background: transparent !important;
-      color: var(--ink) !important;
-      opacity: .92;
-      transform: none !important;
-    }
-    .tab-button.active {
-      background: transparent !important;
-      box-shadow: none !important;
-      color: var(--ink) !important;
-      opacity: 1;
-      font-weight: 950 !important;
-    }
-    .tab-button.active::before,
-    .tab-button.active::after { display: none !important; content: none !important; }
-    .card-close { z-index: 30 !important; pointer-events: auto; touch-action: manipulation; }
-
-    @media (max-width: 640px) {
-      html, body, #app, .viewport, .chart-canvas {
-        width: 100dvw !important;
-        height: 100dvh !important;
-        min-width: 100dvw !important;
-        min-height: 100dvh !important;
-      }
-      .viewport, .chart-canvas { inset: 0 !important; }
-      .mobile-menu-panel { max-height: calc(100dvh - 68px); }
-      .mobile-menu-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .mobile-menu-action { min-height: 50px; }
-      .nuclide-card {
-        display: flex !important;
-        flex-direction: column;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch;
-        touch-action: pan-y;
-      }
-      .card-info {
-        overflow: visible !important;
-        flex: 0 0 auto;
-        min-height: auto;
-      }
-      .atom-panel {
-        flex: 0 0 auto;
-        min-height: 260px;
-      }
-      #atomCanvas { min-height: 190px; }
-      .detail-tabs {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 4px 8px !important;
-      }
-      .tab-button {
-        font-size: 10px !important;
-        min-height: 22px;
-      }
-      .card-close {
-        position: sticky !important;
-        top: 10px !important;
-        margin-left: auto;
-        margin-right: 10px;
-        margin-bottom: -42px;
-        right: 10px !important;
-        left: auto !important;
-        z-index: 40 !important;
-        width: 36px !important;
-        height: 36px !important;
-      }
-    }
-  </style>
 </head>
 <body>
   <main id="app" aria-label="Visor interactivo de tabla de nucleidos">
@@ -537,41 +17,115 @@
     </section>
 
     <div class="top-tools" aria-label="Herramientas de vista">
-      <button id="mobileMenuButton" class="tool-button mobile-menu-button" aria-label="Abrir menú" title="Menú">
-        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></svg>
+      <button id="mobileMenuButton" class="tool-button mobile-menu-button" type="button"
+              aria-label="Abrir menú" aria-expanded="false" title="Menú">
+        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/>
+        </svg>
       </button>
+
       <div id="searchTool" class="search-tool" aria-label="Buscar nucleido">
-        <button id="searchToggleButton" class="tool-button" aria-label="Abrir búsqueda" title="Buscar nucleido">
-          <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 0 1 5.18 10.43l5.44 5.44-1.41 1.41-5.44-5.44A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+        <button id="searchToggleButton" class="tool-button" type="button"
+                aria-label="Abrir búsqueda" title="Buscar nucleido">
+          <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M9.5 3a6.5 6.5 0 0 1 5.18 10.43l5.44 5.44-1.41 1.41-5.44-5.44A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/>
+          </svg>
         </button>
         <div class="top-search-box" aria-hidden="true">
-          <input id="searchInput" type="search" placeholder="Ca-40, 40Ca, Z=20, N=20, decay:alpha..." autocomplete="off" />
-          <button id="searchButton" class="top-search-go" aria-label="Buscar">Ir</button>
+          <input id="searchInput" type="search"
+                 placeholder="Ca-40, 40Ca, Z=20, N=20, decay:alpha…"
+                 autocomplete="off" />
+          <button id="searchButton" class="top-search-go" type="button" aria-label="Buscar">Ir</button>
         </div>
       </div>
 
-      <button id="dataButton" class="tool-button" aria-label="Abrir datos" title="Datos">
-        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4Zm0 2c3.87 0 6 1.3 6 2s-2.13 2-6 2-6-1.3-6-2 2.13-2 6-2Zm0 14c-3.87 0-6-1.3-6-2v-2.08C7.45 15.62 9.6 16 12 16s4.55-.38 6-1.08V17c0 .7-2.13 2-6 2Zm0-5c-3.87 0-6-1.3-6-2V9.92C7.45 10.62 9.6 11 12 11s4.55-.38 6-1.08V12c0 .7-2.13 2-6 2Z"/></svg>
+      <button id="infoButton" class="tool-button" type="button"
+              aria-label="Abrir guía completa" title="Guía completa">
+        <svg class="material-icon info-material-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 10v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="7" r="1.2"/>
+        </svg>
       </button>
-      <button id="darkModeButton" class="tool-button" aria-label="Cambiar a modo oscuro" title="Modo oscuro">
-        <svg id="themeIcon" class="theme-icon sun-icon" aria-hidden="true" viewBox="0 0 24 24"><path class="moon-shape" d="M21.64 13.0A9 9 0 1 1 11.0 2.36 7 7 0 0 0 21.64 13Z"/><path class="sun-shape" d="M6.76 4.84 4.96 3.05 3.55 4.46l1.79 1.8 1.42-1.42ZM1 13h3v-2H1v2Zm10-12h2v3h-2V1Zm9.04 2.04-1.41-1.41-1.8 1.79 1.42 1.42 1.79-1.8ZM17.24 19.16l1.8 1.79 1.41-1.41-1.79-1.8-1.42 1.42ZM20 11v2h3v-2h-3ZM12 6a6 6 0 1 0 0 12A6 6 0 0 0 12 6Zm-1 15h2v3h-2v-3Zm-7.45-1.46 1.41 1.41 1.8-1.79-1.42-1.42-1.79 1.8Z"/></svg>
+
+      <button id="dataButton" class="tool-button" type="button"
+              aria-label="Abrir datos" title="Datos">
+        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4Zm0 2c3.87 0 6 1.3 6 2s-2.13 2-6 2-6-1.3-6-2 2.13-2 6-2Zm0 14c-3.87 0-6-1.3-6-2v-2.08C7.45 15.62 9.6 16 12 16s4.55-.38 6-1.08V17c0 .7-2.13 2-6 2Zm0-5c-3.87 0-6-1.3-6-2V9.92C7.45 10.62 9.6 11 12 11s4.55-.38 6-1.08V12c0 .7-2.13 2-6 2Z"/>
+        </svg>
       </button>
-      <button id="legendButton" class="tool-button" aria-label="Mostrar capas" title="Capas, filtros y mapas">
-        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Zm0 2.2L17.6 7 12 9.8 6.4 7 12 4.2ZM2 12l10 5 10-5-2.2-1.1L12 14.8l-7.8-3.9L2 12Zm0 5 10 5 10-5-2.2-1.1L12 19.8l-7.8-3.9L2 17Z"/></svg>
+
+      <button id="darkModeButton" class="tool-button" type="button"
+              aria-label="Tema automático" title="Tema automático">
+        <svg id="themeIcon" class="theme-icon auto-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <g class="theme-shape sun-shape">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"
+                  fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </g>
+          <path class="theme-shape moon-shape" d="M19.2 15.2A7.7 7.7 0 0 1 8.8 4.8 8.3 8.3 0 1 0 19.2 15.2Z"/>
+          <g class="theme-shape auto-shape">
+            <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M12 3.8a8.2 8.2 0 0 0 0 16.4Z"/>
+            <path d="M12 3.8v16.4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          </g>
+        </svg>
       </button>
-      <div id="zoomHud" class="zoom-hud" aria-live="polite" aria-label="Restablecer zoom" title="100%" onclick="event.stopPropagation(); fitToScreen(true);">
-        <button id="zoomOutButton" aria-label="Alejar">−</button>
+
+      <button id="legendButton" class="tool-button" type="button"
+              aria-label="Mostrar capas" title="Capas, filtros y mapas">
+        <svg class="material-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M12 2 2 7l10 5 10-5-10-5Zm0 2.2L17.6 7 12 9.8 6.4 7 12 4.2ZM2 12l10 5 10-5-2.2-1.1L12 14.8l-7.8-3.9L2 12Zm0 5 10 5 10-5-2.2-1.1L12 19.8l-7.8-3.9L2 17Z"/>
+        </svg>
+      </button>
+
+      <div id="zoomHud" class="zoom-hud" aria-live="polite"
+           aria-label="Restablecer zoom" title="Restablecer vista">
+        <button id="zoomOutButton" type="button" aria-label="Alejar">−</button>
         <span id="zoomValue">100%</span>
-        <button id="zoomInButton" aria-label="Acercar">+</button>
+        <button id="zoomInButton" type="button" aria-label="Acercar">+</button>
       </div>
     </div>
 
     <div id="mobileMenuPanel" class="mobile-menu-panel" aria-hidden="true">
       <div class="mobile-menu-grid" aria-label="Menú móvil">
-        <button id="mobileDataButton" class="mobile-menu-action" type="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4Zm0 2c3.87 0 6 1.3 6 2s-2.13 2-6 2-6-1.3-6-2 2.13-2 6-2Zm0 14c-3.87 0-6-1.3-6-2v-2.08C7.45 15.62 9.6 16 12 16s4.55-.38 6-1.08V17c0 .7-2.13 2-6 2Zm0-5c-3.87 0-6-1.3-6-2V9.92C7.45 10.62 9.6 11 12 11s4.55-.38 6-1.08V12c0 .7-2.13 2-6 2Z"/></svg><span>Datos</span></button>
-        <button id="mobileThemeButton" class="mobile-menu-action" type="button"><svg id="mobileThemeIcon" class="theme-icon sun-icon" aria-hidden="true" viewBox="0 0 24 24"><path class="moon-shape" d="M21.64 13.0A9 9 0 1 1 11.0 2.36 7 7 0 0 0 21.64 13Z"/><path class="sun-shape" d="M6.76 4.84 4.96 3.05 3.55 4.46l1.79 1.8 1.42-1.42ZM1 13h3v-2H1v2Zm10-12h2v3h-2V1Zm9.04 2.04-1.41-1.41-1.8 1.79 1.42 1.42 1.79-1.8ZM17.24 19.16l1.8 1.79 1.41-1.41-1.79-1.8-1.42 1.42ZM20 11v2h3v-2h-3ZM12 6a6 6 0 1 0 0 12A6 6 0 0 0 12 6Zm-1 15h2v3h-2v-3Zm-7.45-1.46 1.41 1.41 1.8-1.79-1.42-1.42-1.79 1.8Z"/></svg><span>Tema</span></button>
-        <button id="mobileLayersButton" class="mobile-menu-action" type="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Zm0 2.2L17.6 7 12 9.8 6.4 7 12 4.2ZM2 12l10 5 10-5-2.2-1.1L12 14.8l-7.8-3.9L2 12Zm0 5 10 5 10-5-2.2-1.1L12 19.8l-7.8-3.9L2 17Z"/></svg><span>Capas</span></button>
-        <button id="mobileResetZoomButton" class="mobile-menu-action" type="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5V2L7 7l5 5V9c3.31 0 6 2.69 6 6a6 6 0 0 1-10.24 4.24l-1.42 1.42A8 8 0 0 0 20 15c0-4.42-3.58-8-8-8Z"/></svg><span>100%</span></button>
+        <button id="mobileInfoButton" class="mobile-menu-action" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 10v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="7" r="1.2"/>
+          </svg><span>Guía</span>
+        </button>
+        <button id="mobileDataButton" class="mobile-menu-action" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4Zm0 2c3.87 0 6 1.3 6 2s-2.13 2-6 2-6-1.3-6-2 2.13-2 6-2Zm0 14c-3.87 0-6-1.3-6-2v-2.08C7.45 15.62 9.6 16 12 16s4.55-.38 6-1.08V17c0 .7-2.13 2-6 2Zm0-5c-3.87 0-6-1.3-6-2V9.92C7.45 10.62 9.6 11 12 11s4.55-.38 6-1.08V12c0 .7-2.13 2-6 2Z"/>
+          </svg><span>Datos</span>
+        </button>
+        <button id="mobileThemeButton" class="mobile-menu-action" type="button">
+          <svg id="mobileThemeIcon" class="theme-icon auto-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <g class="theme-shape sun-shape">
+              <circle cx="12" cy="12" r="4.2"/>
+              <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"
+                    fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <path class="theme-shape moon-shape" d="M19.2 15.2A7.7 7.7 0 0 1 8.8 4.8 8.3 8.3 0 1 0 19.2 15.2Z"/>
+            <g class="theme-shape auto-shape">
+              <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M12 3.8a8.2 8.2 0 0 0 0 16.4Z"/>
+              <path d="M12 3.8v16.4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            </g>
+          </svg><span>Tema</span>
+        </button>
+        <button id="mobileLayersButton" class="mobile-menu-action" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 2 2 7l10 5 10-5-10-5Zm0 2.2L17.6 7 12 9.8 6.4 7 12 4.2ZM2 12l10 5 10-5-2.2-1.1L12 14.8l-7.8-3.9L2 12Zm0 5 10 5 10-5-2.2-1.1L12 19.8l-7.8-3.9L2 17Z"/>
+          </svg><span>Capas</span>
+        </button>
+        <button id="mobileResetZoomButton" class="mobile-menu-action" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 5V2L7 7l5 5V9c3.31 0 6 2.69 6 6a6 6 0 0 1-10.24 4.24l-1.42 1.42A8 8 0 0 0 20 15c0-4.42-3.58-8-8-8Z"/>
+          </svg><span>100%</span>
+        </button>
       </div>
       <div class="mobile-search-row">
         <input id="mobileSearchInput" type="search" placeholder="Buscar nucleido…" autocomplete="off" />
@@ -584,7 +138,7 @@
         <h2>Datos</h2>
         <div class="data-actions">
           <div class="data-action-card">
-            <button id="loadIaeaButton" class="menu-action">Cargar IAEA</button>
+            <button id="loadIaeaButton" class="menu-action" type="button">Cargar IAEA</button>
             <p>Recarga la tabla desde LiveChart, si el navegador permite la conexión.</p>
           </div>
           <div class="data-action-card">
@@ -604,17 +158,15 @@
         </div>
         <p id="dataStatus" class="status-line">Datos listos.</p>
       </section>
-
       <section class="popover-section">
         <h2>Estructura CSV</h2>
         <div class="csv-schema">
-          <p><strong>Colocación:</strong> la tabla necesita <code>z</code> y <code>n</code>. Si falta <code>n</code>, puede calcularse con <code>a - z</code>. Si falta <code>z</code>, se intenta deducir desde <code>symbol</code>.</p>
-          <p><strong>Identidad nuclear:</strong> <code>symbol</code>, <code>element</code>/<code>name</code>, <code>a</code>/<code>mass_number</code>, <code>state</code>, <code>isomer</code>, <code>energy</code>. Los isómeros pueden distinguirse con <code>state=m1</code>, <code>m2</code> o una columna equivalente.</p>
-          <p><strong>Vida media:</strong> <code>half_life</code>, <code>operator_hl</code>, <code>unit_hl</code>, <code>half_life_sec</code>. La app usa estos campos para clasificar vida corta, media, larga o estable.</p>
-          <p><strong>Desintegración:</strong> <code>decay_1</code>, <code>decay_1_%</code>, <code>decay_2</code>, <code>decay_3</code>. Admite alfa, beta menos, beta más/captura electrónica, fisión espontánea, emisión de protón, neutrón, clúster e transición isomérica.</p>
-          <p><strong>Masas y energías:</strong> <code>atomic_mass</code>, <code>massexcess</code>, <code>binding</code>, <code>qa</code>, <code>qec</code>, <code>qbm</code>, <code>sn</code>, <code>sp</code>. Estos campos alimentan los mapas térmicos.</p>
-          <p><strong>Calidad del dato:</strong> usa <code>data_class</code>, <code>quality</code> o <code>source_type</code> con valores como <code>evaluated</code>, <code>isomer</code>, <code>estimated</code> o <code>theoretical</code>. Si no existe, se trata como evaluado.</p>
-          <p><strong>Metadatos:</strong> <code>abundance</code>, <code>discovery</code>, <code>notes</code>, <code>wikipedia</code>, <code>livechart</code>, <code>application</code>. Si existen, aparecen en la ficha.</p>
+          <p><strong>Colocación:</strong> se necesitan <code>z</code> y <code>n</code>; también puede calcularse <code>n = a - z</code>.</p>
+          <p><strong>Identidad:</strong> <code>symbol</code>, <code>element</code>, <code>a</code>, <code>state</code>, <code>isomer</code> y <code>energy</code>.</p>
+          <p><strong>Vida media:</strong> <code>half_life</code>, <code>operator_hl</code>, <code>unit_hl</code> y <code>half_life_sec</code>.</p>
+          <p><strong>Desintegración:</strong> <code>decay_1</code>, <code>decay_1_%</code>, <code>decay_2</code> y <code>decay_3</code>.</p>
+          <p><strong>Masas y energías:</strong> <code>atomic_mass</code>, <code>massexcess</code>, <code>binding</code>, <code>qa</code>, <code>qec</code>, <code>qbm</code>, <code>sn</code> y <code>sp</code>.</p>
+          <p><strong>Calidad:</strong> <code>data_class</code>, <code>quality</code> o <code>source_type</code>.</p>
         </div>
       </section>
     </div>
@@ -638,17 +190,16 @@
           <button id="magicLayerButton" class="layer-toggle" type="button">Números mágicos</button>
           <button id="frontierLayerButton" class="layer-toggle" type="button">Frontera nuclear</button>
           <button id="evaluatedFrameLayerButton" class="layer-toggle" type="button">Marco evaluado</button>
-          <button id="minimapButton" class="layer-toggle active" type="button">Minimapa</button>
+          <button id="minimapButton" class="layer-toggle" type="button">Minimapa</button>
           <button id="expertModeButton" class="layer-toggle active" type="button">Modo experto</button>
         </div>
       </section>
     </div>
 
     <div id="uiTooltip" class="ui-tooltip" role="tooltip" aria-hidden="true"></div>
-
     <div id="cursorHud" class="cursor-hud" aria-live="polite">Z — · N —</div>
 
-    <div id="minimapPanel" class="minimap-panel" aria-label="Minimapa de la tabla">
+    <div id="minimapPanel" class="minimap-panel hidden" aria-label="Minimapa de la tabla">
       <canvas id="minimapCanvas" width="260" height="150"></canvas>
     </div>
 
@@ -661,7 +212,9 @@
     </section>
 
     <article id="nuclideCard" class="nuclide-card" aria-label="Ficha del nucleido" aria-hidden="true">
-      <button id="closeDetailButton" class="card-close" type="button" aria-label="Cerrar ficha" title="Cerrar ficha" onclick="event.stopPropagation(); document.getElementById('nuclideCard').classList.remove('open'); document.getElementById('nuclideCard').setAttribute('aria-hidden', 'true');">×</button>
+      <button id="closeDetailButton" class="card-close" type="button"
+              aria-label="Cerrar ficha" title="Cerrar ficha"
+              onclick="event.stopPropagation(); if (typeof closeNuclideCard === 'function') closeNuclideCard(); else { const c=document.getElementById('nuclideCard'); c.classList.remove('open'); c.setAttribute('aria-hidden','true'); }">×</button>
       <section class="card-info">
         <div class="identity-row">
           <div class="mass-stack"><span id="detailA">40</span><span id="detailZ">20</span></div>
@@ -685,11 +238,12 @@
             <div class="detail-row"><span>Clase</span><strong id="detailClass">Evaluado</strong></div>
             <div class="detail-row"><span>Estado</span><strong id="detailState">Estable</strong></div>
             <div class="detail-row"><span>Vida media</span><strong id="detailHalfLife">Estable</strong></div>
-            <div class="detail-row"><span>Abundancia</span><strong id="detailAbundance">96,94%</strong></div>
-            <div class="detail-row"><span>Spin/paridad</span><strong id="detailSpin">0+</strong></div>
+            <div class="detail-row"><span>Abundancia</span><strong id="detailAbundance">—</strong></div>
+            <div class="detail-row"><span>Spin/paridad</span><strong id="detailSpin">—</strong></div>
           </div>
           <div class="mini-bars" id="miniBars"></div>
           <div class="info-block"><h2>Peculiaridades</h2><p id="detailNotes">Selecciona una celda para ver la información.</p></div>
+          <div id="derivedSummary" class="derived-summary" aria-live="polite"></div>
         </div>
 
         <div class="tab-panel" data-panel="decay">
@@ -719,6 +273,9 @@
             <div class="detail-row"><span>Neutrones</span><strong id="detailNeutrons">20</strong></div>
             <div class="detail-row"><span>Electrones</span><strong id="detailElectrons">20</strong></div>
             <div class="detail-row"><span>Números mágicos</span><strong id="detailMagic">—</strong></div>
+            <div class="detail-row derived-row"><span>Exceso neutrónico N−Z</span><strong id="detailNeutronExcess">0</strong></div>
+            <div class="detail-row derived-row"><span>Razón N/Z</span><strong id="detailNZRatio">1,000</strong></div>
+            <div class="detail-row derived-row"><span>Paridad Z/N</span><strong id="detailPairingClass">par–par</strong></div>
           </div>
         </div>
 
@@ -744,170 +301,22 @@
         <div class="atom-toolbar">
           <div><p class="eyebrow">Modelo visual 3D</p><h2 id="atomTitle">Átomo neutro</h2></div>
         </div>
-        <canvas id="atomCanvas" width="900" height="620" aria-label="Simulación atómica 3D" title="Clicar para pausar o reanudar la animación 3D"></canvas>
-        <div class="atom-footer"><span id="nucleusText">20 p⁺ · 20 n⁰</span><span id="shellText" class="shell-text">2 · 8 · 8 · 2</span><span>Modelo 3D esquemático</span></div>
+        <canvas id="atomCanvas" width="900" height="620"
+                aria-label="Simulación atómica 3D"
+                title="Tocar para pausar o reanudar la animación 3D"></canvas>
+        <div class="atom-footer">
+          <span id="nucleusText">20 p⁺ · 20 n⁰</span>
+          <span id="shellText" class="shell-text">2 · 8 · 8 · 2</span>
+          <span>Modelo 3D esquemático</span>
+        </div>
       </section>
     </article>
+
+    <div id="infoGuideRoot"></div>
   </main>
 
   <script src="nuclides-data.js"></script>
   <script src="app.js"></script>
-  <script>
-    (() => {
-      'use strict';
-
-      const THEME_KEY = 'nucleidos-theme-mode';
-      const MODES = ['auto', 'light', 'dark'];
-      const SOLAR_ZENITH = 90.833;
-      const DEFAULT_SOLAR_LOCATION = { latitude: 41.3874, longitude: 2.1686 };
-      let temporalTimer = null;
-
-      const byId = id => document.getElementById(id);
-      const themeButtons = () => [byId('darkModeButton'), byId('mobileThemeButton')].filter(Boolean);
-      const themeIcons = () => [byId('themeIcon'), byId('mobileThemeIcon')].filter(Boolean);
-      const safeMode = mode => MODES.includes(mode) ? mode : 'auto';
-
-      function initNucleidosV22() {
-        const mobileMenuButton = byId('mobileMenuButton');
-        const mobileMenuPanel = byId('mobileMenuPanel');
-        const mobileDataButton = byId('mobileDataButton');
-        const mobileLayersButton = byId('mobileLayersButton');
-        const mobileResetZoomButton = byId('mobileResetZoomButton');
-        const mobileSearchInput = byId('mobileSearchInput');
-        const mobileSearchGoButton = byId('mobileSearchGoButton');
-
-        mobileMenuButton?.addEventListener('click', event => {
-          event.preventDefault();
-          event.stopPropagation();
-          const open = !mobileMenuPanel?.classList.contains('open');
-          setMobileMenu(open);
-        });
-        mobileMenuPanel?.addEventListener('click', event => event.stopPropagation());
-        document.addEventListener('click', () => setMobileMenu(false));
-
-        mobileDataButton?.addEventListener('click', event => {
-          event.preventDefault();
-          event.stopPropagation();
-          setMobileMenu(false);
-          byId('dataButton')?.click();
-        });
-        mobileLayersButton?.addEventListener('click', event => {
-          event.preventDefault();
-          event.stopPropagation();
-          setMobileMenu(false);
-          byId('legendButton')?.click();
-        });
-        mobileResetZoomButton?.addEventListener('click', event => {
-          event.preventDefault();
-          event.stopPropagation();
-          setMobileMenu(false);
-          if (typeof window.fitToScreen === 'function') window.fitToScreen(true);
-        });
-        mobileSearchGoButton?.addEventListener('click', runMobileSearch);
-        mobileSearchInput?.addEventListener('keydown', event => {
-          if (event.key === 'Enter') runMobileSearch(event);
-        });
-
-        themeButtons().forEach(button => {
-          button.addEventListener('click', event => {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            cycleThemeMode();
-          }, true);
-        });
-
-        initTemporalTheme();
-
-        function setMobileMenu(open) {
-          if (!mobileMenuPanel) return;
-          mobileMenuPanel.classList.toggle('open', open);
-          mobileMenuPanel.setAttribute('aria-hidden', String(!open));
-        }
-        function runMobileSearch(event) {
-          event?.preventDefault();
-          event?.stopPropagation();
-          const mainInput = byId('searchInput');
-          if (mainInput && mobileSearchInput) mainInput.value = mobileSearchInput.value;
-          setMobileMenu(false);
-          if (typeof window.runSearch === 'function') window.runSearch();
-          else byId('searchButton')?.click();
-        }
-      }
-
-      function initTemporalTheme() {
-        const mode = safeMode(localStorage.getItem(THEME_KEY) || 'auto');
-        localStorage.setItem(THEME_KEY, mode);
-        applyThemeMode(mode);
-        clearInterval(temporalTimer);
-        temporalTimer = window.setInterval(() => {
-          if (safeMode(localStorage.getItem(THEME_KEY) || 'auto') === 'auto') applyThemeMode('auto', false);
-        }, 60_000);
-      }
-
-      function cycleThemeMode() {
-        const current = safeMode(localStorage.getItem(THEME_KEY) || 'auto');
-        const next = MODES[(MODES.indexOf(current) + 1) % MODES.length];
-        localStorage.setItem(THEME_KEY, next);
-        applyThemeMode(next);
-      }
-
-      function applyThemeMode(mode, announce = true) {
-        const resolved = mode === 'auto' ? resolveAutoTheme() : mode;
-        document.body.classList.toggle('dark', resolved === 'dark');
-        document.documentElement.dataset.themeMode = mode;
-        document.documentElement.dataset.themeResolved = resolved;
-        updateThemeButtons(mode, resolved);
-        if (announce) window.dispatchEvent(new CustomEvent('nucleidos-theme-change', { detail: { mode, resolved } }));
-      }
-
-      function updateThemeButtons(mode, resolved) {
-        const iconClass = resolved === 'dark' ? 'moon-icon' : 'sun-icon';
-        themeIcons().forEach(icon => {
-          icon.classList.remove('sun-icon', 'moon-icon', 'auto-icon');
-          icon.classList.add(iconClass);
-          icon.setAttribute('data-mode', mode);
-        });
-        const label = resolved === 'dark' ? 'Modo oscuro' : 'Modo claro';
-        const next = mode === 'auto' ? 'cambiar modo' : 'cambiar modo';
-        themeButtons().forEach(button => {
-          button.title = `${label} · ${mode === 'auto' ? 'automático' : 'manual'}`;
-          button.setAttribute('aria-label', `${label}. Pulsar para ${next}.`);
-        });
-      }
-
-      function resolveAutoTheme() {
-        const hour = new Date().getHours();
-        const solar = getSolarDay(new Date(), DEFAULT_SOLAR_LOCATION);
-        if (Number.isFinite(solar.sunrise) && Number.isFinite(solar.sunset)) {
-          const minutes = new Date().getHours() * 60 + new Date().getMinutes();
-          return minutes < solar.sunrise - 25 || minutes > solar.sunset + 35 ? 'dark' : 'light';
-        }
-        return hour < 7 || hour >= 20 ? 'dark' : 'light';
-      }
-
-      function getSolarDay(date, location) {
-        const day = dayOfYear(date);
-        const gamma = (2 * Math.PI / 365) * (day - 1);
-        const equationOfTime = 229.18 * (0.000075 + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma) - 0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma));
-        const declination = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma) - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma) - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
-        const latitude = toRadians(location.latitude);
-        const zenith = toRadians(SOLAR_ZENITH);
-        const hourAngle = Math.acos(clamp((Math.cos(zenith) / (Math.cos(latitude) * Math.cos(declination))) - Math.tan(latitude) * Math.tan(declination), -1, 1));
-        const hourAngleDegrees = toDegrees(hourAngle);
-        const timezoneOffsetHours = -date.getTimezoneOffset() / 60;
-        return {
-          sunrise: clamp(720 - (4 * (location.longitude + hourAngleDegrees)) - equationOfTime + (timezoneOffsetHours * 60), 0, 1440),
-          sunset: clamp(720 - (4 * (location.longitude - hourAngleDegrees)) - equationOfTime + (timezoneOffsetHours * 60), 0, 1440)
-        };
-      }
-      function dayOfYear(date) { const start = new Date(date.getFullYear(), 0, 0); return Math.floor((date - start + ((start.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000)) / 86400000); }
-      function toRadians(value) { return value * Math.PI / 180; }
-      function toDegrees(value) { return value * 180 / Math.PI; }
-      function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
-
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initNucleidosV22);
-      else initNucleidosV22();
-    })();
-  </script>
+  <script src="nucleidos-ui-loader.js"></script>
 </body>
 </html>
