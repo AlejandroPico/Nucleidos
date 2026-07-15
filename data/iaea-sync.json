@@ -1,0 +1,11 @@
+{
+  "source": "IAEA LiveChart Data Download API",
+  "endpoint": "https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all",
+  "field_group": "ground_states",
+  "records": 3383,
+  "extraction_date": "2023-10-18",
+  "synced_at": null,
+  "sha256": null,
+  "automated": false,
+  "note": "Metadatos iniciales del snapshot ya incluido en el repositorio. El workflow actualizará este archivo después de su primera ejecución correcta."
+}
