@@ -1,4 +1,4 @@
-# Tabla de nucleidos — versión 27
+# Tabla de nucleidos — versión 28
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fundamentales evaluados y una extensión teórica opcional sobre una carta N–Z renderizada en Canvas 2D.
 
@@ -6,165 +6,108 @@ Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fun
 
 - Carta de nucleidos con eje horizontal `N` (neutrones) y eje vertical `Z` (protones).
 - Carga principal desde `nuclides.csv` y respaldo integrado mediante `nuclides-data.js`.
-- Mapas por desintegración, estabilidad, vida media, calidad del dato, abundancia, energía de enlace, Qα y Qβ−.
-- Mapas ampliados: vida media logarítmica, exceso de masa, radio de carga, QEC, S₂n, S₂p, exceso neutrónico y año de descubrimiento.
-- Capas opcionales de nucleidos no observados, isómeros, cuadrícula, números mágicos, frontera nuclear, marco evaluado y minimapa.
-- El minimapa permanece desactivado al iniciar y puede activarse desde Capas.
-- Zoom, desplazamiento, búsqueda, comparación y ficha detallada de cada nucleido.
-- Modelo atómico 3D esquemático en Canvas.
+- Mapas por desintegración, estabilidad, vida media, calidad, abundancia, energía de enlace, Qα y Qβ−.
+- Mapas ampliados por vida media logarítmica, exceso de masa, radio de carga, QEC, S₂n, S₂p, exceso neutrónico y año de descubrimiento.
+- Capas de evaluados, no observados, isómeros, cuadrícula, números mágicos, frontera nuclear, marco evaluado y minimapa.
+- Zoom, desplazamiento, búsqueda, comparación, ficha detallada y modelo atómico 3D esquemático.
+- Guía científica progresiva y laboratorio gráfico inspirado en LiveChart y NuDat 3.
 
-## Correcciones v27
+## Correcciones v28
+
+### Carga directa de la interfaz
+
+Las correcciones operativas esenciales se cargan desde `nucleidos-v28.js` y `nucleidos-v28.css` como archivos normales. No dependen de `DecompressionStream` ni de reconstruir JavaScript comprimido en el navegador.
+
+Los recursos se incluyen con un identificador de versión en `index.html` para evitar que GitHub Pages o el navegador reutilicen una copia antigua.
 
 ### Minimapa
 
-El minimapa se redimensiona después de hacerse visible. La versión anterior inicializaba su bitmap cuando el panel todavía tenía `display: none`, por lo que quedaba con un lienzo interno mínimo y parecía vacío.
+El minimapa permanece desactivado al iniciar. Al activarlo:
 
-La nueva versión añade:
+- se elimina el estado oculto;
+- se espera al siguiente frame para medir su tamaño real;
+- se reconstruye el bitmap interno con la densidad de píxeles correcta;
+- se redibuja después de redimensionar la ventana o cambiar el dataset;
+- permite navegar mediante clic o arrastre.
 
-- reconstrucción automática del bitmap al activar la capa;
-- caché de fondo para evitar redibujar miles de celdas en cada movimiento;
-- rectángulo de la vista actual;
-- navegación mediante clic o arrastre sobre el minimapa;
-- actualización al cambiar mapa, tema, dataset o filtro avanzado.
+El fallo anterior se producía porque el `canvas` se dimensionaba mientras su contenedor tenía `display: none`, por lo que conservaba un bitmap interno prácticamente vacío.
 
-### Carga IAEA
+### Panel de datos
 
-La aplicación utiliza la API v1 oficial de LiveChart:
+La ventana de datos muestra:
 
-```text
-https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all
-```
+- número de registros activos;
+- fecha de extracción indicada por IAEA;
+- fecha de la última sincronización automática;
+- fuente operativa;
+- actualización desde la API oficial;
+- restauración del snapshot almacenado en el repositorio;
+- importación de CSV principal y dataset secundario.
 
-El botón **Actualizar IAEA** aplica una estrategia escalonada:
+El botón **Actualizar IAEA** sigue esta estrategia:
 
-1. intenta descargar directamente desde los dominios oficiales de IAEA;
-2. valida cabecera, campos y número mínimo de registros;
-3. si el navegador bloquea CORS o la respuesta 403, carga el snapshot oficial guardado en `nuclides.csv`;
-4. conserva el dataset anterior si ambas rutas fallan.
+1. intenta consultar los dominios oficiales de LiveChart;
+2. valida cabecera y un mínimo de 3.000 registros;
+3. si el navegador recibe CORS, 403 u otro bloqueo, recarga `nuclides.csv` desde el propio repositorio;
+4. conserva el dataset anterior si ninguna fuente supera la validación.
 
-GitHub Pages no puede establecer el encabezado `User-Agent`, que la documentación de IAEA recomienda como solución para determinados errores 403. Para resolverlo se añade el workflow `.github/workflows/sync-iaea.yml`, que descarga el CSV con `curl`, lo valida y actualiza el snapshot dos veces por semana o mediante ejecución manual.
+La actualización realizada desde el navegador solo existe en memoria hasta recargar la página.
 
-Los metadatos de sincronización se guardan en `data/iaea-sync.json`.
+### Sincronización permanente
+
+GitHub Pages es un alojamiento estático: el JavaScript de la página no puede modificar el repositorio ni crear commits por sí solo.
+
+La actualización permanente se realiza mediante `.github/workflows/sync-iaea.yml`. El workflow:
+
+- prueba `nds.iaea.org` y `www-nds.iaea.org`;
+- utiliza agentes de usuario reales de navegador;
+- abre primero LiveChart para obtener las cookies que pueda requerir el servidor;
+- usa HTTP/1.1, `Referer`, `Accept-Language` y compresión;
+- valida tamaño, cabecera y número de filas antes de reemplazar el snapshot;
+- calcula SHA-256 y escribe `data/iaea-sync.json`;
+- crea un commit solo cuando el dataset cambia;
+- si IAEA vuelve a bloquear el runner, conserva los datos existentes y termina con una advertencia en lugar de destruir la ejecución.
+
+El snapshot sincronizado actualmente contiene 3.386 registros.
 
 ### Menú móvil
 
-- El botón hamburguesa se fuerza a permanecer oculto en escritorio.
-- Solo aparece en pantallas de hasta 700 px.
+- El botón hamburguesa permanece oculto en escritorio.
+- Solo aparece hasta 700 px de anchura.
+- El controlador v28 funciona aunque falle alguno de los módulos comprimidos anteriores.
 - El menú móvil conserva acceso a Guía, Datos, Tema, Capas, Análisis, búsqueda y restablecimiento.
-- Existe un controlador de respaldo si el cargador comprimido de la interfaz avanzada no llega a ejecutarse.
 
-## Laboratorio analítico
+### Laboratorio de respaldo
 
-El nuevo botón de gráfico abre una ventana flotante inspirada en las capacidades analíticas de NuDat 3, sin copiar su interfaz.
+Si el laboratorio avanzado v27 no llega a inicializarse, v28 incorpora un laboratorio directo con:
 
-### Perfiles por Z y N
-
-- Variable seleccionable.
-- Mediana, media, mínimo o máximo por Z/N.
-- Puntos de todos los nucleidos visibles.
-- Banda intercuartílica.
-- Escala lineal o logarítmica.
-- Sincronización con la región visible de la carta.
-- Selección de un nucleido desde el gráfico.
-
-### Cruce de variables
-
-- Dispersión X/Y entre propiedades nucleares.
-- Color por desintegración, calidad del dato, estabilidad o apareamiento.
-- Escalas logarítmicas independientes.
-- Correlación lineal orientativa.
-- Muestreo determinista en dispositivos con pocos recursos.
-
-### Distribución
-
-- Histogramas de cualquier variable numérica disponible.
-- Número de intervalos configurable.
-- Frecuencia lineal o logarítmica.
-- Estadísticas de mínimo, mediana, media y máximo.
-
-### Filtros avanzados
-
-Se pueden combinar:
-
-- rangos de Z, N y A;
-- paridad par/impar de Z y N;
-- clase evaluada, isómera, teórica u otra;
-- modo principal de desintegración;
-- rango numérico de una propiedad seleccionada.
-
-El filtro se aplica al mapa, al minimapa y a los gráficos.
-
-## Propiedades disponibles
-
-El endpoint `ground_states` proporciona, según el nucleido:
-
-- vida media, operadores, unidades e incertidumbres;
-- hasta tres modos de desintegración y ramificaciones;
-- espín y paridad;
-- masa atómica y exceso de masa;
-- energía de enlace;
-- Qβ−, QEC y Qα;
-- Sₙ y Sₚ;
-- abundancia;
-- radio de carga;
-- momentos dipolar magnético y cuadrupolar eléctrico;
-- isospín;
-- año de descubrimiento;
-- fecha de corte y autores ENSDF;
-- fecha de extracción.
-
-S₂n y S₂p se calculan localmente desde masas atómicas evaluadas y se identifican expresamente como magnitudes derivadas.
+- perfil mediano por Z;
+- puntos individuales;
+- histogramas;
+- resumen de mínimo, cuartiles, mediana, media y máximo;
+- propiedades como vida media, enlace, exceso de masa, Qα, Qβ−, QEC, abundancia, radio, N−Z y N/Z.
 
 ## Guía científica
 
-El botón de información abre una guía progresiva de 52 capítulos. Incluye:
+El botón de información abre una guía de 52 capítulos que cubre:
 
-- vocabulario y notación nuclear;
-- lectura de la carta;
+- vocabulario, notación y lectura de la carta;
 - interacción fuerte, Coulomb, radio, capas, magia, espín y apareamiento;
 - masa, defecto de masa, enlace, fórmula semiempírica, separaciones y valores Q;
-- estabilidad, ley exponencial y todos los canales principales de desintegración;
+- estabilidad, ley exponencial y canales de desintegración;
 - niveles, gammas y radiaciones de decaimiento;
 - abundancia, nucleosíntesis, líneas de goteo y predicciones;
 - ENSDF, NUBASE, AME y grupos de la API IAEA;
 - perfiles, dispersión, histogramas, filtros e incertidumbres;
 - aplicaciones y flujo profesional de comprobación y cita.
 
-La guía enlaza a IAEA LiveChart, su API, NuDat 3, ENSDF, NUBASE, AME, ENDF, EXFOR, NSR y NIST.
-
 ## Tema visual
 
 La interfaz dispone de tres modos persistentes:
 
-- **Automático:** icono circular dividido; sigue la preferencia del sistema y una corrección horaria.
-- **Claro:** icono de sol.
-- **Oscuro:** icono de luna.
-
-## Ficha del nucleido
-
-La ficha conserva el diseño compacto e incluye:
-
-- identidad Z, N y A;
-- clase del registro;
-- vida media, abundancia y espín-paridad;
-- modo principal y descendiente probable;
-- masa, exceso de masa, enlace y separaciones;
-- números mágicos;
-- exceso neutrónico `N − Z`;
-- razón `N/Z`;
-- clase de apareamiento;
-- cadena y relaciones estimadas;
-- enlaces oficiales y exportación PNG.
-
-## Rendimiento
-
-- Render principal virtualizado por región visible en Canvas 2D.
-- Un único `requestAnimationFrame` pendiente para el mapa principal.
-- Caché del minimapa.
-- Caché de cuantiles para mapas continuos.
-- Guía renderizada por capítulo, no de una sola vez.
-- Muestreo de dispersión adaptado a memoria, núcleos y ahorro de datos.
-- Compatibilidad con `prefers-reduced-motion`.
+- **Automático:** círculo dividido; sigue la preferencia del sistema y una corrección horaria.
+- **Claro:** sol.
+- **Oscuro:** luna.
 
 ## Controles
 
@@ -179,20 +122,19 @@ La ficha conserva el diseño compacto e incluye:
 
 ## Archivos principales
 
-- `index.html`: estructura accesible de la aplicación.
+- `index.html`: estructura e inclusión versionada de recursos.
 - `styles.css`: estilos base.
-- `app.js`: motor científico, datos, filtros y render Canvas estable.
-- `nucleidos-ui-loader.js`: carga de la interfaz v26 comprimida.
-- `nucleidos-v27.css`: estilos de las correcciones y del laboratorio.
-- `nucleidos-v27.js`: cargador del runtime v27 comprimido.
-- `nucleidos-v27-runtime-*.b64`: minimapa, IAEA, mapas, gráficos, filtros y guía ampliada.
-- `nuclides.csv`: snapshot principal de IAEA.
+- `app.js`: motor científico y render Canvas estable.
+- `nucleidos-ui-loader.js`: interfaz educativa v26.
+- `nucleidos-v27.css` y `nucleidos-v27.js`: laboratorio y guía avanzada.
+- `nucleidos-v28.css` y `nucleidos-v28.js`: integración directa y correcciones operativas.
+- `nuclides.csv`: snapshot principal sincronizado desde IAEA.
 - `nuclides-data.js`: respaldo integrado.
-- `data/iaea-sync.json`: metadatos del snapshot.
+- `data/iaea-sync.json`: metadatos y huella del snapshot.
 - `.github/workflows/sync-iaea.yml`: sincronización oficial automatizada.
 
 ## Alcance científico
 
-El visor ofrece una capa moderna de exploración y análisis sobre estados fundamentales. No replica todavía todos los conjuntos de NuDat 3 y LiveChart: niveles excitados, transiciones gamma, radiaciones de desintegración, espectros beta, secciones eficaces y rendimientos de fisión requieren datasets adicionales y, en una web estática, un proxy o backend con caché y trazabilidad.
+El visor ofrece una capa moderna de exploración y análisis sobre estados fundamentales. Los niveles excitados, transiciones gamma, radiaciones de desintegración, espectros beta, secciones eficaces y rendimientos de fisión pertenecen a conjuntos adicionales de LiveChart, ENSDF, ENDF o EXFOR y deben integrarse con trazabilidad propia.
 
 Los datos evaluados deben citarse mediante sus fuentes originales. Las capas teóricas y las magnitudes calculadas localmente no se presentan como evidencia experimental.
