@@ -3,8 +3,8 @@
   left: -200vw !important;
   top: 70px !important;
   display: grid !important;
-  width: min(860px, calc(100vw - 24px)) !important;
-  height: min(620px, calc(100dvh - 88px)) !important;
+  width: min(1160px, calc(100vw - 24px)) !important;
+  height: min(740px, calc(100dvh - 88px)) !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }

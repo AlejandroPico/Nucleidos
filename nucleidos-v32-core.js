@@ -5,6 +5,7 @@
   api.cardsByUid = new Map();
   api.SAFE_TOP = 70;
   api.activeWindow = null;
+  api.focusOrder = 0;
   api.cascade = 0;
   api.$ = (s, r = document) => r.querySelector(s);
   api.$$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -13,7 +14,8 @@
     minimize: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 11.5h10"/></svg>',
     maximize: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1"/></svg>',
     restore: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="3" width="8" height="8" rx="1"/><path d="M11 11v2H3V5h2"/></svg>',
-    close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>'
+    close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>',
+    compare: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5h10M10 2.5 12.5 5 10 7.5M13.5 11h-10M6 8.5 3.5 11 6 13.5"/></svg>'
   };
 
   api.waitFor = (test, timeout = 20000) => new Promise(resolve => {
@@ -58,7 +60,7 @@
 
   api.normalizeZ = () => {
     const visible = [...windows.values()]
-      .filter(r => r.element.isConnected && !r.minimized && r.element.getAttribute('aria-hidden') !== 'true')
+      .filter(r => api.isVisible(r))
       .sort((a, b) => (a.lastFocus || 0) - (b.lastFocus || 0));
     visible.forEach((record, index) => {
       record.element.style.zIndex = String(760 + index);
@@ -67,12 +69,18 @@
   };
 
   api.focus = record => {
-    if (!record || !record.element.isConnected || record.minimized || record.element.getAttribute('aria-hidden') === 'true') return;
+    if (!record || !api.isVisible(record)) return;
     api.activeWindow = record;
-    record.lastFocus = performance.now();
+    record.lastFocus = ++api.focusOrder;
     api.normalizeZ();
     if (record.type === 'card') api.setSelected(record.nuclide);
   };
+
+  api.isVisible = record => Boolean(record
+    && record.element.isConnected
+    && !record.minimized
+    && record.element.getAttribute('aria-hidden') !== 'true'
+    && (record.type !== 'graph' || record.element.classList.contains('open')));
 
   api.geometry = element => {
     const r = element.getBoundingClientRect();
@@ -166,6 +174,10 @@
       windows.delete(record.id);
       api.cardsByUid.delete(record.nuclide.uid);
       record.element.remove();
+    } else if (record.removeOnClose) {
+      windows.delete(record.id);
+      record.element.remove();
+      record.onClose?.(record);
     } else {
       record.element.querySelector('[data-close-profile]')?.click();
       record.element.classList.remove('window-minimized-v32', 'window-maximized-v32', 'window-active-v32');
@@ -175,7 +187,7 @@
     }
     if (api.activeWindow === record) api.activeWindow = null;
     const next = [...windows.values()]
-      .filter(r => r.element.isConnected && !r.minimized && r.element.getAttribute('aria-hidden') !== 'true')
+      .filter(r => api.isVisible(r))
       .sort((a, b) => (b.lastFocus || 0) - (a.lastFocus || 0))[0];
     if (next) api.focus(next);
     const selectedCard = next?.type === 'card' ? next : [...api.cardsByUid.values()].sort((a, b) => (b.lastFocus || 0) - (a.lastFocus || 0))[0];
@@ -184,6 +196,15 @@
 
   api.controls = record => {
     const nav = document.createElement('nav'); nav.className = 'window-controls-v32';
+    if (record.type === 'card') {
+      const compare = api.makeButton('compare', 'Añadir al comparador', api.icons.compare);
+      compare.addEventListener('click', e => {
+        e.stopPropagation();
+        api.focus(record);
+        api.addToComparator?.(record.nuclide);
+      });
+      nav.append(compare);
+    }
     const min = api.makeButton('minimize', 'Minimizar', api.icons.minimize);
     const max = api.makeButton('maximize', 'Maximizar', api.icons.maximize);
     const close = api.makeButton('close', 'Cerrar', api.icons.close);
@@ -196,11 +217,12 @@
   api.register = (element, type, title, data = {}) => {
     const id = data.id || `${type}-${Math.random().toString(36).slice(2)}`;
     if (windows.has(id)) return windows.get(id);
-    const record = { id, element, type, title, minimized: false, maximized: false, lastFocus: performance.now(), ...data };
+    const record = { id, element, type, title, minimized: false, maximized: false, lastFocus: ++api.focusOrder, ...data };
     windows.set(id, record);
     element.dataset.v32Window = id;
     element.classList.add('managed-window-v32');
-    element.addEventListener('pointerdown', () => queueMicrotask(() => api.focus(record)));
+    // Captura el foco antes de que los lienzos interactivos puedan detener el evento.
+    element.addEventListener('pointerdown', () => api.focus(record), true);
     return record;
   };
 

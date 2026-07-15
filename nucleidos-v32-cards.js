@@ -34,7 +34,8 @@
     clone.querySelector('[data-v32-source-id="addCompareButton"]')?.addEventListener('click', event => {
       event.stopPropagation();
       api.setSelected(record.nuclide);
-      if (typeof addSelectedToCompare === 'function') addSelectedToCompare();
+      if (typeof api.addToComparator === 'function') api.addToComparator(record.nuclide);
+      else if (typeof addSelectedToCompare === 'function') addSelectedToCompare();
     });
     clone.querySelector('[data-v32-source-id="exportCardButton"]')?.addEventListener('click', event => {
       event.stopPropagation();
@@ -44,6 +45,72 @@
       api.templateCard.classList.remove('open', 'v32-template-rendering');
       if (typeof exportSelectedCardPng === 'function') exportSelectedCardPng();
     });
+  }
+
+  function installAtomAnimation(clone, record) {
+    const canvas = clone.querySelector('[data-v32-source-id="atomCanvas"]');
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+    record.atomCanvas = canvas;
+    record.atomState = typeof buildAtomState === 'function' ? buildAtomState(record.nuclide) : null;
+    record.atomAnimationEnabled = true;
+    record.atomFrame = performance.now() * .001;
+    canvas.classList.remove('paused');
+    canvas.title = 'Pulsar para pausar o reanudar la animación 3D';
+    canvas.addEventListener('click', event => {
+      event.stopPropagation();
+      record.atomAnimationEnabled = !record.atomAnimationEnabled;
+      if (!record.atomAnimationEnabled) record.atomFrame = performance.now() * .001;
+      canvas.classList.toggle('paused', !record.atomAnimationEnabled);
+      canvas.setAttribute('aria-label', record.atomAnimationEnabled
+        ? 'Simulación atómica 3D en movimiento'
+        : 'Simulación atómica 3D pausada');
+    });
+  }
+
+  function startAtomRenderer() {
+    if (api.atomRendererStarted) return;
+    api.atomRendererStarted = true;
+    const render = time => {
+      const source = api.templateCard?.querySelector('#atomCanvas');
+      const visible = [...api.cardsByUid.values()].filter(record =>
+        record.atomCanvas?.isConnected
+        && !record.minimized
+        && record.element.getAttribute('aria-hidden') !== 'true'
+      );
+      if (source instanceof HTMLCanvasElement && visible.length
+        && typeof state !== 'undefined' && typeof drawAtom === 'function') {
+        const saved = {
+          atom: state.atom,
+          animationEnabled: state.animationEnabled,
+          atomFrame: state.atomFrame
+        };
+        for (const record of visible) {
+          if (!record.atomState) continue;
+          state.atom = record.atomState;
+          state.animationEnabled = record.atomAnimationEnabled;
+          state.atomFrame = record.atomFrame;
+          drawAtom(time);
+          record.atomFrame = state.atomFrame;
+          const target = record.atomCanvas;
+          const rect = target.getBoundingClientRect();
+          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const width = Math.max(300, Math.floor(rect.width * dpr));
+          const height = Math.max(260, Math.floor(rect.height * dpr));
+          if (target.width !== width || target.height !== height) {
+            target.width = width;
+            target.height = height;
+          }
+          const context = target.getContext('2d');
+          context.clearRect(0, 0, width, height);
+          context.drawImage(source, 0, 0, width, height);
+        }
+        state.atom = saved.atom;
+        state.animationEnabled = saved.animationEnabled;
+        state.atomFrame = saved.atomFrame;
+      }
+      requestAnimationFrame(render);
+    };
+    requestAnimationFrame(render);
   }
 
   api.createCard = nuclide => {
@@ -78,12 +145,13 @@
     header.appendChild(api.controls(record));
     clone.insertBefore(header, clone.firstChild);
     document.body.appendChild(clone);
-    api.applyGeometry(clone, api.safeGeometry());
+    api.applyGeometry(clone, api.safeGeometry(1160, 740));
     api.drag(record, header);
     api.resizeHandles(record, 420, 300);
     localTabs(clone);
     cardActions(clone, record);
     copyCanvas(sourceAtom, clone, 'atomCanvas');
+    installAtomAnimation(clone, record);
     api.cardsByUid.set(nuclide.uid, record);
     api.focus(record);
     return record;
@@ -116,6 +184,7 @@
     window.closeNuclideCard = closeActiveCard;
     try { selectNuclide = multiSelect; } catch (_) {}
     try { closeNuclideCard = closeActiveCard; } catch (_) {}
+    startAtomRenderer();
     return true;
   };
 })();

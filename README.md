@@ -1,4 +1,4 @@
-# Tabla de nucleidos — versión 28
+# Tabla de nucleidos — versión 32.1
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fundamentales evaluados y una extensión teórica opcional sobre una carta N–Z renderizada en Canvas 2D.
 
@@ -11,6 +11,16 @@ Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fun
 - Capas de evaluados, no observados, isómeros, cuadrícula, números mágicos, frontera nuclear, marco evaluado y minimapa.
 - Zoom, desplazamiento, búsqueda, comparación, ficha detallada y modelo atómico 3D esquemático.
 - Guía científica progresiva y laboratorio gráfico inspirado en LiveChart y NuDat 3.
+
+## Novedades v32.1
+
+- Cada nucleido se abre en una ficha independiente, movible y redimensionable, con el tamaño amplio de hasta 1160 × 740 px.
+- Las fichas y los perfiles por Z/N comparten un único orden de profundidad: la última ventana pulsada pasa al frente.
+- Minimizar conserva el estado y envía la ventana a la bandeja inferior; maximizar respeta la barra principal.
+- Cada ficha mantiene su propia animación 3D, activa al abrir y pausable mediante clic sobre el modelo.
+- El icono de comparación de la cabecera añade el nucleido a un comparador único sin límite artificial.
+- El comparador separa Resumen, Todos los datos, Datos oficiales y Gráfica; la pestaña oficial incluye la unión completa de columnas originales de los CSV.
+- La gráfica comparativa admite magnitudes normalizadas o columnas oficiales numéricas y escalas lineal o logarítmica.
 
 ## Correcciones v28
 
@@ -128,6 +138,10 @@ La interfaz dispone de tres modos persistentes:
 - `nucleidos-ui-loader.js`: interfaz educativa v26.
 - `nucleidos-v27.css` y `nucleidos-v27.js`: laboratorio y guía avanzada.
 - `nucleidos-v28.css` y `nucleidos-v28.js`: integración directa y correcciones operativas.
+- `nucleidos-v32-core.js`: gestión común de foco, profundidad, arrastre, tamaño y bandeja.
+- `nucleidos-v32-cards.js`: fichas múltiples y animaciones 3D independientes.
+- `nucleidos-v32-compare.js`: comparador tabular y gráfico sin límite de nucleidos.
+- `nucleidos-v32.css`: estilos de ventanas y del comparador.
 - `nuclides.csv`: snapshot principal sincronizado desde IAEA.
 - `nuclides-data.js`: respaldo integrado.
 - `data/iaea-sync.json`: metadatos y huella del snapshot.
