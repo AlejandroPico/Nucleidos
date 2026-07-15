@@ -47,16 +47,21 @@ jobs:
             nucleidos-v28.js
             nucleidos-v29.css
             nucleidos-v29.js
+            nucleidos-v30.css
+            nucleidos-v30.js
           )
           for path in "${required[@]}"; do
             test -s "$path" || { echo "Missing or empty required file: $path" >&2; exit 1; }
           done
           grep -q 'nucleidos-v28.css' index.html
           grep -q 'nucleidos-v28.js' index.html
-          grep -q 'nucleidos-v29.css' nucleidos-v28.css
-          grep -q 'nucleidos-v29.js' nucleidos-v28.js
+          grep -q 'nucleidos-v30.css' nucleidos-v28.css
+          grep -q 'nucleidos-v30.js' nucleidos-v28.js
+          grep -q 'nucleidos-v29.css' nucleidos-v30.css
+          grep -q 'nucleidos-v29.js' nucleidos-v30.js
           node --check app.js
           node --check nucleidos-v29.js
+          node --check nucleidos-v30.js
           echo "Publishing commit $(git rev-parse HEAD)"
 
       - name: Configure GitHub Pages
