@@ -1,0 +1,90 @@
+name: Sync IAEA LiveChart ground states
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 2,5'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-iaea-ground-states
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download official IAEA CSV
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint='https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all'
+          curl --fail --location --retry 4 --retry-delay 4 --connect-timeout 20 --max-time 240 \
+            --user-agent 'Mozilla/5.0 (compatible; NucleidosDataSync/1.0; +https://github.com/AlejandroPico/Nucleidos)' \
+            --header 'Accept: text/csv,text/plain;q=0.9,*/*;q=0.8' \
+            "$endpoint" --output /tmp/nuclides.csv
+
+      - name: Validate and describe dataset
+        shell: python
+        run: |
+          import csv
+          import hashlib
+          import json
+          from collections import Counter
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          source = Path('/tmp/nuclides.csv')
+          if not source.exists() or source.stat().st_size < 500_000:
+              raise SystemExit('The IAEA response is unexpectedly small.')
+
+          with source.open('r', encoding='utf-8-sig', newline='') as handle:
+              reader = csv.DictReader(handle)
+              required = {'z', 'n', 'symbol', 'half_life', 'atomic_mass'}
+              fields = set(reader.fieldnames or [])
+              missing = required - fields
+              if missing:
+                  raise SystemExit(f'Missing required fields: {sorted(missing)}')
+              rows = list(reader)
+
+          if len(rows) < 3000:
+              raise SystemExit(f'Only {len(rows)} rows were returned; refusing to replace the snapshot.')
+
+          extraction_dates = Counter((row.get('Extraction_date') or '').strip() for row in rows)
+          extraction_dates.pop('', None)
+          extraction_date = extraction_dates.most_common(1)[0][0] if extraction_dates else None
+
+          Path('nuclides.csv').write_bytes(source.read_bytes())
+          metadata = {
+              'source': 'IAEA LiveChart Data Download API',
+              'endpoint': 'https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all',
+              'field_group': 'ground_states',
+              'records': len(rows),
+              'extraction_date': extraction_date,
+              'synced_at': datetime.now(timezone.utc).isoformat(),
+              'sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
+              'automated': True
+          }
+          Path('data').mkdir(exist_ok=True)
+          Path('data/iaea-sync.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(metadata, ensure_ascii=False, indent=2))
+
+      - name: Commit changes when the official snapshot changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- nuclides.csv data/iaea-sync.json; then
+            echo 'No dataset changes detected.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add nuclides.csv data/iaea-sync.json
+          git commit -m 'Actualizar snapshot IAEA LiveChart'
+          git push
