@@ -1,8 +1,11 @@
 (() => {
   'use strict';
 
-  const id = 'nucleidos-v31-runtime';
-  if (document.getElementById(id)) return;
+  const loaderId = 'nucleidos-v32-loader';
+  if (document.getElementById(loaderId)) return;
+  const marker = document.createElement('meta');
+  marker.id = loaderId;
+  document.head.appendChild(marker);
 
   const NativeMutationObserver = window.MutationObserver;
 
@@ -10,62 +13,37 @@
     if (!NativeMutationObserver || window.MutationObserver?.__nucleidosV31Guard) return;
 
     class GuardedMutationObserver {
-      constructor(callback) {
-        this.observer = new NativeMutationObserver(callback);
-      }
-
+      constructor(callback) { this.observer = new NativeMutationObserver(callback); }
       observe(target, options = {}) {
-        const isProblematicCardObserver = target?.id === 'nuclideCard'
+        const problematic = target?.id === 'nuclideCard'
           && options.subtree === true
           && options.childList === true
           && options.characterData === true;
-
-        if (!isProblematicCardObserver) {
+        if (!problematic) {
           this.observer.observe(target, options);
           return;
         }
-
-        // La v31 observaba toda la ficha y, dentro del callback, volvía a
-        // escribir el subtítulo de la propia ficha. Esa escritura generaba
-        // otra mutación y provocaba un ciclo de microtareas sin fin.
-        // Solo se observan ahora los tres campos que realmente alimentan el
-        // subtítulo; el subtítulo generado queda fuera del área observada.
         const sources = ['detailSymbol', 'detailA', 'detailName']
-          .map(fieldId => target.querySelector(`#${fieldId}`))
+          .map(id => target.querySelector(`#${id}`))
           .filter(Boolean);
-
         if (!sources.length) {
           this.observer.observe(target, { childList: true, subtree: false });
           return;
         }
-
         for (const source of sources) {
-          this.observer.observe(source, {
-            childList: true,
-            subtree: true,
-            characterData: true
-          });
+          this.observer.observe(source, { childList: true, subtree: true, characterData: true });
         }
       }
-
-      disconnect() {
-        this.observer.disconnect();
-      }
-
-      takeRecords() {
-        return this.observer.takeRecords();
-      }
+      disconnect() { this.observer.disconnect(); }
+      takeRecords() { return this.observer.takeRecords(); }
     }
 
     GuardedMutationObserver.__nucleidosV31Guard = true;
-    GuardedMutationObserver.NativeMutationObserver = NativeMutationObserver;
     window.MutationObserver = GuardedMutationObserver;
   }
 
   function restoreNativeMutationObserver() {
-    if (window.MutationObserver?.__nucleidosV31Guard) {
-      window.MutationObserver = NativeMutationObserver;
-    }
+    if (window.MutationObserver?.__nucleidosV31Guard) window.MutationObserver = NativeMutationObserver;
   }
 
   function installIntegrationGuards() {
@@ -93,7 +71,6 @@
       const legacy = document.getElementById('nuclearOverlayLayerV29');
       if (legacy) legacy.style.setProperty('z-index', '70', 'important');
     };
-
     normalizeLayers();
     const observer = new NativeMutationObserver(normalizeLayers);
     observer.observe(document.body, { childList: true, subtree: true });
@@ -117,29 +94,47 @@
     }, true);
   }
 
-  installMutationObserverGuard();
+  function loadScript(id, src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.getElementById(id);
+      if (existing) {
+        if (existing.dataset.loaded === '1') resolve();
+        else {
+          existing.addEventListener('load', resolve, { once: true });
+          existing.addEventListener('error', reject, { once: true });
+        }
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = id;
+      script.src = src;
+      script.async = false;
+      script.addEventListener('load', () => { script.dataset.loaded = '1'; resolve(); }, { once: true });
+      script.addEventListener('error', reject, { once: true });
+      document.body.appendChild(script);
+    });
+  }
 
-  const script = document.createElement('script');
-  script.id = id;
-  script.src = 'nucleidos-v31.js?v=31.0.2';
-  script.async = false;
-  script.addEventListener('load', () => {
-    document.documentElement.dataset.nucleidosRuntime = '31.0.0';
-    installIntegrationGuards();
-
-    // Los observadores creados durante la inicialización conservan ya la
-    // configuración segura. Se restaura el constructor nativo para no afectar
-    // a módulos que puedan cargarse posteriormente.
-    setTimeout(restoreNativeMutationObserver, 30000);
-  });
-  script.addEventListener('error', () => {
-    restoreNativeMutationObserver();
-    console.error('[Nucleidos v31] No se pudo cargar nucleidos-v31.js');
-    const status = document.getElementById('dataStatus');
-    if (status) {
-      status.textContent = 'No se pudo cargar la interfaz v31. Revisa la publicación de GitHub Pages.';
-      status.dataset.state = 'error';
+  async function boot() {
+    try {
+      installMutationObserverGuard();
+      await loadScript('nucleidos-v31-runtime', 'nucleidos-v31.js?v=31.0.2');
+      installIntegrationGuards();
+      await loadScript('nucleidos-v32-core', 'nucleidos-v32-core.js?v=32.0.0');
+      await loadScript('nucleidos-v32-cards', 'nucleidos-v32-cards.js?v=32.0.0');
+      await loadScript('nucleidos-v32-init', 'nucleidos-v32-init.js?v=32.0.0');
+      setTimeout(restoreNativeMutationObserver, 30000);
+    } catch (error) {
+      restoreNativeMutationObserver();
+      console.error('[Nucleidos v32] No se pudo cargar la interfaz.', error);
+      const status = document.getElementById('dataStatus');
+      if (status) {
+        status.textContent = 'No se pudo cargar la interfaz v32. Revisa la publicación de GitHub Pages.';
+        status.dataset.state = 'error';
+      }
     }
-  });
-  document.body.appendChild(script);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
 })();
