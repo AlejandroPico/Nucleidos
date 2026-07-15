@@ -5,10 +5,9 @@ on:
   schedule:
     - cron: '17 4 * * 2,5'
   push:
-    branches:
-      - main
     paths:
-      - '.github/iaea-sync-trigger'
+      - '.github/workflows/sync-iaea.yml'
+      - 'data/iaea-refresh-request.txt'
 
 permissions:
   contents: write
@@ -26,21 +25,92 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download official IAEA CSV
+        id: download
         shell: bash
         run: |
-          set -euo pipefail
-          endpoint='https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all'
-          curl --fail --location --retry 4 --retry-delay 4 --connect-timeout 20 --max-time 240 \
-            --user-agent 'Mozilla/5.0 (compatible; NucleidosDataSync/1.0; +https://github.com/AlejandroPico/Nucleidos)' \
-            --header 'Accept: text/csv,text/plain;q=0.9,*/*;q=0.8' \
-            "$endpoint" --output /tmp/nuclides.csv
+          set -uo pipefail
+
+          urls=(
+            'https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all'
+            'https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all'
+          )
+          user_agents=(
+            'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0'
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+          )
+
+          rm -f /tmp/nuclides.csv /tmp/candidate.csv /tmp/iaea-cookies.txt
+          success='false'
+          selected_url=''
+          attempts=''
+
+          for url in "${urls[@]}"; do
+            origin="${url%%/relnsd/*}"
+            for ua in "${user_agents[@]}"; do
+              curl --silent --show-error --location --http1.1 --compressed \
+                --connect-timeout 20 --max-time 60 \
+                --user-agent "$ua" \
+                --header 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' \
+                --header 'Accept-Language: en-US,en;q=0.8' \
+                --cookie-jar /tmp/iaea-cookies.txt \
+                "$origin/relnsd/vcharthtml/VChartHTML.html" \
+                --output /dev/null || true
+
+              http_code=$(curl --silent --show-error --location --http1.1 --compressed \
+                --retry 3 --retry-delay 5 --retry-all-errors \
+                --connect-timeout 20 --max-time 240 \
+                --user-agent "$ua" \
+                --header 'Accept: text/csv,text/plain;q=0.9,*/*;q=0.8' \
+                --header 'Accept-Language: en-US,en;q=0.8' \
+                --header "Referer: $origin/relnsd/vcharthtml/VChartHTML.html" \
+                --cookie /tmp/iaea-cookies.txt \
+                --cookie-jar /tmp/iaea-cookies.txt \
+                --write-out '%{http_code}' \
+                --output /tmp/candidate.csv \
+                "$url" || true)
+
+              size=$(wc -c < /tmp/candidate.csv 2>/dev/null || echo 0)
+              attempts+="${url} -> HTTP ${http_code}, ${size} bytes\n"
+
+              if [[ "$http_code" =~ ^2[0-9][0-9]$ ]] && [[ "$size" -gt 500000 ]]; then
+                header=$(head -n 1 /tmp/candidate.csv | tr -d '\r' | tr '[:upper:]' '[:lower:]')
+                if [[ "$header" == *'z,n,symbol'* ]] && [[ "$header" == *'half_life'* ]] && [[ "$header" == *'atomic_mass'* ]]; then
+                  cp /tmp/candidate.csv /tmp/nuclides.csv
+                  success='true'
+                  selected_url="$url"
+                  break 2
+                fi
+              fi
+            done
+          done
+
+          printf '%b' "$attempts"
+          echo "downloaded=$success" >> "$GITHUB_OUTPUT"
+          echo "source_url=$selected_url" >> "$GITHUB_OUTPUT"
+
+          if [[ "$success" != 'true' ]]; then
+            echo '::warning title=IAEA bloqueó la descarga::La API oficial devolvió 403 o una respuesta no válida desde el runner. Se conserva el snapshot actual y el workflow termina correctamente.'
+            {
+              echo '### Sincronización IAEA no aplicada'
+              echo
+              echo 'La API oficial bloqueó o rechazó las peticiones realizadas desde el runner de GitHub. No se ha reemplazado `nuclides.csv`.'
+              echo
+              echo '```text'
+              printf '%b' "$attempts"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Validate and describe dataset
+        if: steps.download.outputs.downloaded == 'true'
         shell: python
+        env:
+          SOURCE_URL: ${{ steps.download.outputs.source_url }}
         run: |
           import csv
           import hashlib
           import json
+          import os
           from collections import Counter
           from datetime import datetime, timezone
           from pathlib import Path
@@ -64,23 +134,26 @@ jobs:
           extraction_dates = Counter((row.get('Extraction_date') or '').strip() for row in rows)
           extraction_dates.pop('', None)
           extraction_date = extraction_dates.most_common(1)[0][0] if extraction_dates else None
+          payload = source.read_bytes()
 
-          Path('nuclides.csv').write_bytes(source.read_bytes())
+          Path('nuclides.csv').write_bytes(payload)
           metadata = {
               'source': 'IAEA LiveChart Data Download API',
-              'endpoint': 'https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all',
+              'endpoint': os.environ.get('SOURCE_URL') or 'https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all',
               'field_group': 'ground_states',
               'records': len(rows),
               'extraction_date': extraction_date,
               'synced_at': datetime.now(timezone.utc).isoformat(),
-              'sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
-              'automated': True
+              'sha256': hashlib.sha256(payload).hexdigest(),
+              'automated': True,
+              'status': 'updated'
           }
           Path('data').mkdir(exist_ok=True)
           Path('data/iaea-sync.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           print(json.dumps(metadata, ensure_ascii=False, indent=2))
 
       - name: Commit changes when the official snapshot changed
+        if: steps.download.outputs.downloaded == 'true'
         shell: bash
         run: |
           set -euo pipefail
