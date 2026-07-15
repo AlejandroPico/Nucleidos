@@ -39,8 +39,9 @@
     clone.querySelector('[data-v32-source-id="exportCardButton"]')?.addEventListener('click', event => {
       event.stopPropagation();
       api.setSelected(record.nuclide);
+      api.templateCard.classList.add('v32-template-rendering');
       api.originalSelect(record.nuclide);
-      api.templateCard.classList.remove('open');
+      api.templateCard.classList.remove('open', 'v32-template-rendering');
       if (typeof exportSelectedCardPng === 'function') exportSelectedCardPng();
     });
   }
@@ -53,8 +54,9 @@
       return existing;
     }
 
+    api.templateCard.classList.add('v32-template-rendering');
     api.originalSelect(nuclide);
-    api.templateCard.classList.remove('open');
+    api.templateCard.classList.remove('open', 'v32-template-rendering');
     api.templateCard.setAttribute('aria-hidden', 'true');
 
     const sourceAtom = api.$('#atomCanvas', api.templateCard);
