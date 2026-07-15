@@ -52,6 +52,7 @@ jobs:
             nucleidos-v31.css
             nucleidos-v31.js
             nucleidos-v32.css
+            nucleidos-v32-patch.css
             nucleidos-v32-core.js
             nucleidos-v32-cards.js
             nucleidos-v32-init.js
@@ -62,6 +63,7 @@ jobs:
           grep -q 'nucleidos-v28.css' index.html
           grep -q 'nucleidos-v28.js' index.html
           grep -q 'nucleidos-v32.css' nucleidos-v28.css
+          grep -q 'nucleidos-v32-patch.css' nucleidos-v28.css
           grep -q 'nucleidos-v31.css' nucleidos-v32.css
           grep -q 'nucleidos-v32-core.js' nucleidos-v28.js
           grep -q 'nucleidos-v32-cards.js' nucleidos-v28.js
