@@ -20,9 +20,12 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Download official IAEA CSV
         id: download
@@ -89,7 +92,7 @@ jobs:
           echo "source_url=$selected_url" >> "$GITHUB_OUTPUT"
 
           if [[ "$success" != 'true' ]]; then
-            echo '::warning title=IAEA bloqueó la descarga::La API oficial devolvió 403 o una respuesta no válida desde el runner. Se conserva el snapshot actual y el workflow termina correctamente.'
+            echo '::warning title=IAEA bloqueó la descarga::La API oficial devolvió 403 o una respuesta no válida. Se conserva el snapshot actual y el workflow termina correctamente.'
             {
               echo '### Sincronización IAEA no aplicada'
               echo
@@ -101,7 +104,7 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Validate and describe dataset
+      - name: Validate and prepare dataset
         if: steps.download.outputs.downloaded == 'true'
         shell: python
         env:
@@ -136,7 +139,6 @@ jobs:
           extraction_date = extraction_dates.most_common(1)[0][0] if extraction_dates else None
           payload = source.read_bytes()
 
-          Path('nuclides.csv').write_bytes(payload)
           metadata = {
               'source': 'IAEA LiveChart Data Download API',
               'endpoint': os.environ.get('SOURCE_URL') or 'https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all',
@@ -148,21 +150,44 @@ jobs:
               'automated': True,
               'status': 'updated'
           }
-          Path('data').mkdir(exist_ok=True)
-          Path('data/iaea-sync.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          Path('/tmp/iaea-sync.json').write_text(
+              json.dumps(metadata, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8'
+          )
           print(json.dumps(metadata, ensure_ascii=False, indent=2))
 
-      - name: Commit changes when the official snapshot changed
+      - name: Commit validated snapshot without losing concurrent changes
         if: steps.download.outputs.downloaded == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- nuclides.csv data/iaea-sync.json; then
-            echo 'No dataset changes detected.'
-            exit 0
-          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add nuclides.csv data/iaea-sync.json
-          git commit -m 'Actualizar snapshot IAEA LiveChart'
-          git push
+
+          for attempt in 1 2 3 4; do
+            echo "Push attempt ${attempt}/4"
+            git fetch origin main
+            git reset --hard origin/main
+
+            cp /tmp/nuclides.csv nuclides.csv
+            mkdir -p data
+            cp /tmp/iaea-sync.json data/iaea-sync.json
+            git add nuclides.csv data/iaea-sync.json
+
+            if git diff --cached --quiet; then
+              echo 'No dataset changes detected.'
+              exit 0
+            fi
+
+            git commit -m 'Actualizar snapshot IAEA LiveChart'
+            if git push origin HEAD:main; then
+              echo 'Snapshot IAEA committed successfully.'
+              exit 0
+            fi
+
+            echo "Remote main changed during the update; retrying from the latest origin/main."
+            sleep $((attempt * 3))
+          done
+
+          echo 'Could not push the validated snapshot after four attempts.' >&2
+          exit 1
