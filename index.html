@@ -9,7 +9,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="nucleidos-v27.css" />
+  <link rel="stylesheet" href="nucleidos-v27.css?v=27" />
+  <link rel="stylesheet" href="nucleidos-v28.css?v=28" />
 </head>
 <body>
   <main id="app" aria-label="Visor interactivo de tabla de nucleidos">
@@ -167,7 +168,7 @@
           <p><strong>Vida media:</strong> <code>half_life</code>, <code>operator_hl</code>, <code>unit_hl</code> y <code>half_life_sec</code>.</p>
           <p><strong>Desintegración:</strong> <code>decay_1</code>, <code>decay_1_%</code>, <code>decay_2</code> y <code>decay_3</code>.</p>
           <p><strong>Masas y energías:</strong> <code>atomic_mass</code>, <code>massexcess</code>, <code>binding</code>, <code>qa</code>, <code>qec</code>, <code>qbm</code>, <code>sn</code> y <code>sp</code>.</p>
-          <p><strong>Calidad:</strong> <code>data_class</code>, <code>quality</code> o <code>source_type</code>.</p>
+          <p><strong>Calidad / fuente:</strong> <code>data_class</code>, <code>quality</code>, <code>source_type</code>, <code>discovery</code> y campos ENSDF.</p>
         </div>
       </section>
     </div>
@@ -175,7 +176,7 @@
     <div id="legendPopover" class="legend-popover popover" aria-hidden="true">
       <section class="popover-section compact-section">
         <h2>Mapa</h2>
-        <div id="legendModes" class="legend-modes" aria-label="Modo de color de la tabla"></div>
+        <div id="legendModes" class="legend-modes"></div>
       </section>
       <section class="popover-section compact-section">
         <h2>Filtros</h2>
@@ -318,7 +319,8 @@
 
   <script src="nuclides-data.js"></script>
   <script src="app.js"></script>
-  <script src="nucleidos-ui-loader.js"></script>
-  <script src="nucleidos-v27.js"></script>
+  <script src="nucleidos-ui-loader.js?v=26"></script>
+  <script src="nucleidos-v27.js?v=27"></script>
+  <script src="nucleidos-v28.js?v=28"></script>
 </body>
 </html>
