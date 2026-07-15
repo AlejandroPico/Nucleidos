@@ -8,6 +8,7 @@ on:
   workflow_run:
     workflows:
       - Sync IAEA LiveChart ground states
+      - Materialize Nucleidos v29 runtime
     types:
       - completed
 
@@ -45,12 +46,18 @@ jobs:
             nucleidos-v27.js
             nucleidos-v28.css
             nucleidos-v28.js
+            nucleidos-v29.css
+            nucleidos-v29.js
           )
           for path in "${required[@]}"; do
             test -s "$path" || { echo "Missing or empty required file: $path" >&2; exit 1; }
           done
           grep -q 'nucleidos-v28.css' index.html
           grep -q 'nucleidos-v28.js' index.html
+          grep -q 'nucleidos-v29.css' nucleidos-v28.css
+          grep -q 'nucleidos-v29.js' nucleidos-v28.js
+          node --check app.js
+          node --check nucleidos-v29.js
           echo "Publishing commit $(git rev-parse HEAD)"
 
       - name: Configure GitHub Pages
