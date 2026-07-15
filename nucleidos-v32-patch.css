@@ -1,0 +1,15 @@
+#nuclideCard[data-v32-template="1"].v32-template-rendering {
+  position: fixed !important;
+  left: -200vw !important;
+  top: 70px !important;
+  display: grid !important;
+  width: min(860px, calc(100vw - 24px)) !important;
+  height: min(620px, calc(100dvh - 88px)) !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.managed-window-v32 > .resize-handles-v31,
+.managed-window-v32 > .profile-resize-v30 {
+  display: none !important;
+}
