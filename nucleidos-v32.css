@@ -1,0 +1,218 @@
+@import url('./nucleidos-v31.css?v=31.0.1');
+
+:root { --window-safe-top-v32: 70px; --window-z-v32: 760; }
+
+#nuclideCard[data-v32-template="1"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.managed-window-v32 {
+  isolation: isolate;
+  z-index: var(--window-z-v32);
+  overflow: hidden;
+  border: 1px solid var(--line) !important;
+  border-radius: 18px !important;
+  background: var(--panel-solid) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .22), var(--shadow) !important;
+  transition: box-shadow .12s ease, border-color .12s ease;
+}
+
+.managed-window-v32.window-active-v32 {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--line)) !important;
+  box-shadow: 0 20px 58px rgba(0, 0, 0, .27), 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent) !important;
+  outline: 0 !important;
+}
+
+.window-header-v32,
+.profile-dock-v29.managed-window-v32 > header {
+  position: relative;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 43px;
+  padding: 7px 8px 7px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-solid);
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+.window-title-v32,
+.profile-dock-v29.managed-window-v32 > header > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.window-title-v32 strong,
+.window-title-v32 span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.window-title-v32 strong { color: var(--ink); font-size: 11px; font-weight: 950; }
+.window-title-v32 span { margin-top: 2px; color: var(--muted); font-size: 8.5px; font-weight: 720; }
+
+.window-controls-v32 {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.window-action-v32 {
+  display: inline-grid;
+  place-items: center;
+  width: 29px;
+  height: 28px;
+  min-width: 29px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 7px;
+  background: transparent !important;
+  color: var(--ink);
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.window-action-v32:hover,
+.window-action-v32:focus-visible {
+  background: color-mix(in srgb, var(--ink) 7%, transparent) !important;
+  outline: none;
+}
+
+.window-close-v32:hover,
+.window-close-v32:focus-visible {
+  background: color-mix(in srgb, #d94343 16%, transparent) !important;
+  color: #c72f2f;
+}
+
+.window-action-v32 svg {
+  width: 15px;
+  height: 15px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.legacy-window-controls-v32,
+.managed-window-v32 .card-window-bar-v31,
+.managed-window-v32 > .card-close,
+.managed-window-v32 .profile-window-controls-v30,
+.managed-window-v32 > header > [data-close-profile] { display: none !important; }
+
+.nuclide-card-window-v32 {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 420px;
+  min-height: 300px;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: none !important;
+}
+
+.nuclide-card-window-v32 > .window-header-v32 { grid-column: 1 / -1; grid-row: 1; }
+.nuclide-card-window-v32 > .card-info,
+.nuclide-card-window-v32 > .atom-panel { min-height: 0; overflow: auto; }
+.nuclide-card-window-v32 > .card-info { grid-column: 1; grid-row: 2; }
+.nuclide-card-window-v32 > .atom-panel { grid-column: 2; grid-row: 2; }
+.nuclide-card-window-v32 canvas { max-width: 100%; }
+
+.window-maximized-v32 { border-radius: 14px !important; }
+.window-minimized-v32 { display: none !important; }
+
+.window-taskbar-v32 {
+  position: fixed;
+  z-index: 1480;
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 20px);
+  pointer-events: none;
+}
+
+.window-taskbar-v32:empty { display: none; }
+
+.window-task-v32 {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) auto auto;
+  align-items: center;
+  width: min(260px, calc(100vw - 20px));
+  min-height: 38px;
+  padding: 3px 4px 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--panel-solid) 96%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.window-task-title-v32 {
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 900;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.window-task-v32 .window-action-v32 { width: 27px; height: 27px; min-width: 27px; }
+
+.resize-handles-v32 { position: absolute; z-index: 55; inset: 0; pointer-events: none; }
+.resize-handle-v32 { position: absolute; pointer-events: auto; touch-action: none; }
+.resize-n-v32, .resize-s-v32 { right: 14px; left: 14px; height: 9px; cursor: ns-resize; }
+.resize-n-v32 { top: -4px; }
+.resize-s-v32 { bottom: -4px; }
+.resize-e-v32, .resize-w-v32 { top: 14px; bottom: 14px; width: 9px; cursor: ew-resize; }
+.resize-e-v32 { right: -4px; }
+.resize-w-v32 { left: -4px; }
+.resize-ne-v32, .resize-nw-v32, .resize-se-v32, .resize-sw-v32 { width: 18px; height: 18px; }
+.resize-ne-v32 { top: -5px; right: -5px; cursor: nesw-resize; }
+.resize-nw-v32 { top: -5px; left: -5px; cursor: nwse-resize; }
+.resize-se-v32 { right: -5px; bottom: -5px; cursor: nwse-resize; }
+.resize-sw-v32 { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.window-maximized-v32 > .resize-handles-v32 { display: none; }
+
+#decayOverlayCanvasV30,
+#nuclearOverlayLayerV29,
+#filterDimCanvasV31 { z-index: 72 !important; }
+
+.top-tools { z-index: 1500 !important; }
+.popover, .graphs-popover-v31 { z-index: 1450 !important; }
+
+@media (max-width: 760px) {
+  .nuclide-card-window-v32 {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-width: 300px;
+  }
+  .nuclide-card-window-v32 > .card-info,
+  .nuclide-card-window-v32 > .atom-panel { grid-column: 1; grid-row: 2; }
+  .nuclide-card-window-v32 > .atom-panel { display: none; }
+  .window-header-v32,
+  .profile-dock-v29.managed-window-v32 > header { min-height: 46px; padding-left: 10px; }
+  .window-action-v32 { width: 32px; height: 32px; min-width: 32px; }
+  .window-task-v32 { width: min(230px, calc(100vw - 20px)); }
+}
