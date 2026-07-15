@@ -20,7 +20,6 @@
     header.querySelector('.profile-window-controls-v30')?.classList.add('legacy-window-controls-v32');
     header.querySelector('[data-close-profile]')?.classList.add('legacy-window-controls-v32');
     header.appendChild(api.controls(record));
-    api.drag(record, header);
     api.resizeHandles(record, 340, 230);
   }
 
@@ -100,8 +99,8 @@
     installGraphs();
     api.installCards?.();
     augmentGuide();
-    document.documentElement.dataset.nucleidosRuntime = '32.0.0';
-    document.documentElement.dataset.nucleidosPatch = '32.0.0';
+    document.documentElement.dataset.nucleidosRuntime = '32.0.1';
+    document.documentElement.dataset.nucleidosPatch = '32.0.1';
     window.addEventListener('resize', constrain, { passive: true });
   }
 
