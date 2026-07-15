@@ -1,0 +1,160 @@
+(() => {
+  'use strict';
+
+  const VERSION = '27.0';
+  const IAEA_ENDPOINTS = [
+    'https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all',
+    'https://www-nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all'
+  ];
+  const LOCAL_SNAPSHOT = 'nuclides.csv';
+  const SYNC_METADATA = 'data/iaea-sync.json';
+  const DECAY_NAMES = {
+    stable: 'Estable', 'beta-': 'β−', 'beta+/EC': 'β+/CE', alpha: 'α', sf: 'Fisión espontánea',
+    p: 'Protón', n: 'Neutrón', it: 'Transición isomérica', cluster: 'Clúster', unknown: 'Otro / desconocido'
+  };
+  const MAP_COLORS = {
+    veryLow: '#d7e9f7', low: '#d9e8d2', medium: '#eee3bd', high: '#f1d2b7', veryHigh: '#e9c4ce', unknown: '#e8e5dc',
+    stable: '#d8ecd3', ultraShort: '#d9d6f4', short: '#d5e4f6', minute: '#e6e5c6', day: '#efd9b9', long: '#efc8bd', primordial: '#dfbfd8'
+  };
+
+  const ADVANCED_MAP_DEFS = {
+    halflifeLog: { label: 'Vida media log', subtitle: 'segundos, escala fina', fixed: true },
+    massExcess: { label: 'Exceso de masa', subtitle: 'AME · keV' },
+    radius: { label: 'Radio nuclear', subtitle: 'radio de carga · fm' },
+    qec: { label: 'Q captura e−', subtitle: 'QEC · keV' },
+    s2n: { label: 'S₂n derivada', subtitle: 'separación 2n · keV' },
+    s2p: { label: 'S₂p derivada', subtitle: 'separación 2p · keV' },
+    neutronExcess: { label: 'Exceso N−Z', subtitle: 'asimetría neutrónica' },
+    discovery: { label: 'Descubrimiento', subtitle: 'año documentado' }
+  };
+
+  const VARIABLE_DEFS = {
+    halflife: { label: 'Vida media', unit: 's', logDefault: true, value: n => halfLifeSeconds(n), format: v => formatScientific(v, ' s') },
+    binding: { label: 'Energía de enlace por nucleón', unit: 'keV/n', value: n => rawNumber(n, ['binding']), format: v => formatNumber(v, 1, ' keV/n') },
+    massExcess: { label: 'Exceso de masa', unit: 'keV', value: n => rawNumber(n, ['massexcess', 'mass_excess']), format: v => formatNumber(v, 1, ' keV') },
+    qbm: { label: 'Qβ−', unit: 'keV', value: n => rawNumber(n, ['qbm']), format: v => formatNumber(v, 1, ' keV') },
+    qec: { label: 'QEC', unit: 'keV', value: n => rawNumber(n, ['qec']), format: v => formatNumber(v, 1, ' keV') },
+    qa: { label: 'Qα', unit: 'keV', value: n => rawNumber(n, ['qa']), format: v => formatNumber(v, 1, ' keV') },
+    sn: { label: 'Sₙ', unit: 'keV', value: n => rawNumber(n, ['sn']), format: v => formatNumber(v, 1, ' keV') },
+    sp: { label: 'Sₚ', unit: 'keV', value: n => rawNumber(n, ['sp']), format: v => formatNumber(v, 1, ' keV') },
+    s2n: { label: 'S₂n derivada', unit: 'keV', value: n => separationTwo(n, 'n'), format: v => formatNumber(v, 1, ' keV') },
+    s2p: { label: 'S₂p derivada', unit: 'keV', value: n => separationTwo(n, 'p'), format: v => formatNumber(v, 1, ' keV') },
+    radius: { label: 'Radio de carga', unit: 'fm', value: n => rawNumber(n, ['radius']), format: v => formatNumber(v, 4, ' fm') },
+    abundance: { label: 'Abundancia natural', unit: '%', value: n => rawNumber(n, ['abundance']), format: v => formatNumber(v, 5, ' %') },
+    magnetic: { label: 'Momento dipolar magnético', unit: 'μN', value: n => rawNumber(n, ['magnetic_dipole']), format: v => formatNumber(v, 5, ' μN') },
+    quadrupole: { label: 'Momento cuadrupolar eléctrico', unit: 'b', value: n => rawNumber(n, ['electric_quadrupole']), format: v => formatNumber(v, 5, ' b') },
+    discovery: { label: 'Año de descubrimiento', unit: '', value: n => discoveryYear(n), format: v => Number.isFinite(v) ? String(Math.round(v)) : '—' },
+    neutronExcess: { label: 'Exceso neutrónico N−Z', unit: '', value: n => n.n - n.z, format: v => formatNumber(v, 0) },
+    nzRatio: { label: 'Razón N/Z', unit: '', value: n => n.z > 0 ? n.n / n.z : NaN, format: v => formatNumber(v, 4) },
+    a: { label: 'Número másico A', unit: '', value: n => n.a, format: v => formatNumber(v, 0) },
+    z: { label: 'Número protónico Z', unit: '', value: n => n.z, format: v => formatNumber(v, 0) },
+    n: { label: 'Número neutrónico N', unit: '', value: n => n.n, format: v => formatNumber(v, 0) }
+  };
+
+  const runtime = {
+    initialized: false,
+    source: 'Snapshot local',
+    sourceDetail: '',
+    syncMeta: null,
+    minimapCache: null,
+    minimapSignature: '',
+    mapBreakCache: new Map(),
+    filterEnabled: false,
+    filterRevision: 0,
+    filter: null,
+    analysisOpen: false,
+    analysisTab: 'profile',
+    analysisFrame: 0,
+    plotHitAreas: new Map(),
+    guideOpen: false,
+    guideTopic: 'chart',
+    guideHistoryPushed: false,
+    mobileFallbackInstalled: false,
+    core: {}
+  };
+
+  const byId = id => document.getElementById(id);
+  const isFiniteNumber = value => Number.isFinite(Number(value));
+
+  function waitForApplication() {
+    return new Promise(resolve => {
+      const started = performance.now();
+      const tick = () => {
+        const ready = typeof state !== 'undefined' && state && Array.isArray(state.official) && state.official.length > 0 &&
+          typeof scheduleRender === 'function' && byId('loadIaeaButton');
+        if (ready || performance.now() - started > 15000) resolve(Boolean(ready));
+        else setTimeout(tick, 80);
+      };
+      tick();
+    });
+  }
+
+  async function boot() {
+    const ready = await waitForApplication();
+    if (!ready || runtime.initialized) return;
+    runtime.initialized = true;
+
+    preserveCoreFunctions();
+    installAdvancedMaps();
+    installAdvancedFilterHook();
+    installMinimapRepair();
+    buildDataDashboard();
+    installIaeaLoader();
+    buildAnalysisLaboratory();
+    buildExpandedGuide();
+    installGuideOwnership();
+    installMobileAnalysisAction();
+    installPanelCoordination();
+    loadSyncMetadata();
+    updateDatasetDashboard('Snapshot IAEA local');
+    scheduleAnalysisRefresh();
+
+    setTimeout(() => {
+      if (!byId('nucleidos-ui-runtime')) installMobileFallback();
+    }, 2200);
+
+    document.documentElement.dataset.nucleidosVersion = VERSION;
+  }
+
+  function preserveCoreFunctions() {
+    runtime.core.categoryForMode = typeof categoryForMode === 'function' ? categoryForMode : null;
+    runtime.core.colorForNuclide = typeof colorForNuclide === 'function' ? colorForNuclide : null;
+    runtime.core.legendEntriesForMode = typeof legendEntriesForMode === 'function' ? legendEntriesForMode : null;
+    runtime.core.renderLegend = typeof renderLegend === 'function' ? renderLegend : null;
+    runtime.core.isRenderable = typeof isRenderable === 'function' ? isRenderable : null;
+    runtime.core.drawMinimap = typeof drawMinimap === 'function' ? drawMinimap : null;
+  }
+
+  function rawValue(nuclide, names) {
+    const row = nuclide?.raw || {};
+    const keys = Object.keys(row);
+    for (const name of names) {
+      const key = keys.find(candidate => candidate.trim().toLowerCase() === name.trim().toLowerCase());
+      if (key != null && String(row[key]).trim() !== '') return row[key];
+    }
+    return '';
+  }
+
+  function rawNumber(nuclide, names) {
+    const value = rawValue(nuclide, names);
+    if (value == null || value === '') return NaN;
+    const parsed = Number(String(value).replace(',', '.').replace(/[^0-9.+\-eE]/g, ''));
+    return Number.isFinite(parsed) ? parsed : NaN;
+  }
+
+  function halfLifeSeconds(nuclide) {
+    if (!nuclide || nuclide.decay === 'stable') return NaN;
+    const direct = Number(nuclide.half_life_sec);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const raw = rawNumber(nuclide, ['half_life_sec', 'T12_sec']);
+    return Number.isFinite(raw) && raw > 0 ? raw : NaN;
+  }
+
+  function discoveryYear(nuclide) {
+    const value = String(rawValue(nuclide, ['discovery']) || '');
+    const match = value.match(/(?:18|19|20)\d{2}/);
+    return match ? Number(match[0]) : NaN;
+  }
+
+  function atomicMassU(nuclide) {
+    const raw = rawNumber(nuclide, ['atomic_mass', 'mass']);
