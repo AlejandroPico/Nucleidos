@@ -8,7 +8,6 @@ on:
   workflow_run:
     workflows:
       - Sync IAEA LiveChart ground states
-      - Materialize Nucleidos v29 runtime
     types:
       - completed
 
