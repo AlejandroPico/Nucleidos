@@ -4,7 +4,7 @@
   if (!api) return;
 
   const chapters = [
-    ['42. Varias fichas de nucleidos', '<p>Cada nucleido seleccionado abre una ficha independiente. Volver a seleccionar el mismo nucleido restaura y lleva al frente su ficha existente, evitando duplicados accidentales.</p><p>La carta conserva como selección activa el nucleido de la última ficha utilizada. Esta selección gobierna el resaltado de la celda, los perfiles y las trayectorias.</p>'],
+    ['42. Varias fichas de nucleidos', '<p>Cada nucleido seleccionado abre una ficha independiente. Volver a seleccionar el mismo nucleido restaura y lleva al frente su ficha existente, evitando duplicados accidentales.</p><p>El doble chevrón situado antes de Comparar repliega o despliega el modelo 3D en todas las fichas. La preferencia se recuerda y, al replegarlo, la ficha conserva un resumen del núcleo y las capas electrónicas junto a una pestaña para recuperar el modelo.</p><p>La carta conserva como selección activa el nucleido de la última ficha utilizada. Esta selección gobierna el resaltado de la celda, los perfiles y las trayectorias.</p>'],
     ['43. Orden de superposición', '<p>Las fichas y los gráficos comparten un único orden de profundidad. Pulsar o interactuar con una ventana la convierte en activa y la coloca delante de las demás.</p><p>La barra global permanece por encima de las ventanas y las flechas de decaimiento permanecen por debajo.</p>'],
     ['44. Minimizar y bandeja de ventanas', '<p>Minimizar oculta la ventana sin destruir su estado. Aparece una entrada en la bandeja inferior con el nombre, un icono de restauración y un icono de cierre.</p><p>Gráficos y fichas utilizan el mismo sistema para que una ventana minimizada sea siempre localizable.</p>'],
     ['45. Maximizar y restaurar tamaño', '<p>Maximizar ocupa el área útil sin cubrir la barra superior. El icono cambia a dos cuadrados superpuestos para indicar que la siguiente acción restaurará la geometría anterior.</p><p>Restaurar tamaño no es lo mismo que restaurar desde la bandeja: una acción recupera geometría y la otra vuelve a mostrar una ventana minimizada.</p>'],
@@ -117,8 +117,8 @@
     installGraphs();
     api.installCards?.();
     augmentGuide();
-    document.documentElement.dataset.nucleidosRuntime = '32.1.1';
-    document.documentElement.dataset.nucleidosPatch = '32.1.1';
+    document.documentElement.dataset.nucleidosRuntime = '32.2.0';
+    document.documentElement.dataset.nucleidosPatch = '32.2.0';
     window.addEventListener('resize', constrain, { passive: true });
   }
 

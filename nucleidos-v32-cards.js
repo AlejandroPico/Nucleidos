@@ -2,6 +2,13 @@
   'use strict';
   const api = window.NucleidosV32;
   if (!api) return;
+  const ATOM_PANEL_PREFERENCE = 'nucleidos.atomPanelExpanded.v32';
+
+  try {
+    api.atomPanelExpanded = localStorage.getItem(ATOM_PANEL_PREFERENCE) !== 'false';
+  } catch (_) {
+    api.atomPanelExpanded = true;
+  }
 
   function renameIds(clone, prefix) {
     api.$$('[id]', clone).forEach(node => {
@@ -29,6 +36,86 @@
     buttons.forEach(button => button.classList.toggle('active', button.dataset.tab === 'summary'));
     panels.forEach(panel => panel.classList.toggle('active', panel.dataset.panel === 'summary'));
   }
+
+  function installAtomSummary(clone, record) {
+    const tabs = clone.querySelector('.detail-tabs');
+    const info = clone.querySelector('.card-info');
+    if (!tabs || !info) return;
+    const atomTab = document.createElement('button');
+    atomTab.type = 'button';
+    atomTab.className = 'tab-button atom-tab-v32';
+    atomTab.textContent = 'Modelo 3D';
+    atomTab.setAttribute('aria-label', 'Desplegar el modelo visual 3D');
+    atomTab.addEventListener('click', event => {
+      event.stopPropagation();
+      api.focus(record);
+      api.setAtomPanelsExpanded?.(true);
+    });
+    tabs.appendChild(atomTab);
+
+    const nucleus = clone.querySelector('[data-v32-source-id="nucleusText"]')?.textContent?.trim() || `${record.nuclide.z} p⁺ · ${record.nuclide.n} n⁰`;
+    const shells = clone.querySelector('[data-v32-source-id="shellText"]')?.textContent?.trim() || '—';
+    const summary = document.createElement('aside');
+    summary.className = 'atom-summary-collapsed-v32';
+    summary.setAttribute('aria-label', 'Resumen del modelo atómico');
+    summary.innerHTML = `<span><b>Núcleo</b>${nucleus}</span><span><b>Capas electrónicas</b>${shells}</span><span><b>Representación</b>Modelo 3D esquemático</span>`;
+    tabs.insertAdjacentElement('afterend', summary);
+  }
+
+  function updateAtomToggle(record) {
+    const button = record.controls?.querySelector('[data-window-action="atom-toggle"]');
+    if (!button) return;
+    const expanded = api.atomPanelExpanded !== false;
+    const label = expanded ? 'Replegar modelo 3D' : 'Desplegar modelo 3D';
+    button.innerHTML = expanded ? api.icons.collapseAtom : api.icons.expandAtom;
+    button.setAttribute('aria-label', label);
+    button.setAttribute('aria-expanded', String(expanded));
+    button.title = label;
+  }
+
+  function applyAtomPanelState(record, expanded) {
+    if (!record?.element?.isConnected) return;
+    const element = record.element;
+    const wasCollapsed = element.classList.contains('atom-panel-collapsed-v32');
+    if (!expanded && !wasCollapsed) {
+      if (!record.maximized) {
+        const geometry = api.geometry(element);
+        const infoWidth = element.querySelector('.card-info')?.getBoundingClientRect().width || geometry.width * .53;
+        record.atomExpandedGeometry = geometry;
+        const width = api.clamp(Math.round(Math.max(520, infoWidth + 2)), 420, geometry.width);
+        api.applyGeometry(element, {
+          ...geometry,
+          left: api.clamp(geometry.left, 6, Math.max(6, innerWidth - width - 6)),
+          width
+        });
+      } else if (record.restoreGeometry) {
+        const geometry = record.restoreGeometry;
+        record.atomExpandedGeometry = { ...geometry };
+        const width = api.clamp(Math.round(Math.max(520, geometry.width * .53)), 420, geometry.width);
+        record.restoreGeometry = {
+          ...geometry,
+          left: api.clamp(geometry.left, 6, Math.max(6, innerWidth - width - 6)),
+          width
+        };
+      }
+      element.classList.add('atom-panel-collapsed-v32');
+    } else if (expanded && wasCollapsed) {
+      element.classList.remove('atom-panel-collapsed-v32');
+      if (record.maximized && record.atomExpandedGeometry) record.restoreGeometry = record.atomExpandedGeometry;
+      else if (record.atomExpandedGeometry) api.applyGeometry(element, record.atomExpandedGeometry);
+      record.atomExpandedGeometry = null;
+    }
+    updateAtomToggle(record);
+  }
+
+  api.setAtomPanelsExpanded = expanded => {
+    api.atomPanelExpanded = Boolean(expanded);
+    try { localStorage.setItem(ATOM_PANEL_PREFERENCE, String(api.atomPanelExpanded)); } catch (_) {}
+    api.cardsByUid.forEach(record => applyAtomPanelState(record, api.atomPanelExpanded));
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  };
+
+  api.toggleAtomPanels = () => api.setAtomPanelsExpanded(api.atomPanelExpanded === false);
 
   function cardActions(clone, record) {
     clone.querySelector('[data-v32-source-id="addCompareButton"]')?.addEventListener('click', event => {
@@ -75,6 +162,7 @@
       const visible = [...api.cardsByUid.values()].filter(record =>
         record.atomCanvas?.isConnected
         && !record.minimized
+        && !record.element.classList.contains('atom-panel-collapsed-v32')
         && record.element.getAttribute('aria-hidden') !== 'true'
       );
       if (source instanceof HTMLCanvasElement && visible.length
@@ -149,10 +237,12 @@
     api.drag(record, header);
     api.resizeHandles(record, 420, 300);
     localTabs(clone);
+    installAtomSummary(clone, record);
     cardActions(clone, record);
     copyCanvas(sourceAtom, clone, 'atomCanvas');
     installAtomAnimation(clone, record);
     api.cardsByUid.set(nuclide.uid, record);
+    applyAtomPanelState(record, api.atomPanelExpanded !== false);
     api.focus(record);
     return record;
   };

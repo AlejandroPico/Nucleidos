@@ -15,7 +15,9 @@
     maximize: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1"/></svg>',
     restore: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="3" width="8" height="8" rx="1"/><path d="M11 11v2H3V5h2"/></svg>',
     close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>',
-    compare: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5h10M10 2.5 12.5 5 10 7.5M13.5 11h-10M6 8.5 3.5 11 6 13.5"/></svg>'
+    compare: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5h10M10 2.5 12.5 5 10 7.5M13.5 11h-10M6 8.5 3.5 11 6 13.5"/></svg>',
+    collapseAtom: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10.5 3.5-4 4.5 4 4.5M6.5 3.5 2.5 8l4 4.5"/></svg>',
+    expandAtom: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5.5 3.5 4 4.5-4 4.5M9.5 3.5l4 4.5-4 4.5"/></svg>'
   };
 
   api.waitFor = (test, timeout = 20000) => new Promise(resolve => {
@@ -199,13 +201,19 @@
   api.controls = record => {
     const nav = document.createElement('nav'); nav.className = 'window-controls-v32';
     if (record.type === 'card') {
+      const atom = api.makeButton('atom-toggle', 'Replegar modelo 3D', api.icons.collapseAtom);
+      atom.addEventListener('click', e => {
+        e.stopPropagation();
+        api.focus(record);
+        api.toggleAtomPanels?.();
+      });
       const compare = api.makeButton('compare', 'Añadir al comparador', api.icons.compare);
       compare.addEventListener('click', e => {
         e.stopPropagation();
         api.focus(record);
         api.addToComparator?.(record.nuclide);
       });
-      nav.append(compare);
+      nav.append(atom, compare);
     }
     const min = api.makeButton('minimize', 'Minimizar', api.icons.minimize);
     const max = api.makeButton('maximize', 'Maximizar', api.icons.maximize);
