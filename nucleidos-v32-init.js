@@ -169,8 +169,8 @@
     augmentGuide();
     polishGraphPanel();
     repairGuideLink();
-    document.documentElement.dataset.nucleidosRuntime = '32.3.0';
-    document.documentElement.dataset.nucleidosPatch = '32.3.0';
+    document.documentElement.dataset.nucleidosRuntime = '32.3.1';
+    document.documentElement.dataset.nucleidosPatch = '32.3.1';
     window.addEventListener('resize', constrain, { passive: true });
   }
 

@@ -293,11 +293,11 @@
 
 /* v32.3 — panel científico compacto, sin acumulación de cajetines. */
 #legendPopover {
-  display: grid;
+  display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  width: min(760px, calc(100vw - 24px));
-  max-height: none;
-  overflow: visible;
+  width: min(760px, calc(100vw - 24px)) !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 #legendPopover .popover-section {
   min-width: 0;
@@ -381,16 +381,17 @@
 .overlay-help-v33 p { margin: 0 0 6px; color: var(--muted); font-size: 9px; line-height: 1.45; }
 .overlay-help-v33 p strong { color: var(--ink); }
 .overlay-help-v33 button { min-height: 29px; padding: 0 8px; font-size: 9px; }
+#chartOverlaysV29 > .overlay-guide-link-v30 { display: none !important; }
 
 .top-tools { z-index: 1500 !important; }
 .popover, .graphs-popover-v31 { z-index: 1450 !important; }
 
 @media (max-width: 760px) {
   #legendPopover {
-    display: block;
-    width: min(420px, calc(100vw - 20px));
-    max-height: calc(100dvh - 76px);
-    overflow-y: auto;
+    display: block !important;
+    width: min(420px, calc(100vw - 20px)) !important;
+    max-height: calc(100dvh - 76px) !important;
+    overflow-y: auto !important;
   }
   #legendPopover .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .nuclide-card-window-v32 {

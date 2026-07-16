@@ -1,4 +1,4 @@
-# Tabla de nucleidos — versión 32.3
+# Tabla de nucleidos — versión 32.3.1
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fundamentales evaluados y una extensión teórica opcional sobre una carta N–Z renderizada en Canvas 2D.
 
