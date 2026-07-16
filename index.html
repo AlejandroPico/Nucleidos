@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="nucleidos-v27.css?v=27" />
-  <link rel="stylesheet" href="nucleidos-v28.css?v=32.2.0" />
+  <link rel="stylesheet" href="nucleidos-v28.css?v=32.3.0" />
 </head>
 <body>
   <main id="app" aria-label="Visor interactivo de tabla de nucleidos">
@@ -174,15 +174,11 @@
     </div>
 
     <div id="legendPopover" class="legend-popover popover" aria-hidden="true">
-      <section class="popover-section compact-section">
+      <section class="popover-section compact-section map-section-v33">
         <h2>Mapa</h2>
         <div id="legendModes" class="legend-modes"></div>
       </section>
-      <section class="popover-section compact-section">
-        <h2>Filtros</h2>
-        <div id="legend" class="legend" aria-label="Filtros visibles"></div>
-      </section>
-      <section class="popover-section compact-section">
+      <section class="popover-section compact-section layers-section-v33">
         <h2>Capas</h2>
         <div class="layer-toggles">
           <button id="evaluatedLayerButton" class="layer-toggle active" type="button">Evaluados</button>
@@ -195,6 +191,10 @@
           <button id="minimapButton" class="layer-toggle" type="button">Minimapa</button>
           <button id="expertModeButton" class="layer-toggle active" type="button">Modo experto</button>
         </div>
+      </section>
+      <section class="popover-section compact-section filters-section-v33">
+        <h2>Filtros</h2>
+        <div id="legend" class="legend" aria-label="Filtros visibles"></div>
       </section>
     </div>
 
@@ -318,8 +318,8 @@
   </main>
 
   <script src="nuclides-data.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=32.3.0"></script>
   <script src="nucleidos-ui-loader.js?v=26"></script>
-  <script src="nucleidos-v28.js?v=32.2.0"></script>
+  <script src="nucleidos-v28.js?v=32.3.0"></script>
 </body>
 </html>

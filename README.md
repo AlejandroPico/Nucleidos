@@ -1,4 +1,4 @@
-# Tabla de nucleidos — versión 32.2
+# Tabla de nucleidos — versión 32.3
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fundamentales evaluados y una extensión teórica opcional sobre una carta N–Z renderizada en Canvas 2D.
 
@@ -33,6 +33,15 @@ Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fun
 - La preferencia se aplica a todas las fichas abiertas, a las nuevas fichas y se conserva entre recargas.
 - La ficha replegada reduce su anchura y mantiene visibles en la zona de datos el núcleo, las capas electrónicas y el carácter esquemático del modelo.
 - La pestaña contextual Modelo 3D permite recuperar directamente el panel visual completo.
+
+## Pulido v32.3
+
+- Redimensionar, maximizar o desplegar el modelo 3D conserva el zoom y el punto central de la carta de nucleidos.
+- El modelo atómico se renderiza con las dimensiones reales de cada ficha y ya no se estira desde el lienzo oculto.
+- Capas se sitúa entre Mapa y Filtros; el panel usa una composición compacta de dos columnas y elimina bordes decorativos innecesarios.
+- Rangos avanzados pasa a llamarse Filtros avanzados, con paridad opcional replegada y controles Z/N/A más ligeros.
+- Los perfiles y trayectorias muestran un estado activo inequívoco mediante contraste, peso y un indicador discreto.
+- La explicación esencial de los perfiles queda integrada en su propio panel; el botón Guía general enlaza correctamente con la guía científica principal.
 
 ## Correcciones v28
 

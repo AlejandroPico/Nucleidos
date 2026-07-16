@@ -90,6 +90,56 @@
     if (launcher) launcher.textContent = '49 capítulos sobre perfiles, filtros, ventanas y comparación';
   }
 
+  function polishGraphPanel() {
+    const section = api.$('#chartOverlaysV29');
+    if (!section || section.dataset.v33Polished === '1') return;
+    section.dataset.v33Polished = '1';
+    const buttons = api.$$('[data-overlay]', section);
+    const syncStates = () => buttons.forEach(button => {
+      button.setAttribute('aria-pressed', String(button.classList.contains('active')));
+    });
+    syncStates();
+    new MutationObserver(syncStates).observe(section, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+    section.querySelector('.overlay-guide-link-v30')?.remove();
+    const help = document.createElement('details');
+    help.className = 'overlay-help-v33';
+    help.innerHTML = `
+      <summary>Cómo leer estas gráficas</summary>
+      <div>
+        <p><strong>Perfil por N:</strong> el eje horizontal es N y cada línea mantiene Z fijo. <strong>Perfil por Z:</strong> el eje horizontal es Z y cada línea mantiene N fijo.</p>
+        <p>Cada punto es un nucleido; los segmentos ayudan a seguir una familia y no representan transiciones. La escala automática usa logaritmos cuando la magnitud lo necesita.</p>
+        <p>La sincronización, activa por defecto, limita los perfiles a la región visible y a los filtros actuales.</p>
+        <button type="button" data-open-general-guide>Ampliar en la guía científica</button>
+      </div>`;
+    section.appendChild(help);
+    help.querySelector('[data-open-general-guide]')?.addEventListener('click', event => {
+      event.stopPropagation();
+      api.$('#infoButton')?.click();
+    });
+  }
+
+  function repairGuideLink() {
+    const guide = api.$('#analysisGuideV30');
+    const button = guide?.querySelector('[data-guide-general]');
+    if (!button || button.dataset.v33GuideLink === '1') return;
+    button.dataset.v33GuideLink = '1';
+    button.textContent = 'Abrir guía general';
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      let opened = false;
+      const openGeneral = () => {
+        if (opened) return;
+        opened = true;
+        api.$('#infoButton')?.click();
+      };
+      window.addEventListener('popstate', openGeneral, { once: true });
+      guide.querySelector('[data-guide-close]')?.click();
+      setTimeout(openGeneral, 180);
+    }, true);
+  }
+
   function constrain() {
     api.windows.forEach(record => {
       if (!record.element.isConnected || record.minimized || record.maximized || record.element.getAttribute('aria-hidden') === 'true') return;
@@ -117,8 +167,10 @@
     installGraphs();
     api.installCards?.();
     augmentGuide();
-    document.documentElement.dataset.nucleidosRuntime = '32.2.0';
-    document.documentElement.dataset.nucleidosPatch = '32.2.0';
+    polishGraphPanel();
+    repairGuideLink();
+    document.documentElement.dataset.nucleidosRuntime = '32.3.0';
+    document.documentElement.dataset.nucleidosPatch = '32.3.0';
     window.addEventListener('resize', constrain, { passive: true });
   }
 

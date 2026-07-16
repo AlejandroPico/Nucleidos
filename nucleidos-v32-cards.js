@@ -112,7 +112,7 @@
     api.atomPanelExpanded = Boolean(expanded);
     try { localStorage.setItem(ATOM_PANEL_PREFERENCE, String(api.atomPanelExpanded)); } catch (_) {}
     api.cardsByUid.forEach(record => applyAtomPanelState(record, api.atomPanelExpanded));
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    document.dispatchEvent(new CustomEvent('nucleidos:card-layout', { detail: { atomPanelExpanded: api.atomPanelExpanded } }));
   };
 
   api.toggleAtomPanels = () => api.setAtomPanelsExpanded(api.atomPanelExpanded === false);
@@ -174,20 +174,24 @@
         };
         for (const record of visible) {
           if (!record.atomState) continue;
-          state.atom = record.atomState;
-          state.animationEnabled = record.atomAnimationEnabled;
-          state.atomFrame = record.atomFrame;
-          drawAtom(time);
-          record.atomFrame = state.atomFrame;
           const target = record.atomCanvas;
           const rect = target.getBoundingClientRect();
           const dpr = Math.min(2, window.devicePixelRatio || 1);
           const width = Math.max(300, Math.floor(rect.width * dpr));
           const height = Math.max(260, Math.floor(rect.height * dpr));
+          if (source.width !== width || source.height !== height) {
+            source.width = width;
+            source.height = height;
+          }
           if (target.width !== width || target.height !== height) {
             target.width = width;
             target.height = height;
           }
+          state.atom = record.atomState;
+          state.animationEnabled = record.atomAnimationEnabled;
+          state.atomFrame = record.atomFrame;
+          drawAtom(time);
+          record.atomFrame = state.atomFrame;
           const context = target.getContext('2d');
           context.clearRect(0, 0, width, height);
           context.drawImage(source, 0, 0, width, height);

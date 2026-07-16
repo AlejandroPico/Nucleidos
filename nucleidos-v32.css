@@ -291,10 +291,108 @@
 #nuclearOverlayLayerV29,
 #filterDimCanvasV31 { z-index: 72 !important; }
 
+/* v32.3 — panel científico compacto, sin acumulación de cajetines. */
+#legendPopover {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(760px, calc(100vw - 24px));
+  max-height: none;
+  overflow: visible;
+}
+#legendPopover .popover-section {
+  min-width: 0;
+  padding: 11px 13px;
+  border: 0;
+}
+#legendPopover .map-section-v33 { grid-column: 1; }
+#legendPopover .layers-section-v33 { grid-column: 2; }
+#legendPopover .filters-section-v33 {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+}
+#legendPopover .popover-section h2 { margin-bottom: 7px; font-size: 10px; }
+#legendPopover .legend-modes,
+#legendPopover .layer-toggles,
+#legendPopover .legend { gap: 3px; }
+#legendPopover .layer-toggles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#legendPopover .legend { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+#legendPopover .legend-mode-btn,
+#legendPopover .legend-item,
+#legendPopover .layer-toggle {
+  min-height: 29px;
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 7px;
+  font-size: 9px;
+}
+#legendPopover .legend-mode-btn small { display: none; }
+#legendPopover .legend-mode-btn.active,
+#legendPopover .layer-toggle.active {
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  color: var(--ink);
+  font-weight: 950;
+}
+#legendPopover .legend-item { gap: 6px; }
+#legendPopover .legend-swatch { width: 11px; height: 11px; border-radius: 3px; }
+#legendPopover .advanced-filters-v31 { margin-top: 7px; padding-top: 7px; }
+#legendPopover .advanced-filter-heading-v31 { align-items: center; margin-bottom: 5px; }
+#legendPopover .advanced-filter-heading-v31 strong { font-size: 10px; }
+#legendPopover .coordinate-ranges-v31 { gap: 12px; }
+#legendPopover .coordinate-ranges-v31 fieldset { border: 0; border-radius: 0; padding: 0; }
+#legendPopover .coordinate-ranges-v31 legend { padding: 0; }
+#legendPopover .coordinate-ranges-v31 label { display: flex; }
+#legendPopover .coordinate-ranges-v31 label + label { margin-top: 3px; }
+#legendPopover .coordinate-ranges-v31 input,
+#legendPopover .property-range-v31 select { min-height: 27px; border-radius: 7px; }
+#legendPopover .parity-details-v33 { margin-top: 6px; }
+#legendPopover .parity-details-v33 > summary { color: var(--muted); font-size: 9px; font-weight: 900; cursor: pointer; }
+#legendPopover .parity-details-v33 > summary span { font-weight: 700; }
+#legendPopover .parity-row-v31 { margin-top: 5px; }
+#legendPopover .property-range-v31 { margin-top: 7px; padding: 0; border: 0; border-radius: 0; }
+#legendPopover .dual-range-v31 { height: 22px; }
+#legendPopover .advanced-filter-count-v31 { margin-top: 3px; }
+
+#chartOverlaysV29 .overlay-toggle-grid-v29 button {
+  position: relative;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  color: color-mix(in srgb, var(--muted) 88%, transparent);
+}
+#chartOverlaysV29 .overlay-toggle-grid-v29 button.active {
+  border-color: color-mix(in srgb, var(--ink) 13%, transparent);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  color: var(--ink);
+  font-weight: 950;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+#chartOverlaysV29 .overlay-toggle-grid-v29 button.active::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.overlay-help-v33 { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
+.overlay-help-v33 > summary { color: var(--ink); font-size: 10px; font-weight: 900; cursor: pointer; }
+.overlay-help-v33 > div { padding: 7px 1px 1px; }
+.overlay-help-v33 p { margin: 0 0 6px; color: var(--muted); font-size: 9px; line-height: 1.45; }
+.overlay-help-v33 p strong { color: var(--ink); }
+.overlay-help-v33 button { min-height: 29px; padding: 0 8px; font-size: 9px; }
+
 .top-tools { z-index: 1500 !important; }
 .popover, .graphs-popover-v31 { z-index: 1450 !important; }
 
 @media (max-width: 760px) {
+  #legendPopover {
+    display: block;
+    width: min(420px, calc(100vw - 20px));
+    max-height: calc(100dvh - 76px);
+    overflow-y: auto;
+  }
+  #legendPopover .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .nuclide-card-window-v32 {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);

@@ -118,12 +118,12 @@
   async function boot() {
     try {
       installMutationObserverGuard();
-      await loadScript('nucleidos-v31-runtime', 'nucleidos-v31.js?v=31.0.2');
+      await loadScript('nucleidos-v31-runtime', 'nucleidos-v31.js?v=31.0.3');
       installIntegrationGuards();
-      await loadScript('nucleidos-v32-core', 'nucleidos-v32-core.js?v=32.2.0');
-      await loadScript('nucleidos-v32-cards', 'nucleidos-v32-cards.js?v=32.2.0');
-      await loadScript('nucleidos-v32-compare', 'nucleidos-v32-compare.js?v=32.2.0');
-      await loadScript('nucleidos-v32-init', 'nucleidos-v32-init.js?v=32.2.0');
+      await loadScript('nucleidos-v32-core', 'nucleidos-v32-core.js?v=32.3.0');
+      await loadScript('nucleidos-v32-cards', 'nucleidos-v32-cards.js?v=32.3.0');
+      await loadScript('nucleidos-v32-compare', 'nucleidos-v32-compare.js?v=32.3.0');
+      await loadScript('nucleidos-v32-init', 'nucleidos-v32-init.js?v=32.3.0');
       setTimeout(restoreNativeMutationObserver, 30000);
     } catch (error) {
       restoreNativeMutationObserver();

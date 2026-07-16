@@ -664,7 +664,7 @@ function drawMinimap() {
   miniCtx.strokeRect(v.x1*sxm, v.y1*sym, (v.x2-v.x1)*sxm, (v.y2-v.y1)*sym);
 }
 
-function fitToScreen(force = false) {
+function updateFitMetrics() {
   const pad = 64;
   const fullSx = (window.innerWidth - pad*2) / CHART_W;
   const fullSy = (window.innerHeight - pad*2) / CHART_H;
@@ -675,10 +675,34 @@ function fitToScreen(force = false) {
   const evalSx = (window.innerWidth - pad*2) / rw;
   const evalSy = (window.innerHeight - pad*2) / rh;
   state.fitScale = Math.min(evalSx, evalSy);
+  return { r, rw, rh };
+}
+
+function fitToScreen(force = false) {
+  const { r, rw, rh } = updateFitMetrics();
   if (force || state.scale < state.fullFitScale) state.scale = state.fitScale;
   state.tx = (window.innerWidth - rw * state.scale) / 2 - r.x1 * state.scale;
   state.ty = (window.innerHeight - rh * state.scale) / 2 - r.y1 * state.scale;
   updateView();
+}
+
+let previousViewportWidth = window.innerWidth;
+let previousViewportHeight = window.innerHeight;
+
+function resizeViewPreservingPosition() {
+  const oldScale = Math.max(1e-9, state.scale || 1);
+  const worldCenterX = (previousViewportWidth * .5 - state.tx) / oldScale;
+  const worldCenterY = (previousViewportHeight * .5 - state.ty) / oldScale;
+  resizeCanvases();
+  updateFitMetrics();
+  const maxScale = Math.max(2.6, state.fitScale * 26);
+  state.scale = Math.max(state.fullFitScale, Math.min(maxScale, oldScale));
+  state.tx = window.innerWidth * .5 - worldCenterX * state.scale;
+  state.ty = window.innerHeight * .5 - worldCenterY * state.scale;
+  previousViewportWidth = window.innerWidth;
+  previousViewportHeight = window.innerHeight;
+  updateView();
+  if (!card.dataset.v32Template) resizeAtomCanvas();
 }
 
 function worldRectForBounds(b, margin = 0) {
@@ -743,7 +767,7 @@ function bindEvents() {
   document.getElementById('exportCardButton').addEventListener('click', exportSelectedCardPng);
   document.getElementById('clearCompareButton').addEventListener('click', () => { state.compare = []; renderCompare(); });
   atomCanvas.addEventListener('click', e => { e.stopPropagation(); state.animationEnabled = !state.animationEnabled; atomCanvas.classList.toggle('paused', !state.animationEnabled); drawAtom(performance.now()); });
-  window.addEventListener('resize', () => { resizeCanvases(); fitToScreen(false); resizeAtomCanvas(); scheduleRender(); });
+  window.addEventListener('resize', resizeViewPreservingPosition);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeNuclideCard(); closeLegendPopover(); closeDataPopover(); closeSearchTool(); } });
 }
 
