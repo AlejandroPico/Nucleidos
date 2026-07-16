@@ -136,7 +136,7 @@ La interfaz dispone de tres modos persistentes:
 - `styles.css`: estilos base.
 - `app.js`: motor científico y render Canvas estable.
 - `nucleidos-ui-loader.js`: interfaz educativa v26.
-- `nucleidos-v27.css` y `nucleidos-v27.js`: laboratorio y guía avanzada.
+- `nucleidos-v27.css`: estilos heredados del laboratorio y la guía avanzada.
 - `nucleidos-v28.css` y `nucleidos-v28.js`: integración directa y correcciones operativas.
 - `nucleidos-v32-core.js`: gestión común de foco, profundidad, arrastre, tamaño y bandeja.
 - `nucleidos-v32-cards.js`: fichas múltiples y animaciones 3D independientes.
