@@ -4,7 +4,7 @@
   if (!api) return;
 
   const chapters = [
-    ['42. Varias fichas de nucleidos', '<p>Cada nucleido seleccionado abre una ficha independiente. Volver a seleccionar el mismo nucleido restaura y lleva al frente su ficha existente, evitando duplicados accidentales.</p><p>El doble chevrón situado antes de Comparar repliega o despliega el modelo 3D en todas las fichas. La preferencia se recuerda y, al replegarlo, la ficha conserva un resumen del núcleo y las capas electrónicas junto a una pestaña para recuperar el modelo.</p><p>La carta conserva como selección activa el nucleido de la última ficha utilizada. Esta selección gobierna el resaltado de la celda, los perfiles y las trayectorias.</p>'],
+    ['42. Varias fichas de nucleidos', '<p>Cada nucleido seleccionado abre una ficha independiente. Volver a seleccionar el mismo nucleido restaura y lleva al frente su ficha existente, evitando duplicados accidentales.</p><p>El doble chevrón situado antes de Comparar repliega o despliega el modelo 3D en todas las fichas. La preferencia se recuerda; la configuración electrónica y el carácter esquemático del modelo permanecen disponibles en Estructura sin ocupar espacio adicional en las demás pestañas.</p><p>La carta conserva como selección activa el nucleido de la última ficha utilizada. Esta selección gobierna el resaltado de la celda, los perfiles y las trayectorias.</p>'],
     ['43. Orden de superposición', '<p>Las fichas y los gráficos comparten un único orden de profundidad. Pulsar o interactuar con una ventana la convierte en activa y la coloca delante de las demás.</p><p>La barra global permanece por encima de las ventanas y las flechas de decaimiento permanecen por debajo.</p>'],
     ['44. Minimizar y bandeja de ventanas', '<p>Minimizar oculta la ventana sin destruir su estado. Aparece una entrada en la bandeja inferior con el nombre, un icono de restauración y un icono de cierre.</p><p>Gráficos y fichas utilizan el mismo sistema para que una ventana minimizada sea siempre localizable.</p>'],
     ['45. Maximizar y restaurar tamaño', '<p>Maximizar ocupa el área útil sin cubrir la barra superior. El icono cambia a dos cuadrados superpuestos para indicar que la siguiente acción restaurará la geometría anterior.</p><p>Restaurar tamaño no es lo mismo que restaurar desde la bandeja: una acción recupera geometría y la otra vuelve a mostrar una ventana minimizada.</p>'],
@@ -96,7 +96,10 @@
     section.dataset.v33Polished = '1';
     const buttons = api.$$('[data-overlay]', section);
     const syncStates = () => buttons.forEach(button => {
-      button.setAttribute('aria-pressed', String(button.classList.contains('active')));
+      const active = button.classList.contains('active');
+      button.setAttribute('role', 'switch');
+      button.setAttribute('aria-checked', String(active));
+      button.removeAttribute('aria-pressed');
     });
     syncStates();
     new MutationObserver(syncStates).observe(section, { attributes: true, subtree: true, attributeFilter: ['class'] });
@@ -108,14 +111,16 @@
       <summary>Cómo leer estas gráficas</summary>
       <div>
         <p><strong>Perfil por N:</strong> el eje horizontal es N y cada línea mantiene Z fijo. <strong>Perfil por Z:</strong> el eje horizontal es Z y cada línea mantiene N fijo.</p>
-        <p>Cada punto es un nucleido; los segmentos ayudan a seguir una familia y no representan transiciones. La escala automática usa logaritmos cuando la magnitud lo necesita.</p>
-        <p>La sincronización, activa por defecto, limita los perfiles a la región visible y a los filtros actuales.</p>
-        <button type="button" data-open-general-guide>Ampliar en la guía científica</button>
+        <p>Cada punto corresponde a un nucleido. Las líneas ordenan una familia isotópica o isotónica, pero no representan una transición física.</p>
+        <p>La escala automática elige lineal o logarítmica según la magnitud. La sincronización, activa por defecto, limita el perfil a la región visible y a los filtros actuales.</p>
+        <p>El manual avanzado conserva la explicación completa sobre ejes, escalas, zoom, selección cruzada, trayectorias, decaimiento, rigor y fuentes.</p>
+        <button type="button" data-open-analysis-guide>Abrir manual completo de gráficos</button>
       </div>`;
     section.appendChild(help);
-    help.querySelector('[data-open-general-guide]')?.addEventListener('click', event => {
+    help.querySelector('[data-open-analysis-guide]')?.addEventListener('click', async event => {
       event.stopPropagation();
-      api.$('#infoButton')?.click();
+      const ready = await api.waitFor(() => api.$('#analysisGuideLauncherV30'), 2500);
+      if (ready) api.$('#analysisGuideLauncherV30')?.click();
     });
   }
 
@@ -169,8 +174,8 @@
     augmentGuide();
     polishGraphPanel();
     repairGuideLink();
-    document.documentElement.dataset.nucleidosRuntime = '32.3.1';
-    document.documentElement.dataset.nucleidosPatch = '32.3.1';
+    document.documentElement.dataset.nucleidosRuntime = '32.4.0';
+    document.documentElement.dataset.nucleidosPatch = '32.4.0';
     window.addEventListener('resize', constrain, { passive: true });
   }
 

@@ -334,13 +334,10 @@
       <div class="coordinate-ranges-v31">
         ${['Z','N','A'].map(axis => `<fieldset><legend>${axis}</legend><label>Mín.<input id="filter${axis}MinV31" type="number"></label><label>Máx.<input id="filter${axis}MaxV31" type="number"></label></fieldset>`).join('')}
       </div>
-      <details class="parity-details-v33">
-        <summary>Paridad Z/N <span>opcional</span></summary>
-        <div class="parity-row-v31">
-          <div><span>Paridad Z</span><nav data-parity-axis="z">${['any:Todos','even:Par','odd:Impar'].map(item => { const [value,label]=item.split(':'); return `<button type="button" data-value="${value}" class="${value==='any'?'active':''}">${label}</button>`; }).join('')}</nav></div>
-          <div><span>Paridad N</span><nav data-parity-axis="n">${['any:Todos','even:Par','odd:Impar'].map(item => { const [value,label]=item.split(':'); return `<button type="button" data-value="${value}" class="${value==='any'?'active':''}">${label}</button>`; }).join('')}</nav></div>
-        </div>
-      </details>
+      <div class="parity-row-v31">
+        <div><span>Paridad Z</span><nav data-parity-axis="z">${['any:Todos','even:Par','odd:Impar'].map(item => { const [value,label]=item.split(':'); return `<button type="button" data-value="${value}" class="${value==='any'?'active':''}">${label}</button>`; }).join('')}</nav></div>
+        <div><span>Paridad N</span><nav data-parity-axis="n">${['any:Todos','even:Par','odd:Impar'].map(item => { const [value,label]=item.split(':'); return `<button type="button" data-value="${value}" class="${value==='any'?'active':''}">${label}</button>`; }).join('')}</nav></div>
+      </div>
       <div class="property-range-v31">
         <label>Propiedad<select id="propertyFilterSelectV31">${Object.entries(PROPERTY_DEFS).map(([key, def]) => `<option value="${key}">${def.label}</option>`).join('')}</select></label>
         <label class="property-enable-v31"><input id="propertyRangeEnabledV31" type="checkbox"> Aplicar rango numérico</label>

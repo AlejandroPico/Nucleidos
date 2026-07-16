@@ -137,29 +137,6 @@
 .nuclide-card-window-v32.atom-panel-collapsed-v32 > .window-header-v32,
 .nuclide-card-window-v32.atom-panel-collapsed-v32 > .card-info { grid-column: 1; }
 .nuclide-card-window-v32.atom-panel-collapsed-v32 > .atom-panel { display: none; }
-.atom-tab-v32,
-.atom-summary-collapsed-v32 { display: none; }
-.nuclide-card-window-v32.atom-panel-collapsed-v32 .atom-tab-v32 { display: inline-flex; }
-.nuclide-card-window-v32.atom-panel-collapsed-v32 .atom-summary-collapsed-v32 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 8px 0 10px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-}
-.atom-summary-collapsed-v32 span {
-  display: grid;
-  flex: 1 1 130px;
-  gap: 2px;
-  min-width: 0;
-  color: var(--muted);
-  font-size: 9px;
-  line-height: 1.35;
-}
-.atom-summary-collapsed-v32 b { color: var(--ink); font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
 
 .window-maximized-v32 { border-radius: 14px !important; }
 .window-minimized-v32 { display: none !important; }
@@ -291,11 +268,10 @@
 #nuclearOverlayLayerV29,
 #filterDimCanvasV31 { z-index: 72 !important; }
 
-/* v32.3 — panel científico compacto, sin acumulación de cajetines. */
+/* v32.4 — panel científico vertical y controles binarios explícitos. */
 #legendPopover {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  width: min(760px, calc(100vw - 24px)) !important;
+  display: block !important;
+  width: min(430px, calc(100vw - 24px)) !important;
   max-height: none !important;
   overflow: visible !important;
 }
@@ -304,18 +280,22 @@
   padding: 11px 13px;
   border: 0;
 }
-#legendPopover .map-section-v33 { grid-column: 1; }
-#legendPopover .layers-section-v33 { grid-column: 2; }
+#legendPopover .layers-section-v33,
 #legendPopover .filters-section-v33 {
-  grid-column: 1 / -1;
   border-top: 1px solid var(--line);
 }
-#legendPopover .popover-section h2 { margin-bottom: 7px; font-size: 10px; }
+#legendPopover .popover-section h2,
+#legendPopover .advanced-filter-heading-v31 strong {
+  margin-bottom: 7px;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
 #legendPopover .legend-modes,
 #legendPopover .layer-toggles,
 #legendPopover .legend { gap: 3px; }
 #legendPopover .layer-toggles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-#legendPopover .legend { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+#legendPopover .legend { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #legendPopover .legend-mode-btn,
 #legendPopover .legend-item,
 #legendPopover .layer-toggle {
@@ -336,7 +316,7 @@
 #legendPopover .legend-swatch { width: 11px; height: 11px; border-radius: 3px; }
 #legendPopover .advanced-filters-v31 { margin-top: 7px; padding-top: 7px; }
 #legendPopover .advanced-filter-heading-v31 { align-items: center; margin-bottom: 5px; }
-#legendPopover .advanced-filter-heading-v31 strong { font-size: 10px; }
+#legendPopover .advanced-filter-heading-v31 strong { margin-bottom: 0; }
 #legendPopover .coordinate-ranges-v31 { gap: 12px; }
 #legendPopover .coordinate-ranges-v31 fieldset { border: 0; border-radius: 0; padding: 0; }
 #legendPopover .coordinate-ranges-v31 legend { padding: 0; }
@@ -344,35 +324,63 @@
 #legendPopover .coordinate-ranges-v31 label + label { margin-top: 3px; }
 #legendPopover .coordinate-ranges-v31 input,
 #legendPopover .property-range-v31 select { min-height: 27px; border-radius: 7px; }
-#legendPopover .parity-details-v33 { margin-top: 6px; }
-#legendPopover .parity-details-v33 > summary { color: var(--muted); font-size: 9px; font-weight: 900; cursor: pointer; }
-#legendPopover .parity-details-v33 > summary span { font-weight: 700; }
-#legendPopover .parity-row-v31 { margin-top: 5px; }
+#legendPopover .parity-row-v31 { margin-top: 7px; }
 #legendPopover .property-range-v31 { margin-top: 7px; padding: 0; border: 0; border-radius: 0; }
 #legendPopover .dual-range-v31 { height: 22px; }
 #legendPopover .advanced-filter-count-v31 { margin-top: 3px; }
 
 #chartOverlaysV29 .overlay-toggle-grid-v29 button {
   position: relative;
-  border: 1px solid transparent;
-  background: color-mix(in srgb, var(--ink) 3%, transparent);
-  color: color-mix(in srgb, var(--muted) 88%, transparent);
+  min-height: 42px;
+  padding: 6px 47px 6px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
 }
 #chartOverlaysV29 .overlay-toggle-grid-v29 button.active {
-  border-color: color-mix(in srgb, var(--ink) 13%, transparent);
-  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
   color: var(--ink);
   font-weight: 950;
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: none;
 }
-#chartOverlaysV29 .overlay-toggle-grid-v29 button.active::after {
+#chartOverlaysV29 .overlay-toggle-grid-v29 button::after {
   content: '';
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 6px;
-  height: 6px;
+  top: 50%;
+  right: 9px;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  transform: translateY(-50%);
+  transition: background .14s ease;
+}
+#chartOverlaysV29 .overlay-toggle-grid-v29 button::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 24px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
+  background: var(--panel-solid);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .28);
+  transform: translateY(-50%);
+  transition: right .14s ease;
+}
+#chartOverlaysV29 .overlay-toggle-grid-v29 button.active::before {
+  right: 11px;
+}
+#chartOverlaysV29 .overlay-toggle-grid-v29 button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 1px;
+}
+#chartOverlaysV29 .overlay-toggle-grid-v29 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(42px, auto));
+}
+#chartOverlaysV29 .overlay-toggle-grid-v29 button.active::after {
   background: var(--accent);
 }
 .overlay-help-v33 { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }

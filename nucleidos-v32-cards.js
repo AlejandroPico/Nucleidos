@@ -37,29 +37,14 @@
     panels.forEach(panel => panel.classList.toggle('active', panel.dataset.panel === 'summary'));
   }
 
-  function installAtomSummary(clone, record) {
-    const tabs = clone.querySelector('.detail-tabs');
-    const info = clone.querySelector('.card-info');
-    if (!tabs || !info) return;
-    const atomTab = document.createElement('button');
-    atomTab.type = 'button';
-    atomTab.className = 'tab-button atom-tab-v32';
-    atomTab.textContent = 'Modelo 3D';
-    atomTab.setAttribute('aria-label', 'Desplegar el modelo visual 3D');
-    atomTab.addEventListener('click', event => {
-      event.stopPropagation();
-      api.focus(record);
-      api.setAtomPanelsExpanded?.(true);
-    });
-    tabs.appendChild(atomTab);
-
-    const nucleus = clone.querySelector('[data-v32-source-id="nucleusText"]')?.textContent?.trim() || `${record.nuclide.z} p⁺ · ${record.nuclide.n} n⁰`;
+  function installAtomDetails(clone) {
+    const sheet = clone.querySelector('.tab-panel[data-panel="structure"] .detail-sheet');
+    if (!sheet) return;
     const shells = clone.querySelector('[data-v32-source-id="shellText"]')?.textContent?.trim() || '—';
-    const summary = document.createElement('aside');
-    summary.className = 'atom-summary-collapsed-v32';
-    summary.setAttribute('aria-label', 'Resumen del modelo atómico');
-    summary.innerHTML = `<span><b>Núcleo</b>${nucleus}</span><span><b>Capas electrónicas</b>${shells}</span><span><b>Representación</b>Modelo 3D esquemático</span>`;
-    tabs.insertAdjacentElement('afterend', summary);
+    const rows = document.createElement('div');
+    rows.className = 'atom-data-rows-v34';
+    rows.innerHTML = `<div class="detail-row"><span>Capas electrónicas</span><strong>${shells}</strong></div><div class="detail-row"><span>Representación atómica</span><strong>Modelo 3D esquemático</strong></div>`;
+    sheet.append(...rows.children);
   }
 
   function updateAtomToggle(record) {
@@ -241,7 +226,7 @@
     api.drag(record, header);
     api.resizeHandles(record, 420, 300);
     localTabs(clone);
-    installAtomSummary(clone, record);
+    installAtomDetails(clone);
     cardActions(clone, record);
     copyCanvas(sourceAtom, clone, 'atomCanvas');
     installAtomAnimation(clone, record);
