@@ -14,9 +14,16 @@
     ['49. Gráfica comparativa', '<p>La pestaña Gráfica permite escoger cualquier magnitud numérica normalizada o cualquier columna numérica oficial disponible. La escala puede ser lineal o logarítmica.</p><p>Al añadir o retirar nucleidos, cambiar el tamaño de la ventana o elegir otra propiedad, la representación se recalcula con la selección actual.</p>']
   ];
 
-  function installGraph(element, title) {
+  function installGraph(element, title, overlayKey) {
     if (!element || element.dataset.v32Managed === '1') return;
     element.dataset.v32Managed = '1';
+
+    // Los perfiles nacen dentro de nuclearOverlayLayerV29, una capa de dibujo
+    // con z-index propio. Un hijo no puede superar ese contexto de apilamiento,
+    // por grande que sea su z-index. Al mover las ventanas al body, perfiles,
+    // fichas y comparador pasan a participar en el mismo orden global.
+    if (element.parentElement?.id === 'nuclearOverlayLayerV29') document.body.appendChild(element);
+
     const record = api.register(element, 'graph', title, { id: `graph-${element.id}` });
     const header = element.querySelector(':scope > header');
     if (!header) return;
@@ -24,14 +31,19 @@
     header.querySelector('[data-close-profile]')?.classList.add('legacy-window-controls-v32');
     header.appendChild(api.controls(record));
     api.resizeHandles(record, 340, 230);
-    new MutationObserver(() => {
-      if (element.classList.contains('open') && element.getAttribute('aria-hidden') !== 'true') api.focus(record);
-    }).observe(element, { attributes: true, attributeFilter: ['class', 'aria-hidden'] });
+
+    // El foco de apertura se enlaza a la acción real del usuario. No se observa
+    // la clase completa de la ventana: normalizeZ también cambia esa clase y dos
+    // observadores podían activarse mutuamente sin fin con ambos perfiles abiertos.
+    const toggle = api.$(`#chartOverlaysV29 [data-overlay="${overlayKey}"]`);
+    toggle?.addEventListener('click', () => requestAnimationFrame(() => {
+      if (api.isVisible(record)) api.focus(record);
+    }));
   }
 
   function installGraphs() {
-    installGraph(api.$('#zProfileDockV29'), 'Perfil por Z');
-    installGraph(api.$('#nProfileDockV29'), 'Perfil por N');
+    installGraph(api.$('#zProfileDockV29'), 'Perfil por Z', 'zProfile');
+    installGraph(api.$('#nProfileDockV29'), 'Perfil por N', 'nProfile');
   }
 
   function augmentGuide() {
@@ -105,8 +117,8 @@
     installGraphs();
     api.installCards?.();
     augmentGuide();
-    document.documentElement.dataset.nucleidosRuntime = '32.1.0';
-    document.documentElement.dataset.nucleidosPatch = '32.1.0';
+    document.documentElement.dataset.nucleidosRuntime = '32.1.1';
+    document.documentElement.dataset.nucleidosPatch = '32.1.1';
     window.addEventListener('resize', constrain, { passive: true });
   }
 

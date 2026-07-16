@@ -63,7 +63,9 @@
       .filter(r => api.isVisible(r))
       .sort((a, b) => (a.lastFocus || 0) - (b.lastFocus || 0));
     visible.forEach((record, index) => {
-      record.element.style.zIndex = String(760 + index);
+      // Todas las ventanas gestionadas comparten la misma banda, por encima de
+      // las capas de dibujo y por debajo de la barra y sus desplegables.
+      record.element.style.setProperty('z-index', String(760 + index), 'important');
       record.element.classList.toggle('window-active-v32', record === api.activeWindow);
     });
   };

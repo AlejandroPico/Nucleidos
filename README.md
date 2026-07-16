@@ -1,4 +1,4 @@
-# Tabla de nucleidos — versión 32.1
+# Tabla de nucleidos — versión 32.1.1
 
 Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fundamentales evaluados y una extensión teórica opcional sobre una carta N–Z renderizada en Canvas 2D.
 
@@ -21,6 +21,11 @@ Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fun
 - El icono de comparación de la cabecera añade el nucleido a un comparador único sin límite artificial.
 - El comparador separa Resumen, Todos los datos, Datos oficiales y Gráfica; la pestaña oficial incluye la unión completa de columnas originales de los CSV.
 - La gráfica comparativa admite magnitudes normalizadas o columnas oficiales numéricas y escalas lineal o logarítmica.
+
+## Correcciones v32.1.1
+
+- Los perfiles por Z/N se extraen de la capa de dibujo y comparten de verdad el orden global con fichas y comparador.
+- Abrir simultáneamente los perfiles por Z y por N ya no crea un ciclo entre observadores de foco ni bloquea la página.
 
 ## Correcciones v28
 
