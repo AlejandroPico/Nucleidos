@@ -1,4 +1,4 @@
-/* Nucleidos v34.1.0 · distribución científica progresiva en cada nucleido */
+/* Nucleidos v34.2.0 · pulido final de fichas y rotación móvil */
 
 body.evening {
   --bg: #2f252a;
@@ -218,20 +218,30 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
 .nuclide-card-window-v32 *:not(canvas) { border-radius: 0 !important; }
 .nuclide-card-window-v32 canvas { border-radius: 18px !important; }
 .nuclide-card-window-v32 .detail-tabs {
-  gap: 0;
-  padding: 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: transparent;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0 !important;
+  background: transparent !important;
 }
-.nuclide-card-window-v32 .tab-button { min-height: 36px; border-right: 1px solid var(--line) !important; }
-.nuclide-card-window-v32 .tab-button:nth-child(3n) { border-right: 0 !important; }
-.nuclide-card-window-v32 .tab-button.active { color: var(--ink); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.nuclide-card-window-v32 .tab-button {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  padding: 7px 5px;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-align: center !important;
+}
+.nuclide-card-window-v32 .tab-button.active {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+  font-weight: 950;
+}
+.nuclide-card-window-v32 .tab-button:not(.active):hover { background: color-mix(in srgb, var(--ink) 5%, transparent) !important; }
 .nuclide-card-window-v32 .tab-panel[data-panel="apps"] { padding-top: 8px; }
 .nuclide-card-window-v32 .detail-uses-v38 {
-  padding: 18px 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  padding: 14px 0;
+  border: 0 !important;
 }
 .nuclide-card-window-v32 .detail-uses-v38 h2 { margin-bottom: 9px; color: var(--accent); font-size: 10px; letter-spacing: .11em; text-transform: uppercase; }
 .nuclide-card-window-v32 .detail-uses-v38 p { margin: 0; color: var(--ink); font-size: 13px; line-height: 1.7; }
@@ -239,35 +249,50 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
 .nuclide-card-window-v32 .link-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
+  gap: 22px;
   margin-top: 14px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  border: 0 !important;
 }
 .nuclide-card-window-v32 .link-row a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 42px;
-  padding: 0 11px;
-  border: 0;
-  border-right: 1px solid var(--line);
+  min-height: 36px;
+  padding: 0;
+  border: 0 !important;
   color: var(--accent);
   background: transparent;
   text-align: left;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
-.nuclide-card-window-v32 .link-row a:last-child { border-right: 0; }
+.nuclide-card-window-v32 .link-row a:last-child { border: 0 !important; }
 .nuclide-card-window-v32 .link-row a::after { content: '↗'; }
 .nuclide-card-window-v32 .link-row a:hover { color: var(--ink); background: color-mix(in srgb, var(--accent) 7%, transparent); }
-.technical-data-head-v38 { margin-bottom: 12px; padding-bottom: 11px; border-bottom: 1px solid var(--line); }
+.technical-data-head-v38 { margin-bottom: 15px; padding-bottom: 0; border: 0 !important; }
 .technical-data-head-v38 span { color: var(--accent); font-size: 10px; font-weight: 900; letter-spacing: .11em; text-transform: uppercase; }
 .technical-data-head-v38 p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
-.technical-data-list-v38 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 0; border-top: 1px solid var(--line); }
-.technical-data-list-v38 > div { min-width: 0; padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.technical-data-list-v38 > div:nth-child(even) { border-right: 0; }
+.technical-data-list-v38 { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 24px; margin: 0; border: 0 !important; }
+.technical-data-list-v38 > div { min-width: 0; padding: 4px 0; border: 0 !important; }
+.technical-data-list-v38 > div:nth-child(even) { border: 0 !important; }
 .technical-data-list-v38 dt { color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
 .technical-data-list-v38 dd { margin: 5px 0 0; overflow-wrap: anywhere; color: var(--ink); font-size: 11px; line-height: 1.45; }
+
+.nuclide-card-window-v32 .detail-sheet,
+.nuclide-card-window-v32 .detail-row,
+.nuclide-card-window-v32 .info-block,
+.nuclide-card-window-v32 .technical-data-head-v38,
+.nuclide-card-window-v32 .technical-data-list-v38,
+.nuclide-card-window-v32 .technical-data-list-v38 > div { border: 0 !important; box-shadow: none !important; }
+.nuclide-card-window-v32 .detail-row { padding: 7px 0; }
+.nuclide-card-window-v32 .shell-text {
+  padding: 3px 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: help;
+}
 
 @media (min-width: 821px) {
   #zProfileDockV29 .profile-legend-v29 {
