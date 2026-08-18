@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.0.5';
+  const VERSION = '33.1.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -151,6 +151,12 @@
       openAbout();
     });
 
+    const mobileMenuButton = $('#mobileMenuButton');
+    if (mobileMenuButton) {
+      mobileMenuButton.innerHTML = '<span class="hamburger-lines-v33" aria-hidden="true"><i></i><i></i><i></i></span>';
+      mobileMenuButton.title = 'Menú de herramientas';
+    }
+
     const mobileInfo = $('#mobileInfoButton');
     if (mobileInfo) {
       const icon = $('svg', mobileInfo);
@@ -169,6 +175,30 @@
         openAbout();
       });
     }
+
+    const mobilePanel = $('#mobileMenuPanel');
+    if (mobilePanel && !$('.mobile-menu-head-v33', mobilePanel)) {
+      const mobileHead = document.createElement('header');
+      mobileHead.className = 'mobile-menu-head-v33';
+      mobileHead.innerHTML = '<div><span>Nucleidos</span><strong>Herramientas del visor</strong></div><button type="button" data-mobile-menu-close-v33 aria-label="Cerrar menú">×</button>';
+      mobilePanel.prepend(mobileHead);
+      mobileHead.querySelector('button').addEventListener('click', event => {
+        event.stopPropagation();
+        closeMobileMenu();
+        mobileMenuButton?.focus();
+      });
+      mobilePanel.addEventListener('click', event => {
+        if (event.target.closest('.mobile-menu-action')) closeMobileMenu();
+      });
+    }
+  }
+
+  function closeMobileMenu() {
+    const panel = $('#mobileMenuPanel');
+    const button = $('#mobileMenuButton');
+    panel?.classList.remove('open');
+    panel?.setAttribute('aria-hidden', 'true');
+    button?.setAttribute('aria-expanded', 'false');
   }
 
   function createAbout() {
@@ -179,24 +209,37 @@
     backdrop.setAttribute('aria-hidden', 'true');
     backdrop.innerHTML = `
       <section class="about-dialog-v33" role="dialog" aria-modal="true" aria-labelledby="aboutTitleV33">
-        <header>
-          <div class="about-mark-v33" aria-hidden="true"><span>N</span><i></i><b></b></div>
-          <div><p>Acerca de Nucleidos</p><h1 id="aboutTitleV33">Un atlas personal de física nuclear</h1></div>
+        <header class="about-header-v33">
+          <div class="about-chart-mark-v33" aria-hidden="true"><i></i><i></i><i></i><i></i><strong>N</strong></div>
+          <div class="about-heading-v33"><p>Nucleidos · atlas nuclear interactivo</p><h1 id="aboutTitleV33">Explorar la materia, núcleo a núcleo</h1></div>
           <button type="button" data-about-close aria-label="Cerrar Acerca de">×</button>
         </header>
-        <div class="about-body-v33">
-          <p class="about-lead-v33">Nucleidos es un proyecto personal de <strong>Alejandro Pico</strong>, creado sin ánimo de lucro con una finalidad educativa y divulgativa: hacer que la carta de nucleidos, sus datos y sus relaciones puedan explorarse de forma visual.</p>
-          <div class="about-facts-v33">
-            <article><span>Autoría</span><strong>Alejandro Pico</strong><p>Diseño, desarrollo y dirección del proyecto.</p></article>
-            <article><span>Naturaleza</span><strong>Personal y no comercial</strong><p>Proyecto independiente, educativo y sin ánimo de lucro.</p></article>
-            <article><span>Datos</span><strong>Fuentes trazables</strong><p>IAEA LiveChart, NNDC, NuDat 3 y ENSDF como referencias científicas.</p></article>
+        <div class="about-layout-v33">
+          <aside class="about-index-v33" aria-label="Ficha del proyecto">
+            <p>Ficha del proyecto</p>
+            <dl>
+              <div><dt>Autor</dt><dd>Alejandro Pico</dd></div>
+              <div><dt>Carácter</dt><dd>Personal · no comercial</dd></div>
+              <div><dt>Propósito</dt><dd>Educación y divulgación</dd></div>
+              <div><dt>Edición</dt><dd>Versión ${VERSION}</dd></div>
+            </dl>
+          </aside>
+          <div class="about-body-v33">
+            <p class="about-lead-v33">Nucleidos es un proyecto independiente concebido para hacer legible la carta de nucleidos: sus regiones de estabilidad, propiedades, desintegraciones y relaciones pueden recorrerse como un único mapa científico.</p>
+            <section class="about-purpose-v33">
+              <p>Principios del visor</p>
+              <div><strong>Explorar</strong><span>Navegación visual desde la visión global hasta cada núcleo.</span></div>
+              <div><strong>Comprender</strong><span>Enciclopedia integrada para relacionar datos, conceptos y herramientas.</span></div>
+              <div><strong>Contrastar</strong><span>Referencias científicas trazables a IAEA LiveChart, NNDC, NuDat 3 y ENSDF.</span></div>
+            </section>
+            <p class="about-note-v33"><strong>Nota científica.</strong> El visor facilita la consulta y la comparación, pero no sustituye las evaluaciones originales. Los datos sensibles a revisión deben contrastarse con la fuente primaria.</p>
           </div>
-          <p class="about-note-v33">El visor facilita la lectura y comparación de información nuclear, pero no sustituye las evaluaciones originales. Cada dato sensible a revisión debe contrastarse con su fuente primaria.</p>
-          <nav class="about-links-v33" aria-label="Enlaces del proyecto">
-            <a href="https://alejandropico.github.io/Portfolio/" target="_blank" rel="noopener noreferrer"><span>Portfolio</span><strong>Conocer al autor ↗</strong></a>
-            <a href="https://github.com/AlejandroPico/Nucleidos" target="_blank" rel="noopener noreferrer"><span>Código y documentación</span><strong>Repositorio de Nucleidos ↗</strong></a>
-          </nav>
         </div>
+        <nav class="about-links-v33" aria-label="Enlaces del proyecto">
+          <a href="https://alejandropico.github.io/Portfolio/" target="_blank" rel="noopener noreferrer"><span>01 · Autor</span><strong>Portfolio de Alejandro Pico</strong><b aria-hidden="true">↗</b></a>
+          <a href="https://github.com/AlejandroPico/Nucleidos" target="_blank" rel="noopener noreferrer"><span>02 · Proyecto</span><strong>Código y documentación</strong><b aria-hidden="true">↗</b></a>
+        </nav>
+        <div class="about-spectrum-v33" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       </section>`;
     document.body.appendChild(backdrop);
     backdrop.addEventListener('click', event => {
@@ -205,6 +248,7 @@
   }
 
   function openAbout() {
+    closeMobileMenu();
     createAbout();
     const backdrop = $('#aboutBackdropV33');
     backdrop.classList.add('open');
