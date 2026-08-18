@@ -1,4 +1,4 @@
-/* Nucleidos v33.3.0 · viewport cover nativo, ejes anclados y tema solar */
+/* Nucleidos v33.4.0 · ejes superiores adaptativos y visor 3D móvil */
 
 body.evening {
   --bg: #2f252a;
@@ -31,7 +31,7 @@ body,
 .theme-icon.evening-icon .evening-shape path:nth-child(2) { fill: currentColor; }
 
 #app > .top-tools {
-  top: 50px !important;
+  top: 62px !important;
   right: 18px !important;
   gap: 0 !important;
   min-height: 44px;
@@ -343,6 +343,49 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
   #app .mobile-search-row input, #app .mobile-search-row button { height: 42px !important; border-radius: 0 !important; }
   #app .mobile-search-row input { border: 1px solid var(--line) !important; padding: 0 11px !important; }
   #app .mobile-search-row button { border: 1px solid var(--line) !important; border-left: 0 !important; }
+}
+
+@media (max-width: 760px) {
+  .nuclide-card-window-v32 {
+    min-width: 0 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+  }
+  .nuclide-card-window-v32 > .card-info,
+  .nuclide-card-window-v32 > .atom-panel {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
+  .nuclide-card-window-v32:not(.atom-panel-collapsed-v32) > .card-info {
+    display: none !important;
+  }
+  .nuclide-card-window-v32:not(.atom-panel-collapsed-v32) > .atom-panel {
+    display: grid !important;
+    overflow: hidden !important;
+    padding: 10px !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+  }
+  .nuclide-card-window-v32.atom-panel-collapsed-v32 > .card-info {
+    display: grid !important;
+  }
+  .nuclide-card-window-v32.atom-panel-collapsed-v32 > .atom-panel {
+    display: none !important;
+  }
+  .nuclide-card-window-v32 .atom-panel canvas[data-v32-source-id="atomCanvas"] {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    touch-action: none !important;
+  }
+  .nuclide-card-window-v32.window-maximized-v32 {
+    left: 6px !important;
+    top: max(62px, calc(env(safe-area-inset-top) + 54px)) !important;
+    width: calc(100dvw - 12px) !important;
+    height: calc(100dvh - 70px - env(safe-area-inset-top)) !important;
+  }
 }
 
 @media (max-width: 740px) {
