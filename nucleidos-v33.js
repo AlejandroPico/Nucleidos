@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.0.1';
+  const VERSION = '33.0.2';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -55,6 +55,7 @@
       caption: 'La emisión gamma reduce la energía del núcleo sin alterar sus números Z y N.'
     }
   };
+  const FAILED_MEDIA = new Set();
 
   const SOURCE_GROUPS = [
     {
@@ -236,14 +237,17 @@
     const existing = content.querySelector('.encyclopedia-figure-v33');
     if (existing?.dataset.topic === topic) return;
     existing?.remove();
-    if (!item) return;
+    if (!item || FAILED_MEDIA.has(topic)) return;
 
     const figure = document.createElement('figure');
     figure.className = 'encyclopedia-figure-v33';
     figure.dataset.topic = topic;
     figure.innerHTML = `<a href="${item.source}" target="_blank" rel="noopener noreferrer"><img src="${item.src}" alt="${item.alt}" loading="lazy" decoding="async"></a><figcaption>${item.caption}<a href="${item.source}" target="_blank" rel="noopener noreferrer">Fuente y licencia ↗</a></figcaption>`;
     const image = $('img', figure);
-    image?.addEventListener('error', () => figure.remove(), { once: true });
+    image?.addEventListener('error', () => {
+      FAILED_MEDIA.add(topic);
+      figure.remove();
+    }, { once: true });
     const firstParagraph = $('p:not(.info-topic-kicker)', content);
     if (firstParagraph) firstParagraph.insertAdjacentElement('afterend', figure);
     else content.prepend(figure);
