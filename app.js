@@ -618,6 +618,17 @@ function fittedCellText(value, centerX, baselineY, maxWidth) {
   ctx.fillText(`${text}…`, centerX, baselineY);
 }
 
+function drawCellFact(label, value, anchorX, anchorY, maxWidth, align, size) {
+  ctx.textAlign = align;
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(24,24,24,.47)';
+  ctx.font = `850 ${Math.max(7, size * .72)}px system-ui, sans-serif`;
+  fittedCellText(String(label).toUpperCase(), anchorX, anchorY, maxWidth);
+  ctx.fillStyle = 'rgba(16,16,16,.82)';
+  ctx.font = `780 ${Math.max(8, size)}px system-ui, sans-serif`;
+  fittedCellText(value, anchorX, anchorY + size * 1.02, maxWidth);
+}
+
 function drawNuclideCell(n, rect) {
   const x = sx(rect.x), y = sy(rect.y), w = CELL_W * state.scale, h = CELL_H * state.scale;
   const category = categoryForMode(n);
@@ -626,6 +637,9 @@ function drawNuclideCell(n, rect) {
   const decay = DECAY_LABELS[n.decay] || n.decay || '—';
   const stateSuffix = n.stateId && n.stateId !== 'gs' ? ` · ${n.stateId}` : '';
   const inset = Math.max(3, Math.min(18, Math.min(w, h) * .055));
+  const showCorners = zoomPercent >= 260 && w > 48 && h > 40;
+  const showMedium = zoomPercent >= 560 && w > 110 && h > 90;
+  const showInspect = zoomPercent >= 900 && w > 190 && h > 150;
 
   ctx.save();
   ctx.globalAlpha = filtered ? 0.16 : (n.dataClass === 'theoretical' ? 0.46 : 1);
@@ -651,67 +665,61 @@ function drawNuclideCell(n, rect) {
   ctx.textBaseline = 'middle';
 
   if (w > 16 && h > 14) {
-    const symbolSize = zoomPercent >= 850
-      ? clampNumber(Math.min(w * .18, h * .23), 18, 78)
-      : clampNumber(Math.min(w * .32, h * .34), 8, 42);
+    const symbolSize = showMedium
+      ? clampNumber(Math.min(w * .17, h * .22), 18, 92)
+      : clampNumber(Math.min(w * .32, h * .34), 8, 44);
     ctx.font = `900 ${symbolSize}px system-ui, sans-serif`;
-    const symbolY = zoomPercent >= 850 ? y + h * .32 : y + h * .50;
-    ctx.fillText(n.symbol, x + w / 2, symbolY);
-  }
+    ctx.fillText(n.symbol, x + w / 2, y + h * (showMedium ? .42 : .50));
 
-  if (zoomPercent >= 260 && w > 48 && h > 40) {
-    const small = clampNumber(Math.min(w, h) * .085, 7, 13);
-    ctx.font = `800 ${small}px system-ui, sans-serif`;
-    ctx.fillStyle = 'rgba(26,26,26,.60)';
-    ctx.textBaseline = 'top';
-    ctx.fillText(String(n.a), x + w * .22, y + Math.max(4, h * .07));
-    ctx.fillText(`N=${n.n}`, x + w * .75, y + Math.max(4, h * .07));
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(`Z=${n.z}`, x + w * .22, y + h - Math.max(4, h * .07));
-    fittedCellText(decay, x + w * .74, y + h - Math.max(4, h * .07), w * .42);
-  }
-
-  if (zoomPercent >= 560 && w > 92 && h > 78) {
-    const headerSize = clampNumber(Math.min(w, h) * .075, 8, 16);
-    ctx.font = `850 ${headerSize}px system-ui, sans-serif`;
-    ctx.fillStyle = 'rgba(20,20,20,.72)';
-    ctx.textBaseline = 'top';
-    fittedCellText(`${n.element}-${n.a}${stateSuffix}`, x + w / 2, y + h * .08, w * .82);
-    ctx.textBaseline = 'middle';
-    fittedCellText(n.decay === 'stable' ? 'Estable' : `Desintegración: ${decay}`, x + w / 2, y + h * .68, w * .84);
-    if (zoomPercent < 900) {
-      ctx.textBaseline = 'bottom';
-      fittedCellText(`t½  ${n.half_life || '—'}`, x + w / 2, y + h * .84, w * .84);
+    if (showMedium) {
+      const nameSize = clampNumber(Math.min(w, h) * .047, 8, 21);
+      ctx.font = `760 ${nameSize}px system-ui, sans-serif`;
+      ctx.fillStyle = 'rgba(20,20,20,.70)';
+      fittedCellText(`${n.element}${stateSuffix}`, x + w / 2, y + h * .54, w * .38);
     }
   }
 
-  if (zoomPercent >= 900 && w > 135 && h > 112) {
-    const lineSize = clampNumber(Math.min(w, h) * .052, 9, 18);
-    const lineHeight = clampNumber(lineSize * 1.42, 13, 26);
-    const startY = y + h * .57;
-    const classText = n.dataClass === 'theoretical' ? 'Teórico / no observado' : n.dataClass === 'isomer' ? 'Estado isomérico' : 'Dato evaluado';
-    const rows = [
-      `Z = ${n.z}   ·   N = ${n.n}   ·   A = ${n.a}`,
-      n.decay === 'stable' ? 'Estado: estable' : `Modo: ${decay}`,
-      `Vida media: ${n.half_life || '—'}`,
-      `Espín/paridad: ${n.spin || '—'}`,
-      `Masa atómica: ${n.atomic_mass || '—'}`,
-      `Clase: ${classText}`
-    ];
-    ctx.font = `750 ${lineSize}px system-ui, sans-serif`;
-    ctx.fillStyle = 'rgba(18,18,18,.76)';
-    ctx.textBaseline = 'middle';
-    rows.forEach((row, index) => {
-      const rowY = startY + index * lineHeight;
-      if (rowY < y + h - Math.max(8, h * .045)) fittedCellText(row, x + w / 2, rowY, w * .86);
-    });
+  if (showCorners) {
+    const padX = clampNumber(w * .065, 5, 24);
+    const padY = clampNumber(h * .065, 5, 22);
+    const cornerSize = clampNumber(Math.min(w, h) * .072, 7, 17);
+    ctx.font = `820 ${cornerSize}px system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(24,24,24,.58)';
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`A ${n.a}`, x + padX, y + padY);
+
+    ctx.textAlign = 'right';
+    ctx.fillText(`N ${n.n}`, x + w - padX, y + padY);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`Z ${n.z}`, x + padX, y + h - padY);
+
+    ctx.textAlign = 'right';
+    fittedCellText(decay, x + w - padX, y + h - padY, w * .28);
+  }
+
+  if (showMedium) {
+    const sidePadding = clampNumber(w * .07, 8, 34);
+    const sideWidth = w * .245;
+    const factSize = clampNumber(Math.min(w, h) * .046, 8, 18);
+    drawCellFact('Vida media', n.half_life || '—', x + sidePadding, y + h * .31, sideWidth, 'left', factSize);
+    drawCellFact('Espín / paridad', n.spin || '—', x + w - sidePadding, y + h * .31, sideWidth, 'right', factSize);
+
+    if (showInspect) {
+      const classText = n.dataClass === 'theoretical' ? 'Teórico' : n.dataClass === 'isomer' ? 'Isómero' : 'Evaluado';
+      drawCellFact('Masa atómica', n.atomic_mass || '—', x + sidePadding, y + h * .63, sideWidth, 'left', factSize);
+      drawCellFact('Clase', classText, x + w - sidePadding, y + h * .63, sideWidth, 'right', factSize);
+    }
   }
 
   const sameCell = state.byCell.get(`${n.z}-${n.n}`) || [];
   if (sameCell.some(item => item.dataClass === 'isomer') && w > 22) {
     ctx.fillStyle = '#5d5af6';
     ctx.beginPath();
-    ctx.arc(x + w - Math.max(6, w * .05), y + Math.max(6, h * .06), Math.max(2.4, Math.min(7, 4 * state.scale)), 0, Math.PI * 2);
+    ctx.arc(x + w / 2, y + Math.max(5, h * .045), Math.max(2.4, Math.min(7, 4 * state.scale)), 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -1604,7 +1612,7 @@ function hexToRgb(hex) {
 }
 
 window.NucleidosNativeViewport = {
-  version: '34.0.0',
+  version: '34.1.0',
   mode: 'contain',
   fit: () => fitToScreen(true),
   refresh: requestViewportResize,
