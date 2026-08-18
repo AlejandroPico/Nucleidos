@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.8.0';
+  const VERSION = '33.9.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -703,7 +703,7 @@
   }
 
   async function installResponsiveViewport() {
-    if (window.NucleidosNativeViewport?.mode === 'cover') {
+    if (window.NucleidosNativeViewport?.mode === 'contain') {
       window.NucleidosResponsiveViewport = window.NucleidosNativeViewport;
       return;
     }
@@ -731,15 +731,15 @@
       const usableH = Math.max(160, height - inset.top - inset.bottom);
       const fullSx = usableW / Math.max(1, CHART_W);
       const fullSy = usableH / Math.max(1, CHART_H);
-      state.fullFitScale = Math.max(fullSx, fullSy);
+      state.fullFitScale = Math.min(fullSx, fullSy);
 
       const r = worldRectForBounds(state.evaluatedBounds || { minZ: 1, maxZ: 118, minN: 0, maxN: 178 }, 20);
       const rw = Math.max(1, r.x2 - r.x1);
       const rh = Math.max(1, r.y2 - r.y1);
       const evalSx = usableW / rw;
       const evalSy = usableH / rh;
-      state.fitScale = Math.max(evalSx, evalSy);
-      state.viewportFitMode = 'cover';
+      state.fitScale = Math.min(evalSx, evalSy);
+      state.viewportFitMode = 'contain';
       return { r, rw, rh, width, height, inset, usableW, usableH };
     }
 
@@ -762,7 +762,7 @@
 
     function adaptiveFitToScreen(force = false) {
       const metrics = adaptiveFitMetrics();
-      if (force || !Number.isFinite(state.scale) || state.scale < state.fullFitScale) state.scale = state.fitScale;
+      if (force || !Number.isFinite(state.scale) || state.scale < state.fitScale) state.scale = state.fitScale;
       state.tx = metrics.inset.left + metrics.usableW / 2 - (metrics.r.x1 + metrics.rw / 2) * state.scale;
       state.ty = metrics.inset.top + metrics.usableH / 2 - (metrics.r.y1 + metrics.rh / 2) * state.scale;
       updateView();
@@ -771,8 +771,8 @@
     function adaptiveZoomAt(clientX, clientY, factor) {
       const old = Math.max(1e-9, state.scale || 1);
       adaptiveFitMetrics();
-      const maxScale = Math.max(2.8, state.fitScale * 28);
-      const next = Math.max(state.fullFitScale, Math.min(maxScale, old * factor));
+      const maxScale = state.fitScale * 2;
+      const next = Math.max(state.fitScale, Math.min(maxScale, old * factor));
       const chartX = (clientX - state.tx) / old;
       const chartY = (clientY - state.ty) / old;
       state.scale = next;
@@ -852,8 +852,8 @@
       const zoomRatio = oldScale / Math.max(1e-9, previousFit);
       resizeCanvases();
       const metrics = adaptiveFitMetrics();
-      const maxScale = Math.max(2.8, state.fitScale * 28);
-      state.scale = Math.max(state.fullFitScale, Math.min(maxScale, state.fitScale * zoomRatio));
+      const maxScale = state.fitScale * 2;
+      state.scale = Math.max(state.fitScale, Math.min(maxScale, state.fitScale * zoomRatio));
       state.tx = metrics.inset.left + metrics.usableW / 2 - oldCenterX * state.scale;
       state.ty = metrics.inset.top + metrics.usableH / 2 - oldCenterY * state.scale;
       previous = next;
@@ -884,7 +884,7 @@
     previous = viewportSizeV33();
     window.NucleidosResponsiveViewport = {
       version: VERSION,
-      mode: 'cover',
+      mode: 'contain',
       fit: () => adaptiveFitToScreen(true),
       refresh: requestAdaptiveResize
     };
@@ -1054,12 +1054,84 @@
     });
   }
 
+  function ensureMinimapStartsClosed() {
+    try { state.layers.minimap = false; } catch (_) {}
+    const button = $('#minimapButton');
+    button?.classList.remove('active');
+    button?.setAttribute('aria-pressed', 'false');
+    $('#minimapPanel')?.classList.add('hidden');
+  }
+
+  async function installAdaptiveMinimap() {
+    const ready = await waitFor(() => $('#minimapPanel') && $('#minimapCanvas'), 18000);
+    if (!ready) return;
+    const panel = $('#minimapPanel');
+    const map = $('#minimapCanvas');
+    if (!panel || !map || map.dataset.v39Navigation === '1') return;
+    map.dataset.v39Navigation = '1';
+    map.setAttribute('role', 'application');
+    map.setAttribute('aria-label', 'Minimapa de navegación. Toca o arrastra para mover la gráfica.');
+
+    const redraw = () => {
+      if (panel.classList.contains('hidden')) return;
+      const rect = map.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) return;
+      try {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        map.width = Math.max(10, Math.floor(rect.width * dpr));
+        map.height = Math.max(10, Math.floor(rect.height * dpr));
+        miniCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawMinimap();
+      } catch (_) {}
+    };
+
+    let activePointer = null;
+    const navigate = event => {
+      if (!window.matchMedia?.('(max-width: 820px)').matches) return;
+      const rect = map.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const localX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+      const localY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+      const worldX = localX / rect.width * CHART_W;
+      const worldY = localY / rect.height * CHART_H;
+      const visual = window.visualViewport;
+      const centerX = (Number(visual?.offsetLeft) || 0) + (Number(visual?.width) || window.innerWidth) / 2;
+      const centerY = (Number(visual?.offsetTop) || 0) + (Number(visual?.height) || window.innerHeight) / 2;
+      state.tx = centerX - worldX * state.scale;
+      state.ty = centerY - worldY * state.scale;
+      updateView();
+    };
+
+    map.addEventListener('pointerdown', event => {
+      if (!window.matchMedia?.('(max-width: 820px)').matches) return;
+      activePointer = event.pointerId;
+      map.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+      navigate(event);
+    }, { passive: false });
+    map.addEventListener('pointermove', event => {
+      if (event.pointerId !== activePointer) return;
+      event.preventDefault();
+      navigate(event);
+    }, { passive: false });
+    const release = event => {
+      if (event.pointerId === activePointer) activePointer = null;
+    };
+    map.addEventListener('pointerup', release);
+    map.addEventListener('pointercancel', release);
+    new MutationObserver(() => requestAnimationFrame(redraw)).observe(panel, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', () => requestAnimationFrame(redraw), { passive: true });
+    window.visualViewport?.addEventListener('resize', () => requestAnimationFrame(redraw), { passive: true });
+    requestAnimationFrame(redraw);
+  }
+
   async function takeFinalInterfaceControl() {
     await waitFor(() => $('#nucleidos-ui-runtime') && $('#nucleidos-v32-init')?.dataset.loaded === '1', 22000);
     installSolarTheme(true);
     enforceSquareSearch();
     normalizeToolbarOrder();
     void installMobileInlinePanels();
+    void installAdaptiveMinimap();
     installDetailPanelRedesign();
     document.documentElement.dataset.nucleidosRuntime = VERSION;
     document.documentElement.dataset.nucleidosExperience = VERSION;
@@ -1148,6 +1220,7 @@
 
   function boot() {
     configureHud();
+    ensureMinimapStartsClosed();
     createAbout();
     bindGlobalKeys();
     installSolarTheme();
@@ -1156,6 +1229,7 @@
     document.documentElement.dataset.nucleidosExperience = VERSION;
     void installEncyclopedia();
     void installResponsiveViewport();
+    void installAdaptiveMinimap();
     void installZProfilePlacement();
     void takeFinalInterfaceControl();
   }
