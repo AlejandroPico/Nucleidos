@@ -231,12 +231,16 @@
 
   function addArticleMedia(content) {
     const active = $('#infoTopicList .info-topic-button.active');
-    const item = MEDIA[active?.dataset.topic];
-    content.querySelector('.encyclopedia-figure-v33')?.remove();
+    const topic = active?.dataset.topic;
+    const item = MEDIA[topic];
+    const existing = content.querySelector('.encyclopedia-figure-v33');
+    if (existing?.dataset.topic === topic) return;
+    existing?.remove();
     if (!item) return;
 
     const figure = document.createElement('figure');
     figure.className = 'encyclopedia-figure-v33';
+    figure.dataset.topic = topic;
     figure.innerHTML = `<a href="${item.source}" target="_blank" rel="noopener noreferrer"><img src="${item.src}" alt="${item.alt}" loading="lazy" decoding="async"></a><figcaption>${item.caption}<a href="${item.source}" target="_blank" rel="noopener noreferrer">Fuente y licencia ↗</a></figcaption>`;
     const image = $('img', figure);
     image?.addEventListener('error', () => figure.remove(), { once: true });
