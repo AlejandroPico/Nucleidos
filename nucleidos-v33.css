@@ -1,4 +1,4 @@
-/* Nucleidos v33.8.0 · cierre visual de Datos, Acerca de y fichas técnicas */
+/* Nucleidos v33.9.0 · encaje real de gráfica y minimapa móvil */
 
 body.evening {
   --bg: #2f252a;
@@ -113,6 +113,8 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
 .popover {
   border-radius: 0 !important;
 }
+
+#minimapPanel { border-radius: 0 !important; }
 
 /* Datos: jerarquía editorial, líneas finas y ningún cajetín anidado. */
 #dataPopover {
@@ -572,6 +574,36 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
   #app #mobileMenuPanel #dataPopover .dataset-dashboard-v29 { grid-template-columns: 1fr 1fr; }
   #app #mobileMenuPanel #dataPopover .csv-schema { grid-template-columns: 1fr; }
   #app #mobileMenuPanel #dataPopover .csv-schema p { border-right: 0; }
+
+  #app > #minimapPanel {
+    position: fixed !important;
+    z-index: 1320 !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
+    display: block !important;
+    width: min(210px, 54dvw) !important;
+    height: auto !important;
+    aspect-ratio: 13 / 7;
+    border: 1px solid var(--line-strong) !important;
+    border-radius: 0 !important;
+    background: color-mix(in srgb, var(--panel-solid) 94%, transparent) !important;
+    box-shadow: 0 12px 30px rgba(31, 27, 21, .18) !important;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    overflow: hidden !important;
+    touch-action: none !important;
+    backdrop-filter: blur(16px) !important;
+  }
+  #app > #minimapPanel.hidden { display: none !important; }
+  #app > #minimapPanel #minimapCanvas {
+    width: 100% !important;
+    height: 100% !important;
+    cursor: crosshair;
+    touch-action: none !important;
+  }
 }
 
 @media (max-width: 760px) {
