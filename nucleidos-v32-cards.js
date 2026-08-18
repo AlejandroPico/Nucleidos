@@ -10,6 +10,9 @@
     api.atomPanelExpanded = true;
   }
 
+  const compactAtomLayout = () => window.matchMedia?.('(max-width: 760px)').matches === true;
+  if (compactAtomLayout()) api.atomPanelExpanded = false;
+
   function renameIds(clone, prefix) {
     api.$$('[id]', clone).forEach(node => {
       node.dataset.v32SourceId = node.id;
@@ -61,9 +64,10 @@
   function applyAtomPanelState(record, expanded) {
     if (!record?.element?.isConnected) return;
     const element = record.element;
+    const compact = compactAtomLayout();
     const wasCollapsed = element.classList.contains('atom-panel-collapsed-v32');
     if (!expanded && !wasCollapsed) {
-      if (!record.maximized) {
+      if (!compact && !record.maximized) {
         const geometry = api.geometry(element);
         const infoWidth = element.querySelector('.card-info')?.getBoundingClientRect().width || geometry.width * .53;
         record.atomExpandedGeometry = geometry;
@@ -73,7 +77,7 @@
           left: api.clamp(geometry.left, 6, Math.max(6, innerWidth - width - 6)),
           width
         });
-      } else if (record.restoreGeometry) {
+      } else if (!compact && record.restoreGeometry) {
         const geometry = record.restoreGeometry;
         record.atomExpandedGeometry = { ...geometry };
         const width = api.clamp(Math.round(Math.max(520, geometry.width * .53)), 420, geometry.width);
@@ -86,11 +90,12 @@
       element.classList.add('atom-panel-collapsed-v32');
     } else if (expanded && wasCollapsed) {
       element.classList.remove('atom-panel-collapsed-v32');
-      if (record.maximized && record.atomExpandedGeometry) record.restoreGeometry = record.atomExpandedGeometry;
-      else if (record.atomExpandedGeometry) api.applyGeometry(element, record.atomExpandedGeometry);
+      if (!compact && record.maximized && record.atomExpandedGeometry) record.restoreGeometry = record.atomExpandedGeometry;
+      else if (!compact && record.atomExpandedGeometry) api.applyGeometry(element, record.atomExpandedGeometry);
       record.atomExpandedGeometry = null;
     }
     updateAtomToggle(record);
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
 
   api.setAtomPanelsExpanded = expanded => {
@@ -126,10 +131,72 @@
     record.atomState = typeof buildAtomState === 'function' ? buildAtomState(record.nuclide) : null;
     record.atomAnimationEnabled = true;
     record.atomFrame = performance.now() * .001;
+    record.atomZoom = 1;
     canvas.classList.remove('paused');
-    canvas.title = 'Pulsar para pausar o reanudar la animación 3D';
+    canvas.title = 'Arrastrar para rotar · pellizcar o usar la rueda para ampliar · pulsar para pausar';
+    canvas.setAttribute('aria-label', 'Simulación atómica 3D interactiva');
+
+    const pointers = new Map();
+    let gesture = null;
+    let suppressClick = false;
+    const distance = () => {
+      const values = [...pointers.values()];
+      return values.length < 2 ? 0 : Math.hypot(values[1].x - values[0].x, values[1].y - values[0].y);
+    };
+
+    canvas.addEventListener('pointerdown', event => {
+      event.stopPropagation();
+      canvas.setPointerCapture?.(event.pointerId);
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const nowFrame = record.atomAnimationEnabled ? performance.now() * .001 : record.atomFrame;
+      gesture = {
+        x: event.clientX,
+        y: event.clientY,
+        frame: nowFrame,
+        zoom: record.atomZoom,
+        distance: distance(),
+        moved: false
+      };
+    }, { passive: true });
+
+    canvas.addEventListener('pointermove', event => {
+      if (!pointers.has(event.pointerId) || !gesture) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pointers.size >= 2) {
+        const current = distance();
+        if (gesture.distance > 0) record.atomZoom = api.clamp(gesture.zoom * current / gesture.distance, .72, 2.8);
+        gesture.moved = true;
+      } else {
+        const dx = event.clientX - gesture.x;
+        const dy = event.clientY - gesture.y;
+        if (Math.hypot(dx, dy) > 4) {
+          gesture.moved = true;
+          record.atomAnimationEnabled = false;
+          record.atomFrame = gesture.frame + dx * .012 - dy * .003;
+          canvas.classList.add('paused');
+        }
+      }
+    }, { passive: true });
+
+    const finishPointer = event => {
+      if (gesture?.moved) suppressClick = true;
+      pointers.delete(event.pointerId);
+      if (!pointers.size) gesture = null;
+    };
+    canvas.addEventListener('pointerup', finishPointer, { passive: true });
+    canvas.addEventListener('pointercancel', finishPointer, { passive: true });
+    canvas.addEventListener('wheel', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      record.atomZoom = api.clamp(record.atomZoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12), .72, 2.8);
+    }, { passive: false });
+
     canvas.addEventListener('click', event => {
       event.stopPropagation();
+      if (suppressClick) {
+        suppressClick = false;
+        return;
+      }
       record.atomAnimationEnabled = !record.atomAnimationEnabled;
       if (!record.atomAnimationEnabled) record.atomFrame = performance.now() * .001;
       canvas.classList.toggle('paused', !record.atomAnimationEnabled);
@@ -178,8 +245,13 @@
           drawAtom(time);
           record.atomFrame = state.atomFrame;
           const context = target.getContext('2d');
+          const zoom = api.clamp(Number(record.atomZoom) || 1, .72, 2.8);
           context.clearRect(0, 0, width, height);
-          context.drawImage(source, 0, 0, width, height);
+          context.save();
+          context.translate(width / 2, height / 2);
+          context.scale(zoom, zoom);
+          context.drawImage(source, -width / 2, -height / 2, width, height);
+          context.restore();
         }
         state.atom = saved.atom;
         state.animationEnabled = saved.animationEnabled;
