@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.5.0';
+  const VERSION = '33.6.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -180,13 +180,8 @@
     if (mobilePanel && !$('.mobile-menu-head-v33', mobilePanel)) {
       const mobileHead = document.createElement('header');
       mobileHead.className = 'mobile-menu-head-v33';
-      mobileHead.innerHTML = '<div><span>Nucleidos</span><strong>Herramientas del visor</strong></div><button type="button" data-mobile-menu-close-v33 aria-label="Cerrar menú">×</button>';
+      mobileHead.innerHTML = '<div><span>Nucleidos</span><strong>Herramientas del visor</strong></div>';
       mobilePanel.prepend(mobileHead);
-      mobileHead.querySelector('button').addEventListener('click', event => {
-        event.stopPropagation();
-        closeMobileMenu();
-        mobileMenuButton?.focus();
-      });
       mobilePanel.addEventListener('click', event => {
         if (event.target.closest('.mobile-menu-action')) closeMobileMenu();
       });
@@ -250,6 +245,7 @@
     backdrop?.classList.toggle('open', open);
     backdrop?.setAttribute('aria-hidden', String(!open));
     document.body.classList.toggle('mobile-menu-open-v35', open);
+    if (!open) closeMobileInlineSections();
   }
 
   function installMobileDrawer() {
@@ -290,10 +286,114 @@
       if (dx < -58 && Math.abs(dx) > Math.abs(dy) * 1.15) closeMobileMenu();
     }, { passive: true });
     panel.addEventListener('pointercancel', () => { swipe = null; }, { passive: true });
+
+    let edgeSwipe = null;
+    document.addEventListener('pointerdown', event => {
+      if (!window.matchMedia('(max-width: 820px)').matches
+        || event.pointerType !== 'touch'
+        || event.clientX > 24
+        || panel.classList.contains('open')) return;
+      edgeSwipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    }, { passive: true });
+    document.addEventListener('pointerup', event => {
+      if (!edgeSwipe || edgeSwipe.id !== event.pointerId) return;
+      const dx = event.clientX - edgeSwipe.x;
+      const dy = event.clientY - edgeSwipe.y;
+      edgeSwipe = null;
+      if (dx > 58 && Math.abs(dx) > Math.abs(dy) * 1.15) setMobileMenuOpen(true);
+    }, { passive: true });
+    document.addEventListener('pointercancel', () => { edgeSwipe = null; }, { passive: true });
   }
 
   function closeMobileMenu() {
     setMobileMenuOpen(false);
+  }
+
+  const MOBILE_INLINE_V36 = {
+    mobileDataButton: 'dataPopover',
+    mobileLayersButton: 'legendPopover',
+    mobileGraphsButtonV31: 'graphsPopoverV31'
+  };
+
+  function closeMobileInlineSections(exceptId = '') {
+    Object.values(MOBILE_INLINE_V36).forEach(id => {
+      if (id === exceptId) return;
+      const section = document.getElementById(id);
+      section?.classList.remove('open');
+      section?.setAttribute('aria-hidden', 'true');
+    });
+    Object.entries(MOBILE_INLINE_V36).forEach(([buttonId, sectionId]) => {
+      if (sectionId !== exceptId) document.getElementById(buttonId)?.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function toggleMobileInlineSection(buttonId) {
+    const sectionId = MOBILE_INLINE_V36[buttonId];
+    const section = document.getElementById(sectionId);
+    const button = document.getElementById(buttonId);
+    if (!section || !button) return;
+    const open = !section.classList.contains('open');
+    closeMobileInlineSections(open ? sectionId : '');
+    section.classList.toggle('open', open);
+    section.setAttribute('aria-hidden', String(!open));
+    button.setAttribute('aria-expanded', String(open));
+    if (open) requestAnimationFrame(() => section.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+  }
+
+  function moveMobilePanels(inMobile) {
+    const panel = $('#mobileMenuPanel');
+    if (!panel) return;
+    let host = $('#mobileInlineSectionsV36');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'mobileInlineSectionsV36';
+      host.className = 'mobile-inline-sections-v36';
+      panel.appendChild(host);
+    }
+    Object.values(MOBILE_INLINE_V36).forEach(id => {
+      const section = document.getElementById(id);
+      if (!section) return;
+      let marker = document.querySelector(`[data-mobile-origin-v36="${id}"]`);
+      if (!marker) {
+        marker = document.createElement('span');
+        marker.hidden = true;
+        marker.dataset.mobileOriginV36 = id;
+        section.insertAdjacentElement('beforebegin', marker);
+      }
+      if (inMobile) {
+        section.classList.add('mobile-inline-panel-v36');
+        host.appendChild(section);
+      } else if (marker.isConnected) {
+        section.classList.remove('mobile-inline-panel-v36', 'open');
+        section.setAttribute('aria-hidden', 'true');
+        marker.insertAdjacentElement('afterend', section);
+      }
+    });
+  }
+
+  async function installMobileInlinePanels() {
+    await waitFor(() => $('#graphsPopoverV31') && $('#mobileGraphsButtonV31'), 20000);
+    Object.entries(MOBILE_INLINE_V36).forEach(([buttonId, sectionId]) => {
+      const button = document.getElementById(buttonId);
+      if (!button) return;
+      button.setAttribute('aria-controls', sectionId);
+      button.setAttribute('aria-expanded', 'false');
+    });
+    const media = window.matchMedia('(max-width: 820px)');
+    const sync = () => moveMobilePanels(media.matches);
+    sync();
+    media.addEventListener?.('change', sync);
+
+    if (document.documentElement.dataset.v36MobilePanels === '1') return;
+    document.documentElement.dataset.v36MobilePanels = '1';
+    document.addEventListener('click', event => {
+      const action = event.target.closest('#mobileDataButton, #mobileLayersButton, #mobileGraphsButtonV31');
+      if (!action || !media.matches) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setMobileMenuOpen(true);
+      toggleMobileInlineSection(action.id);
+    }, true);
   }
 
   function createAbout() {
@@ -764,11 +864,13 @@
 
   const THEME_KEY_V33 = 'nucleidos-theme-mode';
   const THEME_MODES_V33 = ['auto', 'light', 'evening', 'dark'];
-  const THEME_LABELS_V33 = { auto: 'Automático', light: 'Claro', evening: 'Tarde', dark: 'Oscuro' };
+  const THEME_LABELS_V33 = { auto: 'Automático', light: 'Mañana', evening: 'Tarde', dark: 'Noche' };
   let themeModeV33 = 'auto';
   let solarCoordinatesV33 = null;
   let solarLocationAttemptedV33 = false;
   let applyingThemeV33 = false;
+  let themeRepairInstalledV33 = false;
+  let themeTimerV33 = 0;
 
   function storedThemeV33() {
     try {
@@ -867,14 +969,14 @@
     if (mobileLabel) mobileLabel.textContent = THEME_LABELS_V33[safe];
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = resolved === 'dark' ? '#101116' : resolved === 'evening' ? '#30252a' : '#f7f5f0';
-    scheduleRender?.();
-    try { drawAtom?.(performance.now()); } catch (_) {}
+    try { if (typeof window.scheduleRender === 'function') window.scheduleRender(); } catch (_) {}
+    try { if (typeof window.drawAtom === 'function') window.drawAtom(performance.now()); } catch (_) {}
     setTimeout(() => { applyingThemeV33 = false; }, 0);
     if (safe === 'auto' && !solarCoordinatesV33) acquireSolarLocationV33();
   }
 
-  function installSolarTheme() {
-    if (window.NucleidosTheme?.version === VERSION) return;
+  function installSolarTheme(force = false) {
+    if (!force && window.NucleidosTheme?.version === VERSION) return;
     solarCoordinatesV33 = storedCoordinatesV33();
     const buttons = ['darkModeButton', 'mobileThemeButton'].map(id => {
       const original = document.getElementById(id);
@@ -892,26 +994,46 @@
     }));
 
     applyThemeV33(storedThemeV33(), false);
-    const repair = () => {
-      if (applyingThemeV33) return;
-      const desired = themeModeV33 === 'auto' ? automaticThemeV33() : themeModeV33;
-      const shouldBeDark = desired === 'dark' || desired === 'evening';
-      if (document.documentElement.dataset.themeMode !== themeModeV33
-        || document.documentElement.dataset.themeResolved !== desired
-        || document.body.classList.contains('dark') !== shouldBeDark
-        || document.body.classList.contains('evening') !== (desired === 'evening')) {
-        applyThemeV33(themeModeV33, false);
-      }
-    };
-    new MutationObserver(repair).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme-mode', 'data-theme-resolved'] });
-    new MutationObserver(repair).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    window.setInterval(() => { if (themeModeV33 === 'auto') applyThemeV33('auto', false); }, 60000);
+    if (!themeRepairInstalledV33) {
+      themeRepairInstalledV33 = true;
+      const repair = () => {
+        if (applyingThemeV33) return;
+        const desired = themeModeV33 === 'auto' ? automaticThemeV33() : themeModeV33;
+        const shouldBeDark = desired === 'dark' || desired === 'evening';
+        if (document.documentElement.dataset.themeMode !== themeModeV33
+          || document.documentElement.dataset.themeResolved !== desired
+          || document.body.classList.contains('dark') !== shouldBeDark
+          || document.body.classList.contains('evening') !== (desired === 'evening')) {
+          applyThemeV33(themeModeV33, false);
+        }
+      };
+      new MutationObserver(repair).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme-mode', 'data-theme-resolved'] });
+      new MutationObserver(repair).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      window.clearInterval(themeTimerV33);
+      themeTimerV33 = window.setInterval(() => { if (themeModeV33 === 'auto') applyThemeV33('auto', false); }, 60000);
+    }
     window.NucleidosTheme = {
       version: VERSION,
       modes: [...THEME_MODES_V33],
       set: mode => applyThemeV33(mode),
       current: () => ({ mode: themeModeV33, resolved: themeModeV33 === 'auto' ? automaticThemeV33() : themeModeV33 })
     };
+  }
+
+  function enforceSquareSearch() {
+    ['.top-search-box', '.top-search-box input', '.top-search-box .top-search-go'].forEach(selector => {
+      document.querySelectorAll(selector).forEach(element => element.style.setProperty('border-radius', '0px', 'important'));
+    });
+  }
+
+  async function takeFinalInterfaceControl() {
+    await waitFor(() => $('#nucleidos-ui-runtime') && $('#nucleidos-v32-init')?.dataset.loaded === '1', 22000);
+    installSolarTheme(true);
+    enforceSquareSearch();
+    normalizeToolbarOrder();
+    void installMobileInlinePanels();
+    document.documentElement.dataset.nucleidosRuntime = VERSION;
+    document.documentElement.dataset.nucleidosExperience = VERSION;
   }
 
   function bindGlobalKeys() {
@@ -938,6 +1060,7 @@
     void installEncyclopedia();
     void installResponsiveViewport();
     void installZProfilePlacement();
+    void takeFinalInterfaceControl();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
