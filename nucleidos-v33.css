@@ -512,6 +512,18 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
     box-shadow: 0 10px 28px rgba(31,27,21,.14) !important;
     backdrop-filter: blur(18px) !important;
   }
+  .hamburger-lines-v33 { display: grid; gap: 4px; width: 18px; }
+  .hamburger-lines-v33 i {
+    display: block;
+    width: 100%;
+    height: 1.5px;
+    background: currentColor;
+    transform-origin: center;
+    transition: transform 150ms ease, opacity 150ms ease;
+  }
+  #mobileMenuButton[aria-expanded="true"] .hamburger-lines-v33 i:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+  #mobileMenuButton[aria-expanded="true"] .hamburger-lines-v33 i:nth-child(2) { opacity: 0; }
+  #mobileMenuButton[aria-expanded="true"] .hamburger-lines-v33 i:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
   .hamburger-lines-v33 { display: grid; gap: 4px; width: 19px; }
   .hamburger-lines-v33 i { display: block; width: 100%; height: 1.5px; background: currentColor; transform-origin: center; transition: transform 150ms ease, opacity 150ms ease; }
   #mobileMenuButton[aria-expanded="true"] .hamburger-lines-v33 i:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
@@ -780,10 +792,18 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
   }
   #app > #mobileMenuPanel.open { transform: none !important; pointer-events: auto !important; }
   .mobile-menu-head-v33 {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    display: flex;
+    align-items: center;
     min-height: 48px !important;
     padding: 5px 9px 5px 50px !important;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-solid);
   }
   .mobile-project-icon-v37 {
+    display: block;
     flex-basis: 30px !important;
     width: 30px !important;
     height: 30px !important;
@@ -806,25 +826,52 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
   }
   #app .mobile-menu-action svg { width: 17px !important; height: 17px !important; }
   #app .mobile-search-row {
+    display: grid !important;
     grid-template-columns: minmax(0, 1fr) 44px !important;
+    gap: 0 !important;
+    margin: 0 !important;
     padding: 7px !important;
   }
   #app .mobile-search-row input,
   #app .mobile-search-row button { height: 34px !important; font-size: 10px !important; }
-  .mobile-drawer-backdrop-v35 { display: block; }
+  .mobile-drawer-backdrop-v35 {
+    position: fixed;
+    z-index: 1540;
+    inset: 0;
+    display: block;
+    background: rgba(9, 10, 14, .42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 190ms ease;
+  }
+  .mobile-drawer-backdrop-v35.open { opacity: 1; pointer-events: auto; }
 
+  .mobile-inline-sections-v36 { display: block; width: 100%; }
   #app #mobileMenuPanel .mobile-inline-panel-v36 {
     position: static !important;
     inset: auto !important;
+    display: none !important;
     width: 100% !important;
     height: auto !important;
     max-width: none !important;
     max-height: none !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-top: 1px solid var(--line) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
     overflow: visible !important;
   }
+  #app #mobileMenuPanel .mobile-inline-panel-v36.open { display: block !important; }
   #app #mobileMenuPanel .mobile-inline-panel-v36 > header { padding: 9px 8px 6px !important; }
+  #app #mobileMenuPanel .mobile-inline-panel-v36 [data-close-graphs] { display: none !important; }
   #app #mobileMenuPanel .mobile-inline-panel-v36 .popover-section { padding: 8px !important; }
   #app #mobileMenuPanel .graphs-popover-scroll-v31 { max-height: none !important; overflow: visible !important; }
+  #app #mobileMenuPanel .mobile-inline-panel-v36 .data-actions { grid-template-columns: 1fr !important; }
 
   .nuclide-card-window-v32,
   .nuclide-card-window-v32.window-maximized-v32 {
