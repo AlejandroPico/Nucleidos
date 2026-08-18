@@ -447,24 +447,37 @@ function drawEvaluatedFrame() {
 
 function drawMagicLines() {
   const accent = document.body.classList.contains('dark') ? 'rgba(255,92,92,.88)' : 'rgba(145,28,44,.86)';
+  const view = viewportGeometry();
+  const inset = viewportInsets();
+  const left = view.left + inset.left;
+  const right = view.left + view.width - inset.right;
+  const top = view.top + inset.top;
+  const bottom = view.top + view.height - inset.bottom;
   ctx.save();
   ctx.strokeStyle = accent;
   ctx.lineWidth = 1.45;
   ctx.setLineDash([7, 7]);
   for (const N of MAGIC_NUMBERS) {
     if (N > N_MAX) continue;
-    const x = sx(AXIS + N * TILE_STEP_X + TILE_STEP_X/2);
-    ctx.beginPath(); ctx.moveTo(x, sy(AXIS)); ctx.lineTo(x, sy(AXIS + Z_MAX*TILE_STEP_Y)); ctx.stroke();
-    if (N % 10 !== 0) drawMagicAxisLabel(String(N), x, clampNumber(sy(AXIS - 28), 22, window.innerHeight - 22));
+    const x = sx(AXIS + N * TILE_STEP_X + TILE_STEP_X / 2);
+    if (x < left || x > right) continue;
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, bottom);
+    ctx.stroke();
   }
   for (const Z of MAGIC_NUMBERS) {
     if (Z > Z_MAX) continue;
-    const y = sy(AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y/2);
-    ctx.beginPath(); ctx.moveTo(sx(AXIS), y); ctx.lineTo(sx(AXIS + N_MAX*TILE_STEP_X), y); ctx.stroke();
-    if (Z % 10 !== 0) drawMagicAxisLabel(String(Z), clampNumber(sx(AXIS - 18), 28, window.innerWidth - 28), y, 'right');
+    const y = sy(AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y / 2);
+    if (y < top || y > bottom) continue;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(right, y);
+    ctx.stroke();
   }
   ctx.restore();
 }
+
 function drawMagicAxisLabel(text, x, y, align = 'center') {
   ctx.save();
   ctx.setLineDash([]);
@@ -498,6 +511,26 @@ function drawFrontierCurve(side) {
   ctx.stroke();
 }
 
+function axisTickStep(unitPixels, targetSpacing = 44) {
+  const raw = targetSpacing / Math.max(.001, unitPixels);
+  if (raw <= 1) return 1;
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const normalized = raw / power;
+  const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return Math.max(1, nice * power);
+}
+
+function mergeAxisValues(first, last, step, magicValues, unitPixels) {
+  const normal = [];
+  for (let value = Math.ceil(first / step) * step; value <= last; value += step) normal.push(value);
+  if (!state.layers.magic) return normal;
+  const magic = magicValues.filter(value => value >= first && value <= last);
+  const keptNormal = normal.filter(value =>
+    magic.includes(value) || magic.every(special => Math.abs(special - value) * unitPixels >= 30)
+  );
+  return [...new Set([...keptNormal, ...magic])].sort((a, b) => a - b);
+}
+
 function drawAxes() {
   const visible = visibleWorldRect();
   const view = viewportGeometry();
@@ -511,15 +544,15 @@ function drawAxes() {
   const railColor = dark ? 'rgba(255,255,255,.17)' : 'rgba(34,32,28,.15)';
   const nPixels = TILE_STEP_X * state.scale;
   const zPixels = TILE_STEP_Y * state.scale;
-  const nStep = nPixels >= 11 ? 10 : nPixels >= 5.5 ? 20 : 50;
-  const zStep = zPixels >= 10 ? 10 : zPixels >= 5 ? 20 : 50;
+  const nStep = axisTickStep(nPixels);
+  const zStep = axisTickStep(zPixels);
 
   ctx.save();
   ctx.strokeStyle = railColor;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(left, bottom + .5);
-  ctx.lineTo(right, bottom + .5);
+  ctx.moveTo(left, top + .5);
+  ctx.lineTo(right, top + .5);
   ctx.moveTo(left + .5, top);
   ctx.lineTo(left + .5, bottom);
   ctx.stroke();
@@ -528,12 +561,13 @@ function drawAxes() {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = labelColor;
   ctx.textAlign = 'center';
-  const firstN = Math.max(0, Math.ceil(((visible.x1 - AXIS) / TILE_STEP_X) / nStep) * nStep);
-  const lastN = Math.min(N_MAX, Math.floor(((visible.x2 - AXIS) / TILE_STEP_X) / nStep) * nStep);
-  for (let N = firstN; N <= lastN; N += nStep) {
+  const visibleNMin = Math.max(0, Math.ceil((visible.x1 - AXIS - TILE_STEP_X / 2) / TILE_STEP_X));
+  const visibleNMax = Math.min(N_MAX, Math.floor((visible.x2 - AXIS - TILE_STEP_X / 2) / TILE_STEP_X));
+  const nValues = mergeAxisValues(visibleNMin, visibleNMax, nStep, MAGIC_NUMBERS.filter(value => value <= N_MAX), nPixels);
+  for (const N of nValues) {
     const x = sx(AXIS + N * TILE_STEP_X + TILE_STEP_X / 2);
-    if (x < left + 18 || x > right - 52) continue;
-    drawAxisPill(String(N), x, bottom, 38, state.layers.magic && MAGIC_NUMBERS.includes(N));
+    if (x < left + 18 || x > right - 46) continue;
+    drawAxisPill(String(N), x, top - 13, 38, state.layers.magic && MAGIC_NUMBERS.includes(N));
   }
 
   ctx.textAlign = 'right';
@@ -541,23 +575,19 @@ function drawAxes() {
   const bottomRow = Math.min(Z_MAX - 1, Math.ceil((visible.y2 - AXIS) / TILE_STEP_Y));
   const visibleZMin = Math.max(1, Z_MAX - bottomRow);
   const visibleZMax = Math.min(Z_MAX, Z_MAX - topRow);
-  const firstZ = Math.max(zStep, Math.ceil(visibleZMin / zStep) * zStep);
-  for (let Z = firstZ; Z <= visibleZMax; Z += zStep) {
+  const zValues = mergeAxisValues(visibleZMin, visibleZMax, zStep, MAGIC_NUMBERS.filter(value => value <= Z_MAX), zPixels);
+  for (const Z of zValues) {
     const y = sy(AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y / 2);
     if (y < top + 16 || y > bottom - 16) continue;
     drawAxisPill(String(Z), left - 7, y, 38, state.layers.magic && MAGIC_NUMBERS.includes(Z));
   }
 
   ctx.fillStyle = labelColor;
-  ctx.font = '950 11px system-ui, sans-serif';
+  ctx.font = '950 12px system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
   ctx.textAlign = 'right';
-  ctx.fillText('N →', right, bottom - 14);
-  ctx.save();
-  ctx.translate(left + 15, top + 3);
-  ctx.rotate(-Math.PI / 2);
-  ctx.textAlign = 'right';
-  ctx.fillText('Z →', 0, 0);
-  ctx.restore();
+  ctx.fillText('N', right, top - 13);
+  ctx.fillText('Z', left - 7, bottom + 14);
   ctx.restore();
 }
 
@@ -723,8 +753,8 @@ function viewportGeometry() {
 
 function viewportInsets() {
   return window.matchMedia?.('(max-width: 820px)').matches
-    ? { top: 12, right: 12, bottom: 26, left: 38 }
-    : { top: 16, right: 18, bottom: 30, left: 46 };
+    ? { top: 26, right: 12, bottom: 26, left: 38 }
+    : { top: 22, right: 18, bottom: 30, left: 46 };
 }
 
 function updateFitMetrics() {
@@ -1476,7 +1506,7 @@ function hexToRgb(hex) {
 }
 
 window.NucleidosNativeViewport = {
-  version: '33.3.0',
+  version: '33.4.0',
   mode: 'cover',
   fit: () => fitToScreen(true),
   refresh: requestViewportResize,
