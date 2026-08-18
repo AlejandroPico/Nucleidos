@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.1.0';
+  const VERSION = '33.2.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -464,6 +464,355 @@
     window.NucleidosEncyclopedia = { open: openUnified, section: setPane, version: VERSION };
   }
 
+  function viewportSizeV33() {
+    const root = document.documentElement;
+    return {
+      width: Math.max(1, Math.round(root.clientWidth || window.innerWidth || 1)),
+      height: Math.max(1, Math.round(root.clientHeight || window.innerHeight || 1))
+    };
+  }
+
+  function viewportInsetsV33() {
+    const compact = window.matchMedia?.('(max-width: 820px)').matches;
+    return compact
+      ? { top: 16, right: 12, bottom: 16, left: 36 }
+      : { top: 18, right: 18, bottom: 18, left: 44 };
+  }
+
+  async function installResponsiveViewport() {
+    const ready = await waitFor(() => {
+      try {
+        return typeof state !== 'undefined'
+          && state.evaluatedBounds
+          && typeof ctx !== 'undefined'
+          && typeof worldRectForBounds === 'function'
+          && typeof resizeCanvases === 'function';
+      } catch (_) {
+        return false;
+      }
+    }, 18000);
+    if (!ready || window.NucleidosResponsiveViewport) return;
+
+    let previous = viewportSizeV33();
+    let previousFit = Math.max(1e-9, Number(state.fitScale) || 1);
+    let resizeFrame = 0;
+
+    function adaptiveFitMetrics() {
+      const { width, height } = viewportSizeV33();
+      const inset = viewportInsetsV33();
+      const usableW = Math.max(120, width - inset.left - inset.right);
+      const usableH = Math.max(160, height - inset.top - inset.bottom);
+      const fullSx = usableW / Math.max(1, CHART_W);
+      const fullSy = usableH / Math.max(1, CHART_H);
+      state.fullFitScale = Math.max(fullSx, fullSy);
+
+      const r = worldRectForBounds(state.evaluatedBounds || { minZ: 1, maxZ: 118, minN: 0, maxN: 178 }, 20);
+      const rw = Math.max(1, r.x2 - r.x1);
+      const rh = Math.max(1, r.y2 - r.y1);
+      const evalSx = usableW / rw;
+      const evalSy = usableH / rh;
+      state.fitScale = Math.max(evalSx, evalSy);
+      state.viewportFitMode = 'cover';
+      return { r, rw, rh, width, height, inset, usableW, usableH };
+    }
+
+    function adaptiveClampTransform() {
+      const { width, height } = viewportSizeV33();
+      const inset = viewportInsetsV33();
+      const scaledW = CHART_W * state.scale;
+      const scaledH = CHART_H * state.scale;
+      const minTx = width - inset.right - scaledW;
+      const maxTx = inset.left;
+      const minTy = height - inset.bottom - scaledH;
+      const maxTy = inset.top;
+      state.tx = scaledW <= width - inset.left - inset.right
+        ? inset.left + (width - inset.left - inset.right - scaledW) / 2
+        : Math.min(maxTx, Math.max(minTx, state.tx));
+      state.ty = scaledH <= height - inset.top - inset.bottom
+        ? inset.top + (height - inset.top - inset.bottom - scaledH) / 2
+        : Math.min(maxTy, Math.max(minTy, state.ty));
+    }
+
+    function adaptiveFitToScreen(force = false) {
+      const metrics = adaptiveFitMetrics();
+      if (force || !Number.isFinite(state.scale) || state.scale < state.fullFitScale) state.scale = state.fitScale;
+      state.tx = metrics.inset.left + metrics.usableW / 2 - (metrics.r.x1 + metrics.rw / 2) * state.scale;
+      state.ty = metrics.inset.top + metrics.usableH / 2 - (metrics.r.y1 + metrics.rh / 2) * state.scale;
+      updateView();
+    }
+
+    function adaptiveZoomAt(clientX, clientY, factor) {
+      const old = Math.max(1e-9, state.scale || 1);
+      adaptiveFitMetrics();
+      const maxScale = Math.max(2.8, state.fitScale * 28);
+      const next = Math.max(state.fullFitScale, Math.min(maxScale, old * factor));
+      const chartX = (clientX - state.tx) / old;
+      const chartY = (clientY - state.ty) / old;
+      state.scale = next;
+      state.tx = clientX - chartX * next;
+      state.ty = clientY - chartY * next;
+      updateView();
+    }
+
+    function adaptiveDrawAxes() {
+      const visible = visibleWorldRect();
+      const { width, height } = viewportSizeV33();
+      const inset = viewportInsetsV33();
+      const labelRight = window.matchMedia?.('(max-width: 820px)').matches ? 58 : inset.right;
+      const dark = document.body.classList.contains('dark');
+      const axisY = clampNumber(sy(AXIS - 28), inset.top, height - inset.bottom);
+      const axisX = clampNumber(sx(AXIS - 18), inset.left, width - inset.right);
+      const labelColor = dark ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.84)';
+      const railColor = dark ? 'rgba(255,255,255,.16)' : 'rgba(34,32,28,.14)';
+      const nPixels = TILE_STEP_X * state.scale;
+      const zPixels = TILE_STEP_Y * state.scale;
+      const nStep = nPixels >= 11 ? 10 : nPixels >= 5.5 ? 20 : 50;
+      const zStep = zPixels >= 10 ? 10 : zPixels >= 5 ? 20 : 50;
+
+      ctx.save();
+      ctx.strokeStyle = railColor;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(inset.left, axisY + .5);
+      ctx.lineTo(width - inset.right, axisY + .5);
+      ctx.moveTo(axisX + .5, inset.top);
+      ctx.lineTo(axisX + .5, height - inset.bottom);
+      ctx.stroke();
+
+      ctx.font = '900 11px system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = labelColor;
+      ctx.textAlign = 'center';
+      const firstN = Math.max(0, Math.ceil(((visible.x1 - AXIS) / TILE_STEP_X) / nStep) * nStep);
+      const lastN = Math.min(N_MAX, Math.floor(((visible.x2 - AXIS) / TILE_STEP_X) / nStep) * nStep);
+      for (let N = firstN; N <= lastN; N += nStep) {
+        const x = sx(AXIS + N * TILE_STEP_X + TILE_STEP_X / 2);
+        if (x < inset.left + 18 || x > width - labelRight - 18) continue;
+        drawAxisPill(String(N), x, axisY, 38, state.layers.magic && MAGIC_NUMBERS.includes(N));
+      }
+
+      ctx.textAlign = 'right';
+      const topRow = Math.max(0, Math.floor((visible.y1 - AXIS) / TILE_STEP_Y));
+      const bottomRow = Math.min(Z_MAX - 1, Math.ceil((visible.y2 - AXIS) / TILE_STEP_Y));
+      const visibleZMin = Math.max(1, Z_MAX - bottomRow);
+      const visibleZMax = Math.min(Z_MAX, Z_MAX - topRow);
+      const firstZ = Math.max(zStep, Math.ceil(visibleZMin / zStep) * zStep);
+      for (let Z = firstZ; Z <= visibleZMax; Z += zStep) {
+        const y = sy(AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y / 2);
+        if (y < inset.top + 16 || y > height - inset.bottom - 16) continue;
+        drawAxisPill(String(Z), axisX - 6, y, 38, state.layers.magic && MAGIC_NUMBERS.includes(Z));
+      }
+
+      ctx.fillStyle = labelColor;
+      ctx.font = '950 11px system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('N →', width - labelRight, clampNumber(axisY - 14, inset.top + 10, height - inset.bottom - 10));
+      ctx.save();
+      ctx.translate(clampNumber(axisX + 15, inset.left + 12, width - inset.right - 12), inset.top + 3);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'right';
+      ctx.fillText('Z →', 0, 0);
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function applyAdaptiveResize() {
+      resizeFrame = 0;
+      const next = viewportSizeV33();
+      const oldScale = Math.max(1e-9, state.scale || 1);
+      const oldCenterX = (previous.width / 2 - state.tx) / oldScale;
+      const oldCenterY = (previous.height / 2 - state.ty) / oldScale;
+      const zoomRatio = oldScale / Math.max(1e-9, previousFit);
+      resizeCanvases();
+      const metrics = adaptiveFitMetrics();
+      const maxScale = Math.max(2.8, state.fitScale * 28);
+      state.scale = Math.max(state.fullFitScale, Math.min(maxScale, state.fitScale * zoomRatio));
+      state.tx = metrics.inset.left + metrics.usableW / 2 - oldCenterX * state.scale;
+      state.ty = metrics.inset.top + metrics.usableH / 2 - oldCenterY * state.scale;
+      previous = next;
+      previousFit = state.fitScale;
+      updateView();
+      if (!card.dataset.v32Template) resizeAtomCanvas();
+    }
+
+    function requestAdaptiveResize() {
+      if (resizeFrame) cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => requestAnimationFrame(applyAdaptiveResize));
+    }
+
+    window.updateFitMetrics = adaptiveFitMetrics;
+    window.clampTransform = adaptiveClampTransform;
+    window.fitToScreen = adaptiveFitToScreen;
+    window.zoomAt = adaptiveZoomAt;
+    window.drawAxes = adaptiveDrawAxes;
+    window.resizeViewPreservingPosition = applyAdaptiveResize;
+    window.addEventListener('resize', requestAdaptiveResize, { passive: true });
+    window.addEventListener('orientationchange', requestAdaptiveResize, { passive: true });
+    window.visualViewport?.addEventListener('resize', requestAdaptiveResize, { passive: true });
+    window.visualViewport?.addEventListener('scroll', requestAdaptiveResize, { passive: true });
+
+    adaptiveFitMetrics();
+    previousFit = state.fitScale;
+    adaptiveFitToScreen(true);
+    previous = viewportSizeV33();
+    window.NucleidosResponsiveViewport = {
+      version: VERSION,
+      mode: 'cover',
+      fit: () => adaptiveFitToScreen(true),
+      refresh: requestAdaptiveResize
+    };
+  }
+
+  const THEME_KEY_V33 = 'nucleidos-theme-mode';
+  const THEME_MODES_V33 = ['auto', 'light', 'evening', 'dark'];
+  const THEME_LABELS_V33 = { auto: 'Automático', light: 'Claro', evening: 'Tarde', dark: 'Oscuro' };
+  let themeModeV33 = 'auto';
+  let solarCoordinatesV33 = null;
+  let solarLocationAttemptedV33 = false;
+  let applyingThemeV33 = false;
+
+  function storedThemeV33() {
+    try {
+      const value = localStorage.getItem(THEME_KEY_V33);
+      return THEME_MODES_V33.includes(value) ? value : 'auto';
+    } catch (_) {
+      return 'auto';
+    }
+  }
+
+  function storedCoordinatesV33() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('nucleidos-solar-location') || 'null');
+      return parsed && Number.isFinite(parsed.lat) && Number.isFinite(parsed.lon) ? parsed : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function solarMinutesV33(date, lat, lon) {
+    const start = Date.UTC(date.getFullYear(), 0, 0);
+    const current = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = Math.floor((current - start) / 86400000);
+    const gamma = 2 * Math.PI / 365 * (day - 1);
+    const equation = 229.18 * (0.000075 + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma) - 0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma));
+    const declination = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma) - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma) - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
+    const latitude = lat * Math.PI / 180;
+    const cosine = (Math.cos(90.833 * Math.PI / 180) / (Math.cos(latitude) * Math.cos(declination))) - Math.tan(latitude) * Math.tan(declination);
+    if (cosine < -1) return { sunrise: 0, sunset: 1440 };
+    if (cosine > 1) return { sunrise: 720, sunset: 720 };
+    const hourAngle = Math.acos(cosine) * 180 / Math.PI;
+    const localNoon = 720 - 4 * lon - equation - date.getTimezoneOffset();
+    return { sunrise: localNoon - 4 * hourAngle, sunset: localNoon + 4 * hourAngle };
+  }
+
+  function automaticThemeV33(date = new Date()) {
+    const minutes = date.getHours() * 60 + date.getMinutes();
+    if (solarCoordinatesV33) {
+      const solar = solarMinutesV33(date, solarCoordinatesV33.lat, solarCoordinatesV33.lon);
+      if (minutes >= solar.sunset - 105 && minutes < solar.sunset + 45) return 'evening';
+      if (minutes >= solar.sunrise - 30 && minutes < solar.sunset - 105) return 'light';
+      return 'dark';
+    }
+    if (minutes >= 18 * 60 && minutes < 21 * 60) return 'evening';
+    return minutes >= 21 * 60 || minutes < 7 * 60 ? 'dark' : 'light';
+  }
+
+  function acquireSolarLocationV33() {
+    if (solarLocationAttemptedV33 || !navigator.geolocation) return;
+    solarLocationAttemptedV33 = true;
+    navigator.geolocation.getCurrentPosition(position => {
+      solarCoordinatesV33 = {
+        lat: Math.round(position.coords.latitude * 10) / 10,
+        lon: Math.round(position.coords.longitude * 10) / 10,
+        saved: Date.now()
+      };
+      try { localStorage.setItem('nucleidos-solar-location', JSON.stringify(solarCoordinatesV33)); } catch (_) {}
+      if (themeModeV33 === 'auto') applyThemeV33('auto', false);
+    }, () => {}, { enableHighAccuracy: false, timeout: 6500, maximumAge: 86400000 });
+  }
+
+  function themeIconMarkupV33() {
+    return `<g class="theme-shape sun-shape"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g><path class="theme-shape moon-shape" d="M19.2 15.2A7.7 7.7 0 0 1 8.8 4.8 8.3 8.3 0 1 0 19.2 15.2Z"/><g class="theme-shape auto-shape"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3.8a8.2 8.2 0 0 0 0 16.4Z"/><path d="M12 3.8v16.4" fill="none" stroke="currentColor" stroke-width="1.8"/></g><g class="theme-shape evening-shape"><path d="M3 17.5h18M5.5 14.5h13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M7.5 14.5a4.5 4.5 0 0 1 9 0Z"/><path d="M12 4.2v2M5.9 7l1.4 1.4M18.1 7l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></g>`;
+  }
+
+  function applyThemeV33(mode, persist = true) {
+    const safe = THEME_MODES_V33.includes(mode) ? mode : 'auto';
+    const resolved = safe === 'auto' ? automaticThemeV33() : safe;
+    themeModeV33 = safe;
+    if (persist) {
+      try { localStorage.setItem(THEME_KEY_V33, safe); } catch (_) {}
+    }
+    applyingThemeV33 = true;
+    document.body.classList.toggle('dark', resolved === 'dark' || resolved === 'evening');
+    document.body.classList.toggle('evening', resolved === 'evening');
+    document.documentElement.dataset.themeMode = safe;
+    document.documentElement.dataset.themeResolved = resolved;
+    const iconClass = safe === 'auto' ? 'auto-icon' : safe === 'light' ? 'sun-icon' : safe === 'evening' ? 'evening-icon' : 'moon-icon';
+    ['themeIcon', 'mobileThemeIcon'].forEach(id => {
+      const icon = document.getElementById(id);
+      if (!icon) return;
+      icon.innerHTML = themeIconMarkupV33();
+      icon.classList.remove('auto-icon', 'sun-icon', 'moon-icon', 'evening-icon');
+      icon.classList.add(iconClass);
+    });
+    const description = safe === 'auto'
+      ? `Automático solar · ${THEME_LABELS_V33[resolved].toLowerCase()}`
+      : `Tema ${THEME_LABELS_V33[safe].toLowerCase()}`;
+    ['darkModeButton', 'mobileThemeButton'].forEach(id => {
+      const button = document.getElementById(id);
+      if (!button) return;
+      button.title = `${description}. Pulsar para cambiar.`;
+      button.setAttribute('aria-label', `${description}. Pulsar para cambiar.`);
+    });
+    const mobileLabel = $('#mobileThemeButton span');
+    if (mobileLabel) mobileLabel.textContent = THEME_LABELS_V33[safe];
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = resolved === 'dark' ? '#101116' : resolved === 'evening' ? '#30252a' : '#f7f5f0';
+    scheduleRender?.();
+    try { drawAtom?.(performance.now()); } catch (_) {}
+    setTimeout(() => { applyingThemeV33 = false; }, 0);
+    if (safe === 'auto' && !solarCoordinatesV33) acquireSolarLocationV33();
+  }
+
+  function installSolarTheme() {
+    if (window.NucleidosTheme?.version === VERSION) return;
+    solarCoordinatesV33 = storedCoordinatesV33();
+    const buttons = ['darkModeButton', 'mobileThemeButton'].map(id => {
+      const original = document.getElementById(id);
+      if (!original) return null;
+      const replacement = original.cloneNode(true);
+      original.replaceWith(replacement);
+      return replacement;
+    }).filter(Boolean);
+    buttons.forEach(button => button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const index = THEME_MODES_V33.indexOf(themeModeV33);
+      applyThemeV33(THEME_MODES_V33[(index + 1) % THEME_MODES_V33.length]);
+      closeMobileMenu();
+    }));
+
+    applyThemeV33(storedThemeV33(), false);
+    const repair = () => {
+      if (applyingThemeV33) return;
+      const desired = themeModeV33 === 'auto' ? automaticThemeV33() : themeModeV33;
+      if (document.documentElement.dataset.themeMode !== themeModeV33
+        || document.documentElement.dataset.themeResolved !== desired
+        || document.body.classList.contains('evening') !== (desired === 'evening')) {
+        applyThemeV33(themeModeV33, false);
+      }
+    };
+    new MutationObserver(repair).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme-mode', 'data-theme-resolved'] });
+    new MutationObserver(repair).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    window.setInterval(() => { if (themeModeV33 === 'auto') applyThemeV33('auto', false); }, 60000);
+    window.NucleidosTheme = {
+      version: VERSION,
+      modes: [...THEME_MODES_V33],
+      set: mode => applyThemeV33(mode),
+      current: () => ({ mode: themeModeV33, resolved: themeModeV33 === 'auto' ? automaticThemeV33() : themeModeV33 })
+    };
+  }
+
   function bindGlobalKeys() {
     document.addEventListener('keydown', event => {
       if (event.key !== 'Escape') return;
@@ -478,7 +827,8 @@
     configureHud();
     createAbout();
     bindGlobalKeys();
-    await installEncyclopedia();
+    await Promise.all([installEncyclopedia(), installResponsiveViewport()]);
+    installSolarTheme();
     document.documentElement.dataset.nucleidosRuntime = VERSION;
     document.documentElement.dataset.nucleidosExperience = VERSION;
   }
