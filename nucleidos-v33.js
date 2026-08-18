@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.0.3';
+  const VERSION = '33.0.4';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -25,8 +25,8 @@
 
   const MEDIA = {
     vision: {
-      src: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Table%20of%20nuclides%20(mul).svg',
-      source: 'https://commons.wikimedia.org/wiki/File:Table_of_nuclides_(mul).svg',
+      src: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/NuclideMap%20stitched%20small%20preview.png',
+      source: 'https://commons.wikimedia.org/wiki/File:NuclideMap_stitched_small_preview.png',
       alt: 'Carta de nucleidos coloreada por modos de desintegración',
       caption: 'Una carta de nucleidos permite reconocer de un vistazo estabilidad, regiones exóticas y modos dominantes de desintegración.'
     },
@@ -385,8 +385,6 @@
         setTimeout(() => addArticleMedia(content), 0);
       }
     });
-    addArticleMedia(content);
-
     document.addEventListener('click', event => {
       const analysisEntry = event.target.closest('#analysisGuideLauncherV30, [data-open-analysis-guide]');
       if (!analysisEntry) return;
