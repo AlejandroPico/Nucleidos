@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.6.0';
+  const VERSION = '33.7.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -180,7 +180,7 @@
     if (mobilePanel && !$('.mobile-menu-head-v33', mobilePanel)) {
       const mobileHead = document.createElement('header');
       mobileHead.className = 'mobile-menu-head-v33';
-      mobileHead.innerHTML = '<div><span>Nucleidos</span><strong>Herramientas del visor</strong></div>';
+      mobileHead.innerHTML = '<img class="mobile-project-icon-v37" src="favicon.svg" alt=""><div><span>Nucleidos</span><strong>Herramientas del visor</strong></div>';
       mobilePanel.prepend(mobileHead);
       mobilePanel.addEventListener('click', event => {
         if (event.target.closest('.mobile-menu-action')) closeMobileMenu();
@@ -285,7 +285,35 @@
       swipe = null;
       if (dx < -58 && Math.abs(dx) > Math.abs(dy) * 1.15) closeMobileMenu();
     }, { passive: true });
+    panel.addEventListener('pointermove', event => {
+      if (!swipe || swipe.id !== event.pointerId) return;
+      const dx = event.clientX - swipe.x;
+      const dy = event.clientY - swipe.y;
+      if (dx < -54 && Math.abs(dx) > Math.abs(dy) * 1.12) {
+        swipe = null;
+        closeMobileMenu();
+      }
+    }, { passive: true });
     panel.addEventListener('pointercancel', () => { swipe = null; }, { passive: true });
+
+    let touchSwipe = null;
+    panel.addEventListener('touchstart', event => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      touchSwipe = { x: touch.clientX, y: touch.clientY };
+    }, { passive: true });
+    panel.addEventListener('touchmove', event => {
+      const touch = event.touches[0];
+      if (!touchSwipe || !touch) return;
+      const dx = touch.clientX - touchSwipe.x;
+      const dy = touch.clientY - touchSwipe.y;
+      if (dx < -54 && Math.abs(dx) > Math.abs(dy) * 1.12) {
+        touchSwipe = null;
+        closeMobileMenu();
+      }
+    }, { passive: true });
+    panel.addEventListener('touchend', () => { touchSwipe = null; }, { passive: true });
+    panel.addEventListener('touchcancel', () => { touchSwipe = null; }, { passive: true });
 
     let edgeSwipe = null;
     document.addEventListener('pointerdown', event => {
@@ -405,7 +433,7 @@
     backdrop.innerHTML = `
       <section class="about-dialog-v33" role="dialog" aria-modal="true" aria-labelledby="aboutTitleV33">
         <header class="about-header-v33">
-          <div class="about-chart-mark-v33" aria-hidden="true"><i></i><i></i><i></i><i></i><strong>N</strong></div>
+          <div class="about-project-icon-v37" aria-hidden="true"><img src="favicon.svg" alt=""></div>
           <div class="about-heading-v33"><p>Nucleidos · atlas nuclear interactivo</p><h1 id="aboutTitleV33">Explorar la materia, núcleo a núcleo</h1></div>
           <button type="button" data-about-close aria-label="Cerrar Acerca de">×</button>
         </header>
