@@ -13,6 +13,9 @@ const THEORETICAL_N_MAX = 320;
 const IAEA_URL = 'https://www-nds.iaea.org/relnsd/v0/data?fields=ground_states&nuclides=all';
 const OFFICIAL_CSV_URL = 'nuclides.csv';
 const MAGIC_NUMBERS = [2, 8, 20, 28, 50, 82, 126, 184];
+const ZOOM_UI_MIN = 100;
+const ZOOM_UI_MAX = 1200;
+const MAX_CELL_VIEWPORT_RATIO = 0.78;
 
 let Z_MAX = DEFAULT_Z_MAX;
 let N_MAX = DEFAULT_N_MAX;
@@ -157,6 +160,7 @@ async function init() {
   bindTooltips();
   renderLegend();
   fitToScreen(true);
+  requestAnimationFrame(() => requestAnimationFrame(() => fitToScreen(true)));
   requestAnimationFrame(drawAtomLoop);
 }
 
@@ -604,48 +608,111 @@ function drawAxisPill(text, x, y, width = 38, magic = false) {
   ctx.restore();
 }
 
+function fittedCellText(value, centerX, baselineY, maxWidth) {
+  let text = String(value == null || value === '' ? '—' : value);
+  if (ctx.measureText(text).width <= maxWidth) {
+    ctx.fillText(text, centerX, baselineY);
+    return;
+  }
+  while (text.length > 2 && ctx.measureText(`${text}…`).width > maxWidth) text = text.slice(0, -1);
+  ctx.fillText(`${text}…`, centerX, baselineY);
+}
+
 function drawNuclideCell(n, rect) {
   const x = sx(rect.x), y = sy(rect.y), w = CELL_W * state.scale, h = CELL_H * state.scale;
   const category = categoryForMode(n);
   const filtered = !(state.filters[state.colorMode] || new Set()).has(category);
+  const zoomPercent = displayedZoomPercent();
+  const decay = DECAY_LABELS[n.decay] || n.decay || '—';
+  const stateSuffix = n.stateId && n.stateId !== 'gs' ? ` · ${n.stateId}` : '';
+  const inset = Math.max(3, Math.min(18, Math.min(w, h) * .055));
+
   ctx.save();
   ctx.globalAlpha = filtered ? 0.16 : (n.dataClass === 'theoretical' ? 0.46 : 1);
-  roundedRect(ctx, x, y, w, h, Math.max(4, 11 * state.scale));
+  roundedRect(ctx, x, y, w, h, inset);
   ctx.fillStyle = colorForNuclide(n);
   ctx.fill();
-  ctx.lineWidth = Math.max(0.75, state.scale);
+  ctx.lineWidth = Math.max(0.75, Math.min(4, state.scale));
   ctx.strokeStyle = n.uid === state.selected?.uid ? 'rgba(93,90,246,.90)' : (n.dataClass === 'theoretical' ? 'rgba(40,40,40,.18)' : 'rgba(0,0,0,.10)');
-  if (n.dataClass === 'theoretical') ctx.setLineDash([Math.max(2, 5*state.scale), Math.max(2, 4*state.scale)]);
+  if (n.dataClass === 'theoretical') ctx.setLineDash([Math.max(2, 5 * state.scale), Math.max(2, 4 * state.scale)]);
   ctx.stroke();
   ctx.setLineDash([]);
   if (n.uid === state.selected?.uid) {
-    ctx.lineWidth = Math.max(2, 3 * state.scale);
+    ctx.lineWidth = Math.max(2, Math.min(6, 3 * state.scale));
     ctx.strokeStyle = 'rgba(93,90,246,.72)';
     ctx.stroke();
   }
 
+  roundedRect(ctx, x + 1, y + 1, Math.max(0, w - 2), Math.max(0, h - 2), Math.max(0, inset - 1));
+  ctx.clip();
+  ctx.globalAlpha = filtered ? 0.22 : 1;
   ctx.fillStyle = 'rgba(16,16,16,.88)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+
   if (w > 16 && h > 14) {
-    ctx.font = `${Math.max(8, Math.min(23, 21 * state.scale))}px system-ui, sans-serif`;
-    ctx.font = `900 ${Math.max(8, Math.min(23, 21 * state.scale))}px system-ui, sans-serif`;
-    ctx.fillText(n.symbol, x + w/2, y + h/2 + (w > 44 ? 1 : 0));
+    const symbolSize = zoomPercent >= 850
+      ? clampNumber(Math.min(w * .18, h * .23), 18, 78)
+      : clampNumber(Math.min(w * .32, h * .34), 8, 42);
+    ctx.font = `900 ${symbolSize}px system-ui, sans-serif`;
+    const symbolY = zoomPercent >= 850 ? y + h * .32 : y + h * .50;
+    ctx.fillText(n.symbol, x + w / 2, symbolY);
   }
-  if (w > 50 && h > 45) {
-    ctx.font = `800 ${Math.max(7, Math.min(10, 9 * state.scale))}px system-ui, sans-serif`;
-    ctx.fillStyle = 'rgba(26,26,26,.54)';
+
+  if (zoomPercent >= 260 && w > 48 && h > 40) {
+    const small = clampNumber(Math.min(w, h) * .085, 7, 13);
+    ctx.font = `800 ${small}px system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(26,26,26,.60)';
     ctx.textBaseline = 'top';
-    ctx.fillText(String(n.a), x + w/2 - w*0.28, y + 5 * state.scale);
-    ctx.fillText(`N${n.n}`, x + w/2 + w*0.26, y + 5 * state.scale);
+    ctx.fillText(String(n.a), x + w * .22, y + Math.max(4, h * .07));
+    ctx.fillText(`N=${n.n}`, x + w * .75, y + Math.max(4, h * .07));
     ctx.textBaseline = 'bottom';
-    ctx.fillText(`Z${n.z}`, x + w/2 - w*0.27, y + h - 5 * state.scale);
-    ctx.fillText(DECAY_LABELS[n.decay] || n.decay, x + w/2 + w*0.26, y + h - 5 * state.scale);
+    ctx.fillText(`Z=${n.z}`, x + w * .22, y + h - Math.max(4, h * .07));
+    fittedCellText(decay, x + w * .74, y + h - Math.max(4, h * .07), w * .42);
   }
+
+  if (zoomPercent >= 560 && w > 92 && h > 78) {
+    const headerSize = clampNumber(Math.min(w, h) * .075, 8, 16);
+    ctx.font = `850 ${headerSize}px system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(20,20,20,.72)';
+    ctx.textBaseline = 'top';
+    fittedCellText(`${n.element}-${n.a}${stateSuffix}`, x + w / 2, y + h * .08, w * .82);
+    ctx.textBaseline = 'middle';
+    fittedCellText(n.decay === 'stable' ? 'Estable' : `Desintegración: ${decay}`, x + w / 2, y + h * .68, w * .84);
+    if (zoomPercent < 900) {
+      ctx.textBaseline = 'bottom';
+      fittedCellText(`t½  ${n.half_life || '—'}`, x + w / 2, y + h * .84, w * .84);
+    }
+  }
+
+  if (zoomPercent >= 900 && w > 135 && h > 112) {
+    const lineSize = clampNumber(Math.min(w, h) * .052, 9, 18);
+    const lineHeight = clampNumber(lineSize * 1.42, 13, 26);
+    const startY = y + h * .57;
+    const classText = n.dataClass === 'theoretical' ? 'Teórico / no observado' : n.dataClass === 'isomer' ? 'Estado isomérico' : 'Dato evaluado';
+    const rows = [
+      `Z = ${n.z}   ·   N = ${n.n}   ·   A = ${n.a}`,
+      n.decay === 'stable' ? 'Estado: estable' : `Modo: ${decay}`,
+      `Vida media: ${n.half_life || '—'}`,
+      `Espín/paridad: ${n.spin || '—'}`,
+      `Masa atómica: ${n.atomic_mass || '—'}`,
+      `Clase: ${classText}`
+    ];
+    ctx.font = `750 ${lineSize}px system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(18,18,18,.76)';
+    ctx.textBaseline = 'middle';
+    rows.forEach((row, index) => {
+      const rowY = startY + index * lineHeight;
+      if (rowY < y + h - Math.max(8, h * .045)) fittedCellText(row, x + w / 2, rowY, w * .86);
+    });
+  }
+
   const sameCell = state.byCell.get(`${n.z}-${n.n}`) || [];
-  if (sameCell.some(x => x.dataClass === 'isomer') && w > 22) {
+  if (sameCell.some(item => item.dataClass === 'isomer') && w > 22) {
     ctx.fillStyle = '#5d5af6';
-    ctx.beginPath(); ctx.arc(x + w - 8*state.scale, y + 8*state.scale, Math.max(2.4, 4*state.scale), 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + w - Math.max(6, w * .05), y + Math.max(6, h * .06), Math.max(2.4, Math.min(7, 4 * state.scale)), 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.restore();
 }
@@ -776,6 +843,36 @@ function updateFitMetrics() {
   return { r, rw, rh, view, inset, usableW, usableH };
 }
 
+function maximumZoomScale() {
+  const view = viewportGeometry();
+  const inset = viewportInsets();
+  const usableW = Math.max(120, view.width - inset.left - inset.right);
+  const usableH = Math.max(160, view.height - inset.top - inset.bottom);
+  const inspectScale = Math.min(
+    usableW * MAX_CELL_VIEWPORT_RATIO / CELL_W,
+    usableH * MAX_CELL_VIEWPORT_RATIO / CELL_H
+  );
+  return Math.max(state.fitScale * 12, inspectScale);
+}
+
+function zoomProgressForScale(scale = state.scale) {
+  const minimum = Math.max(1e-9, state.fitScale);
+  const maximum = Math.max(minimum, maximumZoomScale());
+  if (maximum <= minimum) return 0;
+  return Math.max(0, Math.min(1, Math.log(Math.max(minimum, scale) / minimum) / Math.log(maximum / minimum)));
+}
+
+function displayedZoomPercent(scale = state.scale) {
+  return Math.round(ZOOM_UI_MIN + zoomProgressForScale(scale) * (ZOOM_UI_MAX - ZOOM_UI_MIN));
+}
+
+function scaleForDisplayedZoom(percent) {
+  const minimum = Math.max(1e-9, state.fitScale);
+  const maximum = Math.max(minimum, maximumZoomScale());
+  const progress = Math.max(0, Math.min(1, (Number(percent) - ZOOM_UI_MIN) / (ZOOM_UI_MAX - ZOOM_UI_MIN)));
+  return minimum * Math.pow(maximum / minimum, progress);
+}
+
 let previousViewport = viewportGeometry();
 let previousFitScale = Math.max(1e-9, Number(state.fitScale) || 1);
 let viewportResizeFrame = 0;
@@ -798,7 +895,7 @@ function resizeViewPreservingPosition() {
   const zoomRatio = oldScale / Math.max(1e-9, previousFitScale);
   resizeCanvases();
   const metrics = updateFitMetrics();
-  const maxScale = state.fitScale * 2;
+  const maxScale = maximumZoomScale();
   state.scale = Math.max(state.fitScale, Math.min(maxScale, state.fitScale * zoomRatio));
 
   if (Math.abs(zoomRatio - 1) < .025) {
@@ -833,7 +930,7 @@ function worldRectForBounds(b, margin = 0) {
   };
 }
 
-function updateView() { clampTransform(); zoomValue.textContent = `${Math.round(state.scale / state.fitScale * 100)}%`; scheduleRender(); }
+function updateView() { clampTransform(); zoomValue.textContent = `${displayedZoomPercent()}%`; scheduleRender(); }
 function clampTransform() {
   const view = viewportGeometry();
   const inset = viewportInsets();
@@ -852,7 +949,7 @@ function clampTransform() {
 }
 function zoomAt(clientX, clientY, factor) {
   const old = state.scale;
-  const maxScale = state.fitScale * 2;
+  const maxScale = maximumZoomScale();
   const next = Math.max(state.fitScale, Math.min(maxScale, old * factor));
   const chartX = (clientX - state.tx) / old;
   const chartY = (clientY - state.ty) / old;
@@ -946,7 +1043,7 @@ function updatePinchZoom() {
   const touches = touchPointers(); if (touches.length < 2 || !state.pinch) return false;
   const [a,b] = touches, d = Math.hypot(a.x-b.x, a.y-b.y); if (!d) return false;
   const c = { x: (a.x+b.x)/2, y: (a.y+b.y)/2 };
-  const maxScale = state.fitScale * 2;
+  const maxScale = maximumZoomScale();
   const ns = Math.max(state.fitScale, Math.min(maxScale, state.pinch.startScale * d / state.pinch.startDistance));
   state.scale = ns; state.tx = c.x - state.pinch.chartX * ns; state.ty = c.y - state.pinch.chartY * ns;
   updateView(); return true;
@@ -973,7 +1070,8 @@ function updateCursorHud(e) {
 function centerOnNuclide(n, zoomMultiplier = 7) {
   const r = cellRect(n.z, n.n);
   const x = r.x + CELL_W/2, y = r.y + CELL_H/2;
-  state.scale = Math.max(state.fitScale, Math.min(state.fitScale * zoomMultiplier, state.fitScale * 2));
+  const targetPercent = Math.min(1100, 100 + Math.max(1, Number(zoomMultiplier) || 7) * 125);
+  state.scale = scaleForDisplayedZoom(targetPercent);
   state.tx = window.innerWidth/2 - x * state.scale;
   state.ty = window.innerHeight/2 - y * state.scale;
   updateView();
@@ -1506,7 +1604,7 @@ function hexToRgb(hex) {
 }
 
 window.NucleidosNativeViewport = {
-  version: '33.9.0',
+  version: '34.0.0',
   mode: 'contain',
   fit: () => fitToScreen(true),
   refresh: requestViewportResize,
