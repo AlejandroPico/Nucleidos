@@ -1,0 +1,261 @@
+/* Nucleidos v33 · HUD compacto, Acerca de y Gran Enciclopedia unificada */
+
+.top-tools {
+  top: 34px !important;
+  right: 18px !important;
+  gap: 0 !important;
+  min-height: 44px;
+  padding: 0 !important;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--panel-solid) 92%, transparent);
+  box-shadow: 0 10px 34px rgba(31, 27, 21, .16);
+  backdrop-filter: blur(22px);
+}
+
+.top-tools .tool-button {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--muted);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow: visible;
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.top-tools .search-tool > .tool-button { border-left: 0; }
+.top-tools .tool-button:hover,
+.top-tools .tool-button:focus-visible,
+.top-tools .tool-button.active {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  box-shadow: none;
+  transform: none;
+}
+
+body.dark .top-tools,
+body.dark .top-tools .tool-button { background-color: transparent; }
+body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, transparent); }
+
+.top-tools .zoom-hud {
+  height: 42px;
+  min-width: 77px;
+  padding: 0 3px;
+  gap: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.top-tools .zoom-hud button { width: 26px; height: 32px; border-radius: 0; }
+.top-tools #zoomValue { min-width: 38px; }
+.top-tools .material-icon { width: 19px; height: 19px; }
+.encyclopedia-book-icon-v33 { stroke-linecap: round; }
+.top-search-box { top: 50px; border-radius: 0; }
+
+#analysisGuideLauncherV30[hidden] { display: none !important; }
+
+.about-backdrop-v33 {
+  position: fixed;
+  z-index: 2600;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(9, 10, 14, .52);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+  backdrop-filter: blur(10px);
+}
+.about-backdrop-v33.open { opacity: 1; pointer-events: auto; }
+.about-dialog-v33 {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  border: 1px solid var(--line-strong);
+  background: var(--panel-solid);
+  box-shadow: var(--shadow);
+  overflow: auto;
+  transform: translateY(12px) scale(.985);
+  transition: transform 180ms ease;
+}
+.about-backdrop-v33.open .about-dialog-v33 { transform: none; }
+.about-dialog-v33 > header {
+  display: grid;
+  grid-template-columns: 58px 1fr 38px;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--line);
+}
+.about-dialog-v33 header p { margin: 0 0 4px; color: var(--accent); font-size: 9px; font-weight: 950; letter-spacing: .14em; text-transform: uppercase; }
+.about-dialog-v33 h1 { margin: 0; font-size: clamp(20px, 2.5vw, 29px); letter-spacing: -.025em; }
+.about-dialog-v33 [data-about-close] { width: 36px; height: 36px; padding: 0; border: 0; color: var(--muted); background: transparent; font-size: 25px; cursor: pointer; }
+.about-dialog-v33 [data-about-close]:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.about-mark-v33 { position: relative; display: grid; place-items: center; width: 54px; height: 54px; border: 1px solid var(--line-strong); color: var(--accent); font-family: Georgia, serif; font-size: 25px; }
+.about-mark-v33 i, .about-mark-v33 b { position: absolute; width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
+.about-mark-v33 i { top: 7px; right: 8px; }.about-mark-v33 b { bottom: 7px; left: 8px; }
+.about-body-v33 { padding: 26px 28px 30px; }
+.about-lead-v33 { max-width: 680px; margin: 0; font-size: 15px; line-height: 1.72; }
+.about-facts-v33 { display: grid; grid-template-columns: repeat(3, 1fr); margin: 25px 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.about-facts-v33 article { min-height: 142px; padding: 17px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.about-facts-v33 span { color: var(--muted); font-size: 9px; font-weight: 950; letter-spacing: .11em; text-transform: uppercase; }
+.about-facts-v33 strong { display: block; margin: 11px 0 7px; font-size: 14px; }
+.about-facts-v33 p, .about-note-v33 { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.about-note-v33 { padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.about-links-v33 { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 24px; background: var(--line); }
+.about-links-v33 a { display: grid; gap: 6px; padding: 17px; color: var(--ink); background: var(--panel-solid); text-decoration: none; }
+.about-links-v33 a:hover { background: color-mix(in srgb, var(--accent) 7%, var(--panel-solid)); }
+.about-links-v33 span { color: var(--muted); font-size: 10px; }.about-links-v33 strong { font-size: 13px; }
+
+.info-guide-backdrop { z-index: 2500 !important; }
+.info-guide.grand-encyclopedia-v33 {
+  width: min(1420px, 97vw);
+  height: min(910px, 95vh);
+  max-height: 95vh;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  border-radius: 0;
+}
+.grand-encyclopedia-v33 .info-guide-header { min-height: 78px; padding: 15px 19px; }
+.grand-encyclopedia-v33 .info-guide-header { grid-row: 1; }
+.grand-encyclopedia-v33 .info-guide-header h1 { font-size: clamp(19px, 2vw, 27px); }
+.grand-encyclopedia-v33 .info-guide-header p { color: var(--accent); letter-spacing: .12em; text-transform: uppercase; }
+.grand-encyclopedia-v33 .info-guide-close { border-radius: 0; }
+
+.encyclopedia-hub-v33 {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  align-items: stretch;
+  min-height: 56px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-solid) 97%, var(--ink) 3%);
+}
+.grand-encyclopedia-v33 > .encyclopedia-hub-v33 { grid-row: 2; }
+.encyclopedia-panes-v33 { display: flex; min-width: 0; overflow-x: auto; }
+.encyclopedia-panes-v33 button {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 162px;
+  padding: 8px 15px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.encyclopedia-panes-v33 button strong { font-size: 11px; }.encyclopedia-panes-v33 button span { font-size: 9px; }
+.encyclopedia-panes-v33 button.active { color: var(--ink); border-bottom-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.encyclopedia-search-v33 { position: relative; display: grid; grid-template-columns: 24px 1fr 30px; align-items: center; gap: 5px; min-width: 0; padding: 0 10px; border-left: 1px solid var(--line); }
+.encyclopedia-search-v33 > svg { width: 18px; color: var(--muted); }
+.encyclopedia-search-v33 input { min-width: 0; height: 40px; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 12px; }
+.encyclopedia-search-v33 > button { width: 28px; height: 28px; padding: 0; border: 0; color: var(--muted); background: transparent; font-size: 19px; cursor: pointer; }
+.encyclopedia-search-results-v33 { position: absolute; z-index: 20; top: calc(100% + 1px); right: 0; width: min(520px, 86vw); max-height: min(520px, 65vh); border: 1px solid var(--line-strong); background: var(--panel-solid); box-shadow: var(--shadow); overflow: auto; }
+.encyclopedia-search-results-v33 > button { display: grid; gap: 4px; width: 100%; min-height: 58px; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: transparent; text-align: left; cursor: pointer; }
+.encyclopedia-search-results-v33 > button:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.encyclopedia-search-results-v33 span { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; }.encyclopedia-search-results-v33 strong { font-size: 12px; }
+.encyclopedia-search-results-v33 > p { margin: 0; padding: 16px; color: var(--muted); font-size: 12px; }
+
+.grand-encyclopedia-v33 .info-guide-categories { grid-row: 3; min-height: 44px; }
+.grand-encyclopedia-v33 .info-guide-main { grid-row: 4; min-height: 0; }
+.grand-encyclopedia-v33 [hidden] { display: none !important; }
+
+.analysis-guide-v30.encyclopedia-analysis-v33 {
+  grid-row: 3 / 5;
+  position: static;
+  inset: auto;
+  z-index: auto;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  overflow: hidden;
+}
+.encyclopedia-analysis-v33 > .analysis-guide-header-v30 { display: none; }
+.encyclopedia-analysis-v33 .analysis-guide-layout-v30 { height: 100%; min-height: 0; grid-template-columns: minmax(270px, 310px) 1fr; }
+.encyclopedia-analysis-v33 .analysis-guide-sidebar-v30,
+.encyclopedia-analysis-v33 .analysis-guide-content-v30 { min-height: 0; }
+.encyclopedia-analysis-v33 .analysis-guide-sidebar-v30 { border-left: 0; }
+.encyclopedia-analysis-v33 .analysis-guide-content-v30 { padding: clamp(22px, 3vw, 42px); }
+
+.encyclopedia-sources-v33 { grid-row: 3 / 5; min-height: 0; padding: clamp(22px, 3vw, 42px); overflow: auto; }
+.encyclopedia-sources-v33 > header { max-width: 880px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.encyclopedia-sources-v33 > header span { color: var(--accent); font-size: 9px; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; }
+.encyclopedia-sources-v33 > header h2 { margin: 7px 0 8px; font-size: clamp(23px, 3vw, 38px); letter-spacing: -.035em; }
+.encyclopedia-sources-v33 > header p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.encyclopedia-source-groups-v33 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 26px; }
+.encyclopedia-source-groups-v33 > section > h3 { margin: 0 0 7px; font-size: 15px; }
+.encyclopedia-source-groups-v33 > section > p { min-height: 54px; margin: 0 0 13px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.encyclopedia-source-groups-v33 > section > div { border-top: 1px solid var(--line); }
+.encyclopedia-source-groups-v33 a { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 70px; padding: 11px 4px; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.encyclopedia-source-groups-v33 a:hover { padding-left: 10px; background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.encyclopedia-source-groups-v33 a span { display: grid; gap: 4px; }.encyclopedia-source-groups-v33 a strong { font-size: 11px; }.encyclopedia-source-groups-v33 a small { color: var(--muted); font-size: 9px; line-height: 1.35; }.encyclopedia-source-groups-v33 a > b { color: var(--accent); }
+
+.encyclopedia-figure-v33 { display: grid; grid-template-columns: minmax(230px, 44%) 1fr; gap: 18px; align-items: center; margin: 20px 0 24px; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.encyclopedia-figure-v33 > a { display: block; min-height: 170px; max-height: 285px; overflow: hidden; background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.encyclopedia-figure-v33 img { display: block; width: 100%; height: 100%; min-height: 170px; max-height: 285px; object-fit: contain; }
+.encyclopedia-figure-v33 figcaption { display: grid; gap: 12px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.encyclopedia-figure-v33 figcaption a { width: fit-content; color: var(--accent); font-size: 10px; font-weight: 850; text-decoration: none; }
+
+@media (max-width: 920px) {
+  .encyclopedia-hub-v33 { grid-template-columns: 1fr; }
+  .encyclopedia-search-v33 { min-height: 46px; border-top: 1px solid var(--line); border-left: 0; }
+  .encyclopedia-source-groups-v33 { grid-template-columns: 1fr 1fr; }
+  .about-facts-v33 { grid-template-columns: 1fr; }
+  .about-facts-v33 article { min-height: 0; }
+}
+
+@media (max-width: 740px) {
+  .top-tools {
+    top: 12px !important;
+    right: 10px !important;
+    min-height: 40px;
+    border: 0;
+    background: transparent !important;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .top-tools > :not(.mobile-menu-button) { display: none !important; }
+  .top-tools .mobile-menu-button { display: grid !important; width: 40px; height: 40px; min-width: 40px; min-height: 40px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--panel-solid) 92%, transparent); }
+  .mobile-menu-grid { grid-template-columns: repeat(2, 1fr); }
+  .info-guide.grand-encyclopedia-v33 { width: calc(100vw - 10px); height: calc(100vh - 10px); max-height: none; }
+  .grand-encyclopedia-v33 .info-guide-header { min-height: 70px; padding: 11px 13px; }
+  .grand-encyclopedia-v33 .info-guide-header h1 { font-size: 16px; }
+  .encyclopedia-panes-v33 button { min-width: 145px; padding: 7px 10px; }
+  .encyclopedia-analysis-v33 .analysis-guide-layout-v30 { grid-template-columns: 145px 1fr; }
+  .encyclopedia-analysis-v33 .analysis-guide-sidebar-v30 label { margin: 8px; }
+  .encyclopedia-analysis-v33 .analysis-guide-sidebar-v30 nav button { min-height: 50px; padding: 7px; }
+  .encyclopedia-analysis-v33 .analysis-guide-sidebar-v30 nav button span { display: none; }
+  .encyclopedia-analysis-v33 .analysis-guide-content-v30 { padding: 18px 14px 28px; }
+  .encyclopedia-source-groups-v33 { grid-template-columns: 1fr; }
+  .encyclopedia-source-groups-v33 > section > p { min-height: 0; }
+  .encyclopedia-figure-v33 { grid-template-columns: 1fr; }
+  .about-backdrop-v33 { padding: 6px; }
+  .about-dialog-v33 { width: calc(100vw - 12px); max-height: calc(100vh - 12px); }
+  .about-dialog-v33 > header { grid-template-columns: 44px 1fr 34px; gap: 10px; padding: 14px; }
+  .about-mark-v33 { width: 42px; height: 42px; font-size: 20px; }
+  .about-body-v33 { padding: 20px 16px 24px; }
+  .about-links-v33 { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-backdrop-v33, .about-dialog-v33 { transition: none; }
+}
