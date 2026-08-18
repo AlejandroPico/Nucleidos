@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.0.2';
+  const VERSION = '33.0.3';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -380,8 +380,11 @@
       if (!event.target.closest('.encyclopedia-search-v33')) results.hidden = true;
     });
 
-    const observer = new MutationObserver(() => addArticleMedia(content));
-    observer.observe(content, { childList: true });
+    guide.addEventListener('click', event => {
+      if (event.target.closest('.info-category, .info-topic-button')) {
+        setTimeout(() => addArticleMedia(content), 0);
+      }
+    });
     addArticleMedia(content);
 
     document.addEventListener('click', event => {
