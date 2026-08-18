@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.2.0';
+  const VERSION = '33.3.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -480,6 +480,10 @@
   }
 
   async function installResponsiveViewport() {
+    if (window.NucleidosNativeViewport?.version === VERSION) {
+      window.NucleidosResponsiveViewport = window.NucleidosNativeViewport;
+      return;
+    }
     const ready = await waitFor(() => {
       try {
         return typeof state !== 'undefined'
@@ -823,14 +827,15 @@
     }, true);
   }
 
-  async function boot() {
+  function boot() {
     configureHud();
     createAbout();
     bindGlobalKeys();
-    await Promise.all([installEncyclopedia(), installResponsiveViewport()]);
     installSolarTheme();
     document.documentElement.dataset.nucleidosRuntime = VERSION;
     document.documentElement.dataset.nucleidosExperience = VERSION;
+    void installEncyclopedia();
+    void installResponsiveViewport();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
