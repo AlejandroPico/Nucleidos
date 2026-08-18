@@ -900,6 +900,7 @@ let previousViewport = viewportGeometry();
 let previousFitScale = Math.max(1e-9, Number(state.fitScale) || 1);
 let viewportResizeFrame = 0;
 let viewportResizeSettleTimer = 0;
+let orientationSettleTimer = 0;
 
 function fitToScreen(force = false) {
   const metrics = updateFitMetrics();
@@ -952,10 +953,24 @@ function handleOrientationChange() {
   state.pinch = null;
   endDrag();
   state.renderPending = false;
+  document.documentElement.classList.add('viewport-rotating-v343');
+
+  // Vacía el búfer inmediatamente para que el navegador no estire el último
+  // fotograma mientras termina de actualizar visualViewport en un giro.
   resizeCanvases();
   runViewportResize();
+
   window.clearTimeout(viewportResizeSettleTimer);
-  viewportResizeSettleTimer = window.setTimeout(runViewportResize, 320);
+  viewportResizeSettleTimer = window.setTimeout(runViewportResize, 220);
+  window.clearTimeout(orientationSettleTimer);
+  orientationSettleTimer = window.setTimeout(() => {
+    if (viewportResizeFrame) cancelAnimationFrame(viewportResizeFrame);
+    viewportResizeFrame = 0;
+    resizeViewPreservingPosition();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.documentElement.classList.remove('viewport-rotating-v343');
+    }));
+  }, 380);
 }
 
 function worldRectForBounds(b, margin = 0) {
@@ -1646,7 +1661,7 @@ function hexToRgb(hex) {
 }
 
 window.NucleidosNativeViewport = {
-  version: '34.2.0',
+  version: '34.3.0',
   mode: 'contain',
   fit: () => fitToScreen(true),
   refresh: requestViewportResize,
