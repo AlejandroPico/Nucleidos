@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.7.0';
+  const VERSION = '33.8.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -1060,8 +1060,76 @@
     enforceSquareSearch();
     normalizeToolbarOrder();
     void installMobileInlinePanels();
+    installDetailPanelRedesign();
     document.documentElement.dataset.nucleidosRuntime = VERSION;
     document.documentElement.dataset.nucleidosExperience = VERSION;
+  }
+
+  function prepareDetailTemplate() {
+    const template = $('#nuclideCard');
+    if (!template || template.dataset.v38DetailTemplate === '1') return;
+    template.dataset.v38DetailTemplate = '1';
+
+    const uses = $('.tab-panel[data-panel="apps"]', template);
+    uses?.querySelector('.action-row')?.remove();
+    const usesBlock = $('.info-block', uses);
+    usesBlock?.classList.add('detail-uses-v38');
+    const usesTitle = $('h2', usesBlock);
+    if (usesTitle) usesTitle.textContent = 'Aplicaciones e interés';
+
+    const rawPanel = $('.tab-panel[data-panel="raw"]', template);
+    if (rawPanel && !$('.technical-data-head-v38', rawPanel)) {
+      const head = document.createElement('header');
+      head.className = 'technical-data-head-v38';
+      head.innerHTML = '<span>Registro técnico</span><p>Campos normalizados disponibles para este estado nuclear.</p>';
+      rawPanel.prepend(head);
+    }
+  }
+
+  function polishDetailCard(card) {
+    if (!card || card.dataset.v38DetailPanels === '1') return;
+    card.dataset.v38DetailPanels = '1';
+    card.querySelector('.tab-panel[data-panel="apps"] .action-row')?.remove();
+    card.querySelector('.tab-panel[data-panel="apps"] .info-block')?.classList.add('detail-uses-v38');
+
+    const panel = card.querySelector('.tab-panel[data-panel="raw"]');
+    const raw = panel?.querySelector('[data-v32-source-id="rawDataBlock"], #rawDataBlock, .raw-data');
+    if (!panel || !raw || panel.querySelector('.technical-data-list-v38')) return;
+    if (!panel.querySelector('.technical-data-head-v38')) {
+      const head = document.createElement('header');
+      head.className = 'technical-data-head-v38';
+      head.innerHTML = '<span>Registro técnico</span><p>Campos normalizados disponibles para este estado nuclear.</p>';
+      panel.prepend(head);
+    }
+    const list = document.createElement('dl');
+    list.className = 'technical-data-list-v38';
+    String(raw.textContent || '').split(/\n+/).filter(Boolean).forEach(line => {
+      const separator = line.indexOf(':');
+      const key = separator >= 0 ? line.slice(0, separator).trim() : 'Dato';
+      const value = separator >= 0 ? line.slice(separator + 1).trim() : line.trim();
+      const row = document.createElement('div');
+      const term = document.createElement('dt');
+      const description = document.createElement('dd');
+      term.textContent = key;
+      description.textContent = value || '—';
+      row.append(term, description);
+      list.appendChild(row);
+    });
+    raw.replaceWith(list);
+  }
+
+  function installDetailPanelRedesign() {
+    prepareDetailTemplate();
+    $$('.nuclide-card-window-v32').forEach(polishDetailCard);
+    if (document.documentElement.dataset.v38DetailObserver === '1') return;
+    document.documentElement.dataset.v38DetailObserver = '1';
+    new MutationObserver(records => {
+      records.forEach(record => record.addedNodes.forEach(node => {
+        if (!(node instanceof Element)) return;
+        if (node.matches('.nuclide-card-window-v32')) polishDetailCard(node);
+        node.querySelectorAll?.('.nuclide-card-window-v32').forEach(polishDetailCard);
+      }));
+    }).observe(document.body, { childList: true, subtree: true });
   }
 
   function bindGlobalKeys() {
@@ -1083,6 +1151,7 @@
     createAbout();
     bindGlobalKeys();
     installSolarTheme();
+    installDetailPanelRedesign();
     document.documentElement.dataset.nucleidosRuntime = VERSION;
     document.documentElement.dataset.nucleidosExperience = VERSION;
     void installEncyclopedia();
