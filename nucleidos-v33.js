@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.4.0';
+  const VERSION = '33.5.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -191,14 +191,109 @@
         if (event.target.closest('.mobile-menu-action')) closeMobileMenu();
       });
     }
+    installToolbarOrdering();
+    installMobileDrawer();
+  }
+
+  function normalizeToolbarOrder() {
+    const toolbar = $('#app > .top-tools');
+    if (!toolbar) return;
+    const order = [
+      'searchTool',
+      'infoButton',
+      'dataButton',
+      'graphsButtonV31',
+      'legendButton',
+      'aboutButtonV33',
+      'darkModeButton',
+      'zoomHud'
+    ];
+    const current = [...toolbar.children].filter(node => order.includes(node.id)).map(node => node.id);
+    const expected = order.filter(id => document.getElementById(id)?.parentElement === toolbar);
+    if (current.join('|') === expected.join('|')) return;
+    expected.forEach(id => toolbar.appendChild(document.getElementById(id)));
+  }
+
+  function installToolbarOrdering() {
+    const toolbar = $('#app > .top-tools');
+    if (!toolbar || toolbar.dataset.v35Order === '1') return;
+    toolbar.dataset.v35Order = '1';
+    normalizeToolbarOrder();
+    new MutationObserver(normalizeToolbarOrder).observe(toolbar, { childList: true });
+  }
+
+  async function installZProfilePlacement() {
+    const dock = await waitFor(() => $('#zProfileDockV29'), 18000);
+    if (!dock || window.matchMedia?.('(max-width: 820px)').matches || dock.dataset.v35Positioned === '1') return;
+    dock.dataset.v35Positioned = '1';
+    const width = Math.min(520, Math.max(440, window.innerWidth - 128));
+    dock.style.left = '64px';
+    dock.style.right = 'auto';
+    dock.style.top = '82px';
+    dock.style.bottom = '18px';
+    dock.style.width = `${width}px`;
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+
+  function setMobileMenuOpen(open) {
+    const panel = $('#mobileMenuPanel');
+    const button = $('#mobileMenuButton');
+    const backdrop = $('#mobileDrawerBackdropV35');
+    panel?.classList.toggle('open', open);
+    panel?.setAttribute('aria-hidden', String(!open));
+    button?.setAttribute('aria-expanded', String(open));
+    if (button) {
+      const label = open ? 'Cerrar menú de herramientas' : 'Abrir menú de herramientas';
+      button.setAttribute('aria-label', label);
+      button.title = label;
+    }
+    backdrop?.classList.toggle('open', open);
+    backdrop?.setAttribute('aria-hidden', String(!open));
+    document.body.classList.toggle('mobile-menu-open-v35', open);
+  }
+
+  function installMobileDrawer() {
+    const panel = $('#mobileMenuPanel');
+    const button = $('#mobileMenuButton');
+    if (!panel || !button || panel.dataset.v35Drawer === '1') return;
+    panel.dataset.v35Drawer = '1';
+
+    let backdrop = $('#mobileDrawerBackdropV35');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'mobileDrawerBackdropV35';
+      backdrop.className = 'mobile-drawer-backdrop-v35';
+      backdrop.setAttribute('aria-hidden', 'true');
+      panel.insertAdjacentElement('beforebegin', backdrop);
+      backdrop.addEventListener('pointerdown', () => closeMobileMenu());
+    }
+
+    document.addEventListener('click', event => {
+      const trigger = event.target.closest('#mobileMenuButton');
+      if (!trigger) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setMobileMenuOpen(trigger.getAttribute('aria-expanded') !== 'true');
+    }, true);
+
+    let swipe = null;
+    panel.addEventListener('pointerdown', event => {
+      if (event.pointerType !== 'touch') return;
+      swipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      panel.setPointerCapture?.(event.pointerId);
+    }, { passive: true });
+    panel.addEventListener('pointerup', event => {
+      if (!swipe || swipe.id !== event.pointerId) return;
+      const dx = event.clientX - swipe.x;
+      const dy = event.clientY - swipe.y;
+      swipe = null;
+      if (dx < -58 && Math.abs(dx) > Math.abs(dy) * 1.15) closeMobileMenu();
+    }, { passive: true });
+    panel.addEventListener('pointercancel', () => { swipe = null; }, { passive: true });
   }
 
   function closeMobileMenu() {
-    const panel = $('#mobileMenuPanel');
-    const button = $('#mobileMenuButton');
-    panel?.classList.remove('open');
-    panel?.setAttribute('aria-hidden', 'true');
-    button?.setAttribute('aria-expanded', 'false');
+    setMobileMenuOpen(false);
   }
 
   function createAbout() {
@@ -480,7 +575,7 @@
   }
 
   async function installResponsiveViewport() {
-    if (window.NucleidosNativeViewport?.version === VERSION) {
+    if (window.NucleidosNativeViewport?.mode === 'cover') {
       window.NucleidosResponsiveViewport = window.NucleidosNativeViewport;
       return;
     }
@@ -790,7 +885,7 @@
     }).filter(Boolean);
     buttons.forEach(button => button.addEventListener('click', event => {
       event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation();
       const index = THEME_MODES_V33.indexOf(themeModeV33);
       applyThemeV33(THEME_MODES_V33[(index + 1) % THEME_MODES_V33.length]);
       closeMobileMenu();
@@ -800,8 +895,10 @@
     const repair = () => {
       if (applyingThemeV33) return;
       const desired = themeModeV33 === 'auto' ? automaticThemeV33() : themeModeV33;
+      const shouldBeDark = desired === 'dark' || desired === 'evening';
       if (document.documentElement.dataset.themeMode !== themeModeV33
         || document.documentElement.dataset.themeResolved !== desired
+        || document.body.classList.contains('dark') !== shouldBeDark
         || document.body.classList.contains('evening') !== (desired === 'evening')) {
         applyThemeV33(themeModeV33, false);
       }
@@ -823,6 +920,10 @@
       if ($('#aboutBackdropV33')?.classList.contains('open')) {
         event.stopImmediatePropagation();
         closeAbout();
+      } else if ($('#mobileMenuPanel')?.classList.contains('open')) {
+        event.stopImmediatePropagation();
+        closeMobileMenu();
+        $('#mobileMenuButton')?.focus();
       }
     }, true);
   }
@@ -836,6 +937,7 @@
     document.documentElement.dataset.nucleidosExperience = VERSION;
     void installEncyclopedia();
     void installResponsiveViewport();
+    void installZProfilePlacement();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
