@@ -1,182 +1,140 @@
-# Tabla de nucleidos — versión 32.4
+# Nucleidos
 
-Visor interactivo de nucleidos en HTML, CSS y JavaScript. Representa estados fundamentales evaluados y una extensión teórica opcional sobre una carta N–Z renderizada en Canvas 2D.
+**Versión estable 34.2.0**
+
+Visor científico e interactivo de la carta de nucleidos, desarrollado como proyecto personal, educativo y sin ánimo de lucro. Representa los estados nucleares evaluados sobre coordenadas **N–Z**, incorpora herramientas de análisis y ofrece una enciclopedia integrada para interpretar los datos.
+
+**Aplicación:** [alejandropico.github.io/Nucleidos](https://alejandropico.github.io/Nucleidos/)  
+**Autor:** [Alejandro Pico](https://alejandropico.github.io/Portfolio/)
+
+## Estado del proyecto
+
+La versión 34.2.0 constituye la edición estable y visualmente consolidada del proyecto. Incluye el encuadre adaptable definitivo, navegación móvil, información progresiva en las celdas, fichas técnicas multiventana, modelo atómico 3D, análisis gráfico y documentación científica unificada.
 
 ## Funciones principales
 
-- Carta de nucleidos con eje horizontal `N` (neutrones) y eje vertical `Z` (protones).
-- Carga principal desde `nuclides.csv` y respaldo integrado mediante `nuclides-data.js`.
+- Carta de nucleidos renderizada en Canvas 2D con `N` en el eje horizontal superior y `Z` en el eje vertical izquierdo.
+- Encuadre completo y centrado al iniciar: la totalidad del conjunto evaluado corresponde al `100 %`.
+- Zoom continuo hasta el `1200 %`, con escala física adaptada al tamaño y orientación de cada dispositivo.
+- Desplazamiento mediante arrastre, zoom con rueda o pellizco y centrado rápido de un nucleido.
+- Información progresiva dentro de las celdas:
+  - símbolo en la vista general;
+  - `A`, `N`, `Z` y modo de desintegración en las esquinas;
+  - nombre del elemento bajo el símbolo;
+  - vida media, espín/paridad, masa atómica y clase del dato en los laterales durante la inspección.
 - Mapas por desintegración, estabilidad, vida media, calidad, abundancia, energía de enlace, Qα y Qβ−.
-- Mapas ampliados por vida media logarítmica, exceso de masa, radio de carga, QEC, S₂n, S₂p, exceso neutrónico y año de descubrimiento.
-- Capas de evaluados, no observados, isómeros, cuadrícula, números mágicos, frontera nuclear, marco evaluado y minimapa.
-- Zoom, desplazamiento, búsqueda, comparación, ficha detallada y modelo atómico 3D esquemático.
-- Guía científica progresiva y laboratorio gráfico inspirado en LiveChart y NuDat 3.
+- Capas independientes para datos evaluados, isómeros, extensión teórica, cuadrícula, números mágicos, frontera nuclear, marco evaluado y minimapa.
+- Búsqueda de nucleidos, comparación múltiple, perfiles por `Z` y `N`, histogramas, dispersión y trayectorias de decaimiento.
 
-## Novedades v32.1
+## Fichas técnicas
 
-- Cada nucleido se abre en una ficha independiente, movible y redimensionable, con el tamaño amplio de hasta 1160 × 740 px.
-- Las fichas y los perfiles por Z/N comparten un único orden de profundidad: la última ventana pulsada pasa al frente.
-- Minimizar conserva el estado y envía la ventana a la bandeja inferior; maximizar respeta la barra principal.
-- Cada ficha mantiene su propia animación 3D, activa al abrir y pausable mediante clic sobre el modelo.
-- El icono de comparación de la cabecera añade el nucleido a un comparador único sin límite artificial.
-- El comparador separa Resumen, Todos los datos, Datos oficiales y Gráfica; la pestaña oficial incluye la unión completa de columnas originales de los CSV.
-- La gráfica comparativa admite magnitudes normalizadas o columnas oficiales numéricas y escalas lineal o logarítmica.
+Cada nucleido puede abrirse en una ficha independiente, desplazable y redimensionable. Las fichas comparten un sistema común de foco, profundidad, minimización y maximización.
 
-## Correcciones v32.1.1
+Las pestañas **Resumen**, **Decaimiento**, **Masas**, **Estructura**, **Usos** y **Datos** reúnen:
 
-- Los perfiles por Z/N se extraen de la capa de dibujo y comparten de verdad el orden global con fichas y comparador.
-- Abrir simultáneamente los perfiles por Z y por N ya no crea un ciclo entre observadores de foco ni bloquea la página.
+- identidad nuclear, estabilidad, abundancia y vida media;
+- energías y relaciones de decaimiento;
+- masa atómica, exceso de masa y energía de enlace;
+- protones, neutrones, electrones, paridad y números mágicos;
+- aplicaciones e interés científico;
+- registro técnico normalizado y enlaces a Wikipedia y LiveChart.
 
-## Novedades v32.2
+El modelo visual 3D representa de forma esquemática el núcleo, las órbitas y la población electrónica. La secuencia situada bajo el modelo indica la **distribución de electrones por capas**, desde el nivel más interno al más externo, y dispone de ayuda contextual.
 
-- Un botón de doble chevrón, situado antes de Comparar, repliega o despliega el panel del modelo 3D.
-- La preferencia se aplica a todas las fichas abiertas, a las nuevas fichas y se conserva entre recargas.
-- La ficha replegada reduce su anchura; las capas electrónicas y el carácter esquemático del modelo permanecen disponibles en Estructura.
+## Enciclopedia científica
 
-## Pulido v32.3
+La guía y el antiguo módulo de análisis visual forman una única enciclopedia navegable. Incluye contenidos sobre:
 
-- Redimensionar, maximizar o desplegar el modelo 3D conserva el zoom y el punto central de la carta de nucleidos.
-- El modelo atómico se renderiza con las dimensiones reales de cada ficha y ya no se estira desde el lienzo oculto.
-- Capas se sitúa entre Mapa y Filtros y se eliminan bordes decorativos innecesarios.
-- Rangos avanzados pasa a llamarse Filtros avanzados, con controles Z/N/A más ligeros.
-- Los perfiles y trayectorias muestran un estado activo inequívoco mediante contraste, peso y un indicador discreto.
-- La explicación esencial de los perfiles queda integrada en su propio panel; el botón Guía general enlaza correctamente con la guía científica principal.
+- notación nuclear y lectura de la carta;
+- interacción fuerte, repulsión de Coulomb, capas y números mágicos;
+- masas, defecto de masa, energía de enlace y valores Q;
+- estabilidad, vidas medias y canales de desintegración;
+- nucleosíntesis, abundancia, líneas de goteo y regiones teóricas;
+- fuentes evaluadas, filtros, perfiles, histogramas y comparación.
 
-## Ajustes v32.4
+La documentación enlaza recursos externos y fuentes científicas cuando corresponde.
 
-- El panel científico recupera una única columna con el orden Mapa, Capas, Filtros y Filtros avanzados.
-- Paridad Z/N vuelve a estar siempre visible y deja de presentarse como una opción secundaria.
-- Perfil por Z, Perfil por N, Cadena seleccionada y Campo de decaimiento utilizan interruptores deslizantes en una cuadrícula 2 × 2.
-- La ayuda resumida conserva un acceso funcional al manual avanzado completo de 49 capítulos sobre gráficos, filtros, ventanas y comparación.
-- Se eliminan la pestaña Modelo 3D y el resumen atómico sobredimensionado; sus datos útiles se integran en Estructura.
+## Interfaz adaptable
 
-## Correcciones v28
+### Escritorio
 
-### Carga directa de la interfaz
+- Barra de herramientas compacta en la zona superior derecha.
+- Ventanas técnicas independientes y organizadas por profundidad.
+- Ejes flotantes que permanecen visibles durante el desplazamiento y el zoom.
+- Compatibilidad con pantallas de alta resolución, incluidas configuraciones 4K.
 
-Las correcciones operativas esenciales se cargan desde `nucleidos-v28.js` y `nucleidos-v28.css` como archivos normales. No dependen de `DecompressionStream` ni de reconstruir JavaScript comprimido en el navegador.
+### Móvil y tableta
 
-Los recursos se incluyen con un identificador de versión en `index.html` para evitar que GitHub Pages o el navegador reutilicen una copia antigua.
+- Menú hamburguesa lateral desde la esquina superior izquierda.
+- Cierre mediante el propio botón, toque exterior o gesto de deslizamiento hacia la izquierda.
+- Herramientas y subpaneles integrados dentro del menú lateral.
+- Canvas recalculado y redibujado al cambiar de tamaño u orientación, sin conservar imágenes residuales.
+- Fichas adaptadas a la superficie disponible y modelo 3D visible en pantalla completa.
+- Minimapa compacto, táctil y desactivado por defecto.
 
-### Minimapa
+## Temas
 
-El minimapa permanece desactivado al iniciar. Al activarlo:
+La interfaz ofrece cuatro modos persistentes:
 
-- se elimina el estado oculto;
-- se espera al siguiente frame para medir su tamaño real;
-- se reconstruye el bitmap interno con la densidad de píxeles correcta;
-- se redibuja después de redimensionar la ventana o cambiar el dataset;
-- permite navegar mediante clic o arrastre.
+- **Automático:** selecciona el tema según la hora solar de la ubicación, con una estimación horaria como alternativa.
+- **Mañana:** tema claro.
+- **Tarde:** paleta cálida de transición.
+- **Noche:** tema oscuro.
 
-El fallo anterior se producía porque el `canvas` se dimensionaba mientras su contenedor tenía `display: none`, por lo que conservaba un bitmap interno prácticamente vacío.
+## Datos y trazabilidad
 
-### Panel de datos
+La fuente principal es `nuclides.csv`, acompañada de un respaldo integrado en `nuclides-data.js`. La interfaz permite importar conjuntos principales y secundarios sin sobrescribir permanentemente el repositorio desde el navegador.
 
-La ventana de datos muestra:
+La sincronización permanente se realiza mediante `.github/workflows/sync-iaea.yml`, que:
 
-- número de registros activos;
-- fecha de extracción indicada por IAEA;
-- fecha de la última sincronización automática;
-- fuente operativa;
-- actualización desde la API oficial;
-- restauración del snapshot almacenado en el repositorio;
-- importación de CSV principal y dataset secundario.
+1. consulta los endpoints oficiales de IAEA LiveChart;
+2. valida cabeceras, volumen y estructura del resultado;
+3. conserva el snapshot anterior si la fuente remota no responde correctamente;
+4. actualiza `data/iaea-sync.json` y crea un commit únicamente cuando cambian los datos.
 
-El botón **Actualizar IAEA** sigue esta estrategia:
-
-1. intenta consultar los dominios oficiales de LiveChart;
-2. valida cabecera y un mínimo de 3.000 registros;
-3. si el navegador recibe CORS, 403 u otro bloqueo, recarga `nuclides.csv` desde el propio repositorio;
-4. conserva el dataset anterior si ninguna fuente supera la validación.
-
-La actualización realizada desde el navegador solo existe en memoria hasta recargar la página.
-
-### Sincronización permanente
-
-GitHub Pages es un alojamiento estático: el JavaScript de la página no puede modificar el repositorio ni crear commits por sí solo.
-
-La actualización permanente se realiza mediante `.github/workflows/sync-iaea.yml`. El workflow:
-
-- prueba `nds.iaea.org` y `www-nds.iaea.org`;
-- utiliza agentes de usuario reales de navegador;
-- abre primero LiveChart para obtener las cookies que pueda requerir el servidor;
-- usa HTTP/1.1, `Referer`, `Accept-Language` y compresión;
-- valida tamaño, cabecera y número de filas antes de reemplazar el snapshot;
-- calcula SHA-256 y escribe `data/iaea-sync.json`;
-- crea un commit solo cuando el dataset cambia;
-- si IAEA vuelve a bloquear el runner, conserva los datos existentes y termina con una advertencia en lugar de destruir la ejecución.
-
-El snapshot sincronizado actualmente contiene 3.386 registros.
-
-### Menú móvil
-
-- El botón hamburguesa permanece oculto en escritorio.
-- Solo aparece hasta 700 px de anchura.
-- El controlador v28 funciona aunque falle alguno de los módulos comprimidos anteriores.
-- El menú móvil conserva acceso a Guía, Datos, Tema, Capas, Análisis, búsqueda y restablecimiento.
-
-### Laboratorio de respaldo
-
-Si el laboratorio avanzado v27 no llega a inicializarse, v28 incorpora un laboratorio directo con:
-
-- perfil mediano por Z;
-- puntos individuales;
-- histogramas;
-- resumen de mínimo, cuartiles, mediana, media y máximo;
-- propiedades como vida media, enlace, exceso de masa, Qα, Qβ−, QEC, abundancia, radio, N−Z y N/Z.
-
-## Guía científica
-
-El botón de información abre una guía de 52 capítulos que cubre:
-
-- vocabulario, notación y lectura de la carta;
-- interacción fuerte, Coulomb, radio, capas, magia, espín y apareamiento;
-- masa, defecto de masa, enlace, fórmula semiempírica, separaciones y valores Q;
-- estabilidad, ley exponencial y canales de desintegración;
-- niveles, gammas y radiaciones de decaimiento;
-- abundancia, nucleosíntesis, líneas de goteo y predicciones;
-- ENSDF, NUBASE, AME y grupos de la API IAEA;
-- perfiles, dispersión, histogramas, filtros e incertidumbres;
-- aplicaciones y flujo profesional de comprobación y cita.
-
-## Tema visual
-
-La interfaz dispone de tres modos persistentes:
-
-- **Automático:** círculo dividido; sigue la preferencia del sistema y una corrección horaria.
-- **Claro:** sol.
-- **Oscuro:** luna.
+Las posiciones teóricas se muestran como una capa diferenciada y no se presentan como evidencia experimental.
 
 ## Controles
 
-- Rueda o pellizco: zoom.
-- Arrastrar con ratón o un dedo: mover la carta.
-- Clic o toque en un nucleido: abrir la ficha.
-- Doble clic o doble toque: centrar el nucleido.
-- Indicador de zoom / opción `100%`: restablecer el encuadre.
-- Clic o arrastre en minimapa: navegar.
-- Toque sobre el modelo 3D: pausar o reanudar.
-- Escape o navegación Atrás: cerrar la capa activa cuando corresponda.
+- **Rueda o pellizco:** ampliar o reducir.
+- **Arrastrar:** desplazar la carta.
+- **Clic o toque:** abrir la ficha de un nucleido.
+- **Doble clic o doble toque:** centrar e inspeccionar un nucleido.
+- **Indicador `100 %`:** recuperar el encuadre completo.
+- **Minimapa:** tocar o arrastrar para navegar cuando la capa está activa.
+- **Modelo 3D:** tocar para pausar o reanudar la animación.
+- **Escape:** cerrar la capa o ventana activa cuando corresponda.
 
-## Archivos principales
+## Ejecución local
 
-- `index.html`: estructura e inclusión versionada de recursos.
+El proyecto no requiere compilación. Debido a la carga de CSV y recursos mediante `fetch`, debe servirse por HTTP:
+
+```bash
+git clone https://github.com/AlejandroPico/Nucleidos.git
+cd Nucleidos
+python -m http.server 8000
+```
+
+Después puede abrirse `http://localhost:8000` en el navegador.
+
+## Estructura principal
+
+- `index.html`: estructura general y carga versionada de recursos.
 - `styles.css`: estilos base.
-- `app.js`: motor científico y render Canvas estable.
-- `nucleidos-ui-loader.js`: interfaz educativa v26.
-- `nucleidos-v27.css`: estilos heredados del laboratorio y la guía avanzada.
-- `nucleidos-v28.css` y `nucleidos-v28.js`: integración directa y correcciones operativas.
-- `nucleidos-v32-core.js`: gestión común de foco, profundidad, arrastre, tamaño y bandeja.
-- `nucleidos-v32-cards.js`: fichas múltiples y animaciones 3D independientes.
-- `nucleidos-v32-compare.js`: comparador tabular y gráfico sin límite de nucleidos.
-- `nucleidos-v32.css`: estilos de ventanas y del comparador.
-- `nuclides.csv`: snapshot principal sincronizado desde IAEA.
-- `nuclides-data.js`: respaldo integrado.
-- `data/iaea-sync.json`: metadatos y huella del snapshot.
-- `.github/workflows/sync-iaea.yml`: sincronización oficial automatizada.
+- `app.js`: datos, cámara, Canvas 2D, zoom, capas y modelo 3D.
+- `nucleidos-v33.css` y `nucleidos-v33.js`: interfaz consolidada, temas, enciclopedia y adaptación responsive.
+- `nucleidos-v28.css` y `nucleidos-v28.js`: compatibilidad y correcciones operativas heredadas.
+- `nucleidos-ui-loader.js`: carga de los módulos avanzados de ventanas y análisis.
+- `nuclides.csv`: snapshot evaluado principal.
+- `nuclides-data.js`: respaldo local integrado.
+- `data/iaea-sync.json`: metadatos de sincronización.
+- `.github/workflows/sync-iaea.yml`: actualización automatizada de la fuente oficial.
+- `favicon.svg`: identidad gráfica del proyecto.
 
 ## Alcance científico
 
-El visor ofrece una capa moderna de exploración y análisis sobre estados fundamentales. Los niveles excitados, transiciones gamma, radiaciones de desintegración, espectros beta, secciones eficaces y rendimientos de fisión pertenecen a conjuntos adicionales de LiveChart, ENSDF, ENDF o EXFOR y deben integrarse con trazabilidad propia.
+Nucleidos es una herramienta de exploración y divulgación. El modelo 3D es esquemático y no representa escalas físicas reales. Para investigación, publicación o toma de decisiones técnicas, los valores deben comprobarse en las fuentes evaluadas originales, como IAEA LiveChart, ENSDF, NUBASE o AME.
 
-Los datos evaluados deben citarse mediante sus fuentes originales. Las capas teóricas y las magnitudes calculadas localmente no se presentan como evidencia experimental.
+---
+
+Proyecto personal de [Alejandro Pico](https://alejandropico.github.io/Portfolio/). Código y documentación disponibles en [GitHub](https://github.com/AlejandroPico/Nucleidos).
