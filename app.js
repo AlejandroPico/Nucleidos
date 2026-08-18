@@ -107,7 +107,7 @@ const state = {
     qalpha: new Set(['positive','negative','zero','unknown']),
     qbeta: new Set(['positive','negative','zero','unknown'])
   },
-  layers: { evaluated: true, theoretical: false, isomer: true, grid: false, magic: false, frontier: false, evaluatedFrame: false, minimap: true, expert: true },
+  layers: { evaluated: true, theoretical: false, isomer: true, grid: false, magic: false, frontier: false, evaluatedFrame: false, minimap: false, expert: true },
   scale: 1, tx: 0, ty: 0, fitScale: 1, fullFitScale: 1,
   dragging: false, dragStart: null, renderPending: false,
   activePointers: new Map(), pinch: null, lastTap: 0,
@@ -764,15 +764,15 @@ function updateFitMetrics() {
   const usableH = Math.max(160, view.height - inset.top - inset.bottom);
   const fullSx = usableW / Math.max(1, CHART_W);
   const fullSy = usableH / Math.max(1, CHART_H);
-  state.fullFitScale = Math.max(fullSx, fullSy);
+  state.fullFitScale = Math.min(fullSx, fullSy);
 
   const r = worldRectForBounds(state.evaluatedBounds || { minZ: 1, maxZ: 118, minN: 0, maxN: 178 }, 20);
   const rw = Math.max(1, r.x2 - r.x1);
   const rh = Math.max(1, r.y2 - r.y1);
   const evalSx = usableW / rw;
   const evalSy = usableH / rh;
-  state.fitScale = Math.max(evalSx, evalSy);
-  state.viewportFitMode = 'cover';
+  state.fitScale = Math.min(evalSx, evalSy);
+  state.viewportFitMode = 'contain';
   return { r, rw, rh, view, inset, usableW, usableH };
 }
 
@@ -782,7 +782,7 @@ let viewportResizeFrame = 0;
 
 function fitToScreen(force = false) {
   const metrics = updateFitMetrics();
-  if (force || !Number.isFinite(state.scale) || state.scale < state.fullFitScale) state.scale = state.fitScale;
+  if (force || !Number.isFinite(state.scale) || state.scale < state.fitScale) state.scale = state.fitScale;
   state.tx = metrics.view.left + metrics.inset.left + metrics.usableW / 2 - (metrics.r.x1 + metrics.rw / 2) * state.scale;
   state.ty = metrics.view.top + metrics.inset.top + metrics.usableH / 2 - (metrics.r.y1 + metrics.rh / 2) * state.scale;
   previousViewport = metrics.view;
@@ -798,8 +798,8 @@ function resizeViewPreservingPosition() {
   const zoomRatio = oldScale / Math.max(1e-9, previousFitScale);
   resizeCanvases();
   const metrics = updateFitMetrics();
-  const maxScale = Math.max(2.8, state.fitScale * 28);
-  state.scale = Math.max(state.fullFitScale, Math.min(maxScale, state.fitScale * zoomRatio));
+  const maxScale = state.fitScale * 2;
+  state.scale = Math.max(state.fitScale, Math.min(maxScale, state.fitScale * zoomRatio));
 
   if (Math.abs(zoomRatio - 1) < .025) {
     state.tx = metrics.view.left + metrics.inset.left + metrics.usableW / 2 - (metrics.r.x1 + metrics.rw / 2) * state.scale;
@@ -852,8 +852,8 @@ function clampTransform() {
 }
 function zoomAt(clientX, clientY, factor) {
   const old = state.scale;
-  const maxScale = Math.max(2.6, state.fitScale * 26);
-  const next = Math.max(state.fullFitScale || state.fitScale, Math.min(maxScale, old * factor));
+  const maxScale = state.fitScale * 2;
+  const next = Math.max(state.fitScale, Math.min(maxScale, old * factor));
   const chartX = (clientX - state.tx) / old;
   const chartY = (clientY - state.ty) / old;
   state.scale = next; state.tx = clientX - chartX * next; state.ty = clientY - chartY * next;
@@ -946,8 +946,8 @@ function updatePinchZoom() {
   const touches = touchPointers(); if (touches.length < 2 || !state.pinch) return false;
   const [a,b] = touches, d = Math.hypot(a.x-b.x, a.y-b.y); if (!d) return false;
   const c = { x: (a.x+b.x)/2, y: (a.y+b.y)/2 };
-  const maxScale = Math.max(2.6, state.fitScale * 26);
-  const ns = Math.max(state.fullFitScale || state.fitScale, Math.min(maxScale, state.pinch.startScale * d / state.pinch.startDistance));
+  const maxScale = state.fitScale * 2;
+  const ns = Math.max(state.fitScale, Math.min(maxScale, state.pinch.startScale * d / state.pinch.startDistance));
   state.scale = ns; state.tx = c.x - state.pinch.chartX * ns; state.ty = c.y - state.pinch.chartY * ns;
   updateView(); return true;
 }
@@ -973,7 +973,7 @@ function updateCursorHud(e) {
 function centerOnNuclide(n, zoomMultiplier = 7) {
   const r = cellRect(n.z, n.n);
   const x = r.x + CELL_W/2, y = r.y + CELL_H/2;
-  state.scale = Math.max(state.fitScale, Math.min(state.fitScale * zoomMultiplier, 1.85));
+  state.scale = Math.max(state.fitScale, Math.min(state.fitScale * zoomMultiplier, state.fitScale * 2));
   state.tx = window.innerWidth/2 - x * state.scale;
   state.ty = window.innerHeight/2 - y * state.scale;
   updateView();
@@ -1506,8 +1506,8 @@ function hexToRgb(hex) {
 }
 
 window.NucleidosNativeViewport = {
-  version: '33.4.0',
-  mode: 'cover',
+  version: '33.9.0',
+  mode: 'contain',
   fit: () => fitToScreen(true),
   refresh: requestViewportResize,
   geometry: viewportGeometry
