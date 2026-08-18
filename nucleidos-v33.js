@@ -2,6 +2,7 @@
   'use strict';
 
   const VERSION = '34.3.0';
+  const MOBILE_LAYOUT_QUERY = '(max-width: 820px), (orientation: landscape) and (max-width: 1100px) and (max-height: 600px)';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -219,7 +220,7 @@
 
   async function installZProfilePlacement() {
     const dock = await waitFor(() => $('#zProfileDockV29'), 18000);
-    if (!dock || window.matchMedia?.('(max-width: 820px)').matches || dock.dataset.v35Positioned === '1') return;
+    if (!dock || window.matchMedia?.(MOBILE_LAYOUT_QUERY).matches || dock.dataset.v35Positioned === '1') return;
     dock.dataset.v35Positioned = '1';
     const width = Math.min(520, Math.max(440, window.innerWidth - 128));
     dock.style.left = '64px';
@@ -317,7 +318,7 @@
 
     let edgeSwipe = null;
     document.addEventListener('pointerdown', event => {
-      if (!window.matchMedia('(max-width: 820px)').matches
+      if (!window.matchMedia(MOBILE_LAYOUT_QUERY).matches
         || event.pointerType !== 'touch'
         || event.clientX > 24
         || panel.classList.contains('open')) return;
@@ -407,7 +408,7 @@
       button.setAttribute('aria-controls', sectionId);
       button.setAttribute('aria-expanded', 'false');
     });
-    const media = window.matchMedia('(max-width: 820px)');
+    const media = window.matchMedia(MOBILE_LAYOUT_QUERY);
     const sync = () => moveMobilePanels(media.matches);
     sync();
     media.addEventListener?.('change', sync);
@@ -696,7 +697,7 @@
   }
 
   function viewportInsetsV33() {
-    const compact = window.matchMedia?.('(max-width: 820px)').matches;
+    const compact = window.matchMedia?.(MOBILE_LAYOUT_QUERY).matches;
     return compact
       ? { top: 16, right: 12, bottom: 16, left: 36 }
       : { top: 18, right: 18, bottom: 18, left: 44 };
@@ -794,7 +795,7 @@
       const visible = visibleWorldRect();
       const { width, height } = viewportSizeV33();
       const inset = viewportInsetsV33();
-      const labelRight = window.matchMedia?.('(max-width: 820px)').matches ? 58 : inset.right;
+      const labelRight = window.matchMedia?.(MOBILE_LAYOUT_QUERY).matches ? 58 : inset.right;
       const dark = document.body.classList.contains('dark');
       const axisY = clampNumber(sy(AXIS - 28), inset.top, height - inset.bottom);
       const axisX = clampNumber(sx(AXIS - 18), inset.left, width - inset.right);
@@ -1117,7 +1118,7 @@
 
     let activePointer = null;
     const navigate = event => {
-      if (!window.matchMedia?.('(max-width: 820px)').matches) return;
+      if (!window.matchMedia?.(MOBILE_LAYOUT_QUERY).matches) return;
       const rect = map.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       const localX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
@@ -1133,7 +1134,7 @@
     };
 
     map.addEventListener('pointerdown', event => {
-      if (!window.matchMedia?.('(max-width: 820px)').matches) return;
+      if (!window.matchMedia?.(MOBILE_LAYOUT_QUERY).matches) return;
       activePointer = event.pointerId;
       map.setPointerCapture?.(event.pointerId);
       event.preventDefault();
