@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.0.4';
+  const VERSION = '33.0.5';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -56,6 +56,39 @@
     }
   };
   const FAILED_MEDIA = new Set();
+
+  const SCIENCE_CATALOG = [
+    ['fundamentos', 'Fundamentos', 'vision', 'Qué representa el visor'],
+    ['fundamentos', 'Fundamentos', 'vocabulario', 'Átomo, núcleo, nucleido e isótopo'],
+    ['fundamentos', 'Fundamentos', 'notacion', 'Notación A, Z, N y símbolo'],
+    ['fundamentos', 'Fundamentos', 'ejes', 'Ejes Z y N'],
+    ['fundamentos', 'Fundamentos', 'observacion', 'Observados y no observados'],
+    ['fundamentos', 'Fundamentos', 'estabilidad', 'Valle de estabilidad'],
+    ['estructura', 'Estructura nuclear', 'fuerzas', 'Fuerzas dentro del núcleo'],
+    ['estructura', 'Estructura nuclear', 'defecto', 'Defecto de masa'],
+    ['estructura', 'Estructura nuclear', 'enlace', 'Energía de enlace por nucleón'],
+    ['estructura', 'Estructura nuclear', 'separacion', 'Energías de separación'],
+    ['estructura', 'Estructura nuclear', 'qvalues', 'Valores Q'],
+    ['estructura', 'Estructura nuclear', 'spin', 'Espín, paridad y capas'],
+    ['decaimiento', 'Desintegración', 'ley-decaimiento', 'Ley exponencial'],
+    ['decaimiento', 'Desintegración', 'semivida', 'Vida media'],
+    ['decaimiento', 'Desintegración', 'alpha', 'Desintegración α'],
+    ['decaimiento', 'Desintegración', 'beta-minus', 'Beta menos'],
+    ['decaimiento', 'Desintegración', 'beta-plus-ec', 'Beta más y captura electrónica'],
+    ['decaimiento', 'Desintegración', 'gamma-it', 'Gamma e isomería'],
+    ['mapa', 'Lectura del mapa', 'otros-canales', 'Fisión y emisión de partículas'],
+    ['mapa', 'Lectura del mapa', 'cadenas', 'Cadenas y ramificaciones'],
+    ['mapa', 'Lectura del mapa', 'magicos', 'Números mágicos'],
+    ['mapa', 'Lectura del mapa', 'apareamiento', 'Efecto par–impar'],
+    ['mapa', 'Lectura del mapa', 'fronteras', 'Frontera nuclear'],
+    ['mapa', 'Lectura del mapa', 'mapas-filtros', 'Mapas, filtros y capas'],
+    ['aplicaciones', 'Aplicaciones y fuentes', 'abundancia', 'Abundancia natural'],
+    ['aplicaciones', 'Aplicaciones y fuentes', 'medicina', 'Medicina y trazadores'],
+    ['aplicaciones', 'Aplicaciones y fuentes', 'energia', 'Reactores, fisión y fusión'],
+    ['aplicaciones', 'Aplicaciones y fuentes', 'datacion', 'Datación y geocronología'],
+    ['aplicaciones', 'Aplicaciones y fuentes', 'astrofisica', 'Astrofísica nuclear'],
+    ['aplicaciones', 'Aplicaciones y fuentes', 'fuentes-limites', 'Fuentes, incertidumbre y límites']
+  ];
 
   const SOURCE_GROUPS = [
     {
@@ -189,21 +222,10 @@
     $('#aboutButtonV33')?.focus();
   }
 
-  function collectScienceCatalog(categories) {
-    const initial = $('.info-category.active', categories)?.dataset.category;
-    const catalog = [];
-    $$('.info-category', categories).forEach(category => {
-      category.click();
-      $$('#infoTopicList .info-topic-button').forEach(button => catalog.push({
-        kind: 'science',
-        group: category.textContent.trim(),
-        title: button.textContent.trim(),
-        category: category.dataset.category,
-        topic: button.dataset.topic
-      }));
-    });
-    categories.querySelector(`[data-category="${initial || 'fundamentos'}"]`)?.click();
-    return catalog;
+  function collectScienceCatalog() {
+    return SCIENCE_CATALOG.map(([category, group, topic, title]) => ({
+      kind: 'science', category, group, topic, title
+    }));
   }
 
   function collectAnalysisCatalog(analysis) {
@@ -302,7 +324,7 @@
     launcher.classList.remove('visible');
     launcher.setAttribute('aria-hidden', 'true');
 
-    const scienceCatalog = collectScienceCatalog(categories);
+    const scienceCatalog = collectScienceCatalog();
     const analysisCatalog = collectAnalysisCatalog(analysis);
     const catalog = [...scienceCatalog, ...analysisCatalog];
     const paneButtons = $$('[data-encyclopedia-pane]', hub);
