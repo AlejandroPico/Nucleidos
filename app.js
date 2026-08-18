@@ -373,15 +373,30 @@ function syncLayerButtons() {
 }
 function toggleButtonState(id, active) { document.getElementById(id)?.classList.toggle('active', active); }
 
+function canvasViewportSize() {
+  const rect = viewport.getBoundingClientRect();
+  return {
+    width: Math.max(1, Math.round(rect.width || document.documentElement.clientWidth || window.innerWidth || 1)),
+    height: Math.max(1, Math.round(rect.height || document.documentElement.clientHeight || window.innerHeight || 1))
+  };
+}
+
+function resetCanvasBuffer(context, target, dpr, cssWidth, cssHeight) {
+  const backingWidth = Math.max(1, Math.round(cssWidth * dpr));
+  const backingHeight = Math.max(1, Math.round(cssHeight * dpr));
+  if (target.width !== backingWidth) target.width = backingWidth;
+  if (target.height !== backingHeight) target.height = backingHeight;
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, target.width, target.height);
+  context.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
 function resizeCanvases() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  canvas.width = Math.floor(window.innerWidth * dpr);
-  canvas.height = Math.floor(window.innerHeight * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const size = canvasViewportSize();
+  resetCanvasBuffer(ctx, canvas, dpr, size.width, size.height);
   const mrect = minimapCanvas.getBoundingClientRect();
-  minimapCanvas.width = Math.max(10, Math.floor(mrect.width * dpr));
-  minimapCanvas.height = Math.max(10, Math.floor(mrect.height * dpr));
-  miniCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  resetCanvasBuffer(miniCtx, minimapCanvas, dpr, Math.max(5, mrect.width), Math.max(5, mrect.height));
 }
 
 function scheduleRender() {
@@ -391,7 +406,7 @@ function scheduleRender() {
 }
 
 function drawScene() {
-  const w = window.innerWidth, h = window.innerHeight;
+  const { width: w, height: h } = canvasViewportSize();
   ctx.clearRect(0, 0, w, h);
   if (state.layers.grid) drawWorldGrid(w, h);
   if (state.layers.evaluatedFrame) drawEvaluatedFrame();
@@ -884,6 +899,7 @@ function scaleForDisplayedZoom(percent) {
 let previousViewport = viewportGeometry();
 let previousFitScale = Math.max(1e-9, Number(state.fitScale) || 1);
 let viewportResizeFrame = 0;
+let viewportResizeSettleTimer = 0;
 
 function fitToScreen(force = false) {
   const metrics = updateFitMetrics();
@@ -920,9 +936,26 @@ function resizeViewPreservingPosition() {
   if (!card.dataset.v32Template) resizeAtomCanvas();
 }
 
-function requestViewportResize() {
+function runViewportResize() {
   if (viewportResizeFrame) cancelAnimationFrame(viewportResizeFrame);
   viewportResizeFrame = requestAnimationFrame(() => requestAnimationFrame(resizeViewPreservingPosition));
+}
+
+function requestViewportResize() {
+  runViewportResize();
+  window.clearTimeout(viewportResizeSettleTimer);
+  viewportResizeSettleTimer = window.setTimeout(runViewportResize, 220);
+}
+
+function handleOrientationChange() {
+  state.activePointers.clear();
+  state.pinch = null;
+  endDrag();
+  state.renderPending = false;
+  resizeCanvases();
+  runViewportResize();
+  window.clearTimeout(viewportResizeSettleTimer);
+  viewportResizeSettleTimer = window.setTimeout(runViewportResize, 320);
 }
 
 function worldRectForBounds(b, margin = 0) {
@@ -997,7 +1030,8 @@ function bindEvents() {
   document.getElementById('clearCompareButton').addEventListener('click', () => { state.compare = []; renderCompare(); });
   atomCanvas.addEventListener('click', e => { e.stopPropagation(); state.animationEnabled = !state.animationEnabled; atomCanvas.classList.toggle('paused', !state.animationEnabled); drawAtom(performance.now()); });
   window.addEventListener('resize', requestViewportResize, { passive: true });
-  window.addEventListener('orientationchange', requestViewportResize, { passive: true });
+  window.addEventListener('orientationchange', handleOrientationChange, { passive: true });
+  window.screen?.orientation?.addEventListener?.('change', handleOrientationChange);
   window.visualViewport?.addEventListener('resize', requestViewportResize, { passive: true });
   window.visualViewport?.addEventListener('scroll', requestViewportResize, { passive: true });
   if (window.ResizeObserver) new ResizeObserver(requestViewportResize).observe(viewport);
@@ -1612,7 +1646,7 @@ function hexToRgb(hex) {
 }
 
 window.NucleidosNativeViewport = {
-  version: '34.1.0',
+  version: '34.2.0',
   mode: 'contain',
   fit: () => fitToScreen(true),
   refresh: requestViewportResize,
