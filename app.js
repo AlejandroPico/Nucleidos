@@ -500,28 +500,67 @@ function drawFrontierCurve(side) {
 
 function drawAxes() {
   const visible = visibleWorldRect();
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
+  const view = viewportGeometry();
+  const inset = viewportInsets();
+  const left = view.left + inset.left;
+  const right = view.left + view.width - inset.right;
+  const top = view.top + inset.top;
+  const bottom = view.top + view.height - inset.bottom;
+  const dark = document.body.classList.contains('dark');
+  const labelColor = dark ? 'rgba(255,255,255,.94)' : 'rgba(34,32,28,.86)';
+  const railColor = dark ? 'rgba(255,255,255,.17)' : 'rgba(34,32,28,.15)';
+  const nPixels = TILE_STEP_X * state.scale;
+  const zPixels = TILE_STEP_Y * state.scale;
+  const nStep = nPixels >= 11 ? 10 : nPixels >= 5.5 ? 20 : 50;
+  const zStep = zPixels >= 10 ? 10 : zPixels >= 5 ? 20 : 50;
+
   ctx.save();
-  ctx.font = '900 12px system-ui, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = document.body.classList.contains('dark') ? 'rgba(255,255,255,.92)' : 'rgba(34,32,28,.82)';
-  for (let N = 0; N <= N_MAX; N += 10) {
-    const wx = AXIS + N * TILE_STEP_X + TILE_STEP_X/2;
-    if (wx < visible.x1 - 200 || wx > visible.x2 + 200) continue;
-    drawAxisPill(String(N), sx(wx), clampNumber(sy(AXIS - 28), 22, screenH - 22), 38, state.layers.magic && MAGIC_NUMBERS.includes(N));
+  ctx.strokeStyle = railColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(left, bottom + .5);
+  ctx.lineTo(right, bottom + .5);
+  ctx.moveTo(left + .5, top);
+  ctx.lineTo(left + .5, bottom);
+  ctx.stroke();
+
+  ctx.font = '900 11px system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = labelColor;
+  ctx.textAlign = 'center';
+  const firstN = Math.max(0, Math.ceil(((visible.x1 - AXIS) / TILE_STEP_X) / nStep) * nStep);
+  const lastN = Math.min(N_MAX, Math.floor(((visible.x2 - AXIS) / TILE_STEP_X) / nStep) * nStep);
+  for (let N = firstN; N <= lastN; N += nStep) {
+    const x = sx(AXIS + N * TILE_STEP_X + TILE_STEP_X / 2);
+    if (x < left + 18 || x > right - 52) continue;
+    drawAxisPill(String(N), x, bottom, 38, state.layers.magic && MAGIC_NUMBERS.includes(N));
   }
+
   ctx.textAlign = 'right';
-  for (let Z = 10; Z <= Z_MAX; Z += 10) {
-    const wy = AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y/2;
-    if (wy < visible.y1 - 200 || wy > visible.y2 + 200) continue;
-    drawAxisPill(String(Z), clampNumber(sx(AXIS - 18), 28, screenW - 28), sy(wy), 38, state.layers.magic && MAGIC_NUMBERS.includes(Z));
+  const topRow = Math.max(0, Math.floor((visible.y1 - AXIS) / TILE_STEP_Y));
+  const bottomRow = Math.min(Z_MAX - 1, Math.ceil((visible.y2 - AXIS) / TILE_STEP_Y));
+  const visibleZMin = Math.max(1, Z_MAX - bottomRow);
+  const visibleZMax = Math.min(Z_MAX, Z_MAX - topRow);
+  const firstZ = Math.max(zStep, Math.ceil(visibleZMin / zStep) * zStep);
+  for (let Z = firstZ; Z <= visibleZMax; Z += zStep) {
+    const y = sy(AXIS + (Z_MAX - Z) * TILE_STEP_Y + TILE_STEP_Y / 2);
+    if (y < top + 16 || y > bottom - 16) continue;
+    drawAxisPill(String(Z), left - 7, y, 38, state.layers.magic && MAGIC_NUMBERS.includes(Z));
   }
-  ctx.textAlign = 'left';
-  drawAxisPill('N →', clampNumber(sx(AXIS), 30, screenW - 30), clampNumber(sy(AXIS - 54), 22, screenH - 22), 48);
-  drawAxisPill('Z ↑', clampNumber(sx(AXIS - 48), 30, screenW - 30), clampNumber(sy(AXIS - 20), 54, screenH - 22), 48);
+
+  ctx.fillStyle = labelColor;
+  ctx.font = '950 11px system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('N →', right, bottom - 14);
+  ctx.save();
+  ctx.translate(left + 15, top + 3);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'right';
+  ctx.fillText('Z →', 0, 0);
+  ctx.restore();
   ctx.restore();
 }
+
 function clampNumber(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
 function drawAxisPill(text, x, y, width = 38, magic = false) {
@@ -582,7 +621,13 @@ function drawNuclideCell(n, rect) {
 }
 
 function visibleWorldRect() {
-  return { x1: (0 - state.tx) / state.scale, y1: (0 - state.ty) / state.scale, x2: (window.innerWidth - state.tx) / state.scale, y2: (window.innerHeight - state.ty) / state.scale };
+  const view = viewportGeometry();
+  return {
+    x1: (view.left - state.tx) / state.scale,
+    y1: (view.top - state.ty) / state.scale,
+    x2: (view.left + view.width - state.tx) / state.scale,
+    y2: (view.top + view.height - state.ty) / state.scale
+  };
 }
 function sx(x) { return state.tx + x * state.scale; }
 function sy(y) { return state.ty + y * state.scale; }
@@ -664,45 +709,85 @@ function drawMinimap() {
   miniCtx.strokeRect(v.x1*sxm, v.y1*sym, (v.x2-v.x1)*sxm, (v.y2-v.y1)*sym);
 }
 
-function updateFitMetrics() {
-  const pad = 64;
-  const fullSx = (window.innerWidth - pad*2) / CHART_W;
-  const fullSy = (window.innerHeight - pad*2) / CHART_H;
-  state.fullFitScale = Math.min(fullSx, fullSy);
-
-  const r = worldRectForBounds(state.evaluatedBounds || { minZ: 1, maxZ: 118, minN: 0, maxN: 178 }, 28);
-  const rw = Math.max(1, r.x2 - r.x1), rh = Math.max(1, r.y2 - r.y1);
-  const evalSx = (window.innerWidth - pad*2) / rw;
-  const evalSy = (window.innerHeight - pad*2) / rh;
-  state.fitScale = Math.min(evalSx, evalSy);
-  return { r, rw, rh };
+function viewportGeometry() {
+  const visual = window.visualViewport;
+  const width = Math.max(1, Number(visual?.width) || document.documentElement.clientWidth || window.innerWidth || 1);
+  const height = Math.max(1, Number(visual?.height) || document.documentElement.clientHeight || window.innerHeight || 1);
+  return {
+    left: Math.max(0, Number(visual?.offsetLeft) || 0),
+    top: Math.max(0, Number(visual?.offsetTop) || 0),
+    width,
+    height
+  };
 }
+
+function viewportInsets() {
+  return window.matchMedia?.('(max-width: 820px)').matches
+    ? { top: 12, right: 12, bottom: 26, left: 38 }
+    : { top: 16, right: 18, bottom: 30, left: 46 };
+}
+
+function updateFitMetrics() {
+  const view = viewportGeometry();
+  const inset = viewportInsets();
+  const usableW = Math.max(120, view.width - inset.left - inset.right);
+  const usableH = Math.max(160, view.height - inset.top - inset.bottom);
+  const fullSx = usableW / Math.max(1, CHART_W);
+  const fullSy = usableH / Math.max(1, CHART_H);
+  state.fullFitScale = Math.max(fullSx, fullSy);
+
+  const r = worldRectForBounds(state.evaluatedBounds || { minZ: 1, maxZ: 118, minN: 0, maxN: 178 }, 20);
+  const rw = Math.max(1, r.x2 - r.x1);
+  const rh = Math.max(1, r.y2 - r.y1);
+  const evalSx = usableW / rw;
+  const evalSy = usableH / rh;
+  state.fitScale = Math.max(evalSx, evalSy);
+  state.viewportFitMode = 'cover';
+  return { r, rw, rh, view, inset, usableW, usableH };
+}
+
+let previousViewport = viewportGeometry();
+let previousFitScale = Math.max(1e-9, Number(state.fitScale) || 1);
+let viewportResizeFrame = 0;
 
 function fitToScreen(force = false) {
-  const { r, rw, rh } = updateFitMetrics();
-  if (force || state.scale < state.fullFitScale) state.scale = state.fitScale;
-  state.tx = (window.innerWidth - rw * state.scale) / 2 - r.x1 * state.scale;
-  state.ty = (window.innerHeight - rh * state.scale) / 2 - r.y1 * state.scale;
+  const metrics = updateFitMetrics();
+  if (force || !Number.isFinite(state.scale) || state.scale < state.fullFitScale) state.scale = state.fitScale;
+  state.tx = metrics.view.left + metrics.inset.left + metrics.usableW / 2 - (metrics.r.x1 + metrics.rw / 2) * state.scale;
+  state.ty = metrics.view.top + metrics.inset.top + metrics.usableH / 2 - (metrics.r.y1 + metrics.rh / 2) * state.scale;
+  previousViewport = metrics.view;
+  previousFitScale = state.fitScale;
   updateView();
 }
 
-let previousViewportWidth = window.innerWidth;
-let previousViewportHeight = window.innerHeight;
-
 function resizeViewPreservingPosition() {
+  viewportResizeFrame = 0;
   const oldScale = Math.max(1e-9, state.scale || 1);
-  const worldCenterX = (previousViewportWidth * .5 - state.tx) / oldScale;
-  const worldCenterY = (previousViewportHeight * .5 - state.ty) / oldScale;
+  const oldCenterX = (previousViewport.left + previousViewport.width * .5 - state.tx) / oldScale;
+  const oldCenterY = (previousViewport.top + previousViewport.height * .5 - state.ty) / oldScale;
+  const zoomRatio = oldScale / Math.max(1e-9, previousFitScale);
   resizeCanvases();
-  updateFitMetrics();
-  const maxScale = Math.max(2.6, state.fitScale * 26);
-  state.scale = Math.max(state.fullFitScale, Math.min(maxScale, oldScale));
-  state.tx = window.innerWidth * .5 - worldCenterX * state.scale;
-  state.ty = window.innerHeight * .5 - worldCenterY * state.scale;
-  previousViewportWidth = window.innerWidth;
-  previousViewportHeight = window.innerHeight;
+  const metrics = updateFitMetrics();
+  const maxScale = Math.max(2.8, state.fitScale * 28);
+  state.scale = Math.max(state.fullFitScale, Math.min(maxScale, state.fitScale * zoomRatio));
+
+  if (Math.abs(zoomRatio - 1) < .025) {
+    state.tx = metrics.view.left + metrics.inset.left + metrics.usableW / 2 - (metrics.r.x1 + metrics.rw / 2) * state.scale;
+    state.ty = metrics.view.top + metrics.inset.top + metrics.usableH / 2 - (metrics.r.y1 + metrics.rh / 2) * state.scale;
+  } else {
+    state.tx = metrics.view.left + metrics.view.width * .5 - oldCenterX * state.scale;
+    state.ty = metrics.view.top + metrics.view.height * .5 - oldCenterY * state.scale;
+  }
+
+  previousViewport = metrics.view;
+  previousFitScale = state.fitScale;
   updateView();
   if (!card.dataset.v32Template) resizeAtomCanvas();
+}
+
+function requestViewportResize() {
+  if (viewportResizeFrame) cancelAnimationFrame(viewportResizeFrame);
+  viewportResizeFrame = requestAnimationFrame(() => requestAnimationFrame(resizeViewPreservingPosition));
 }
 
 function worldRectForBounds(b, margin = 0) {
@@ -720,11 +805,20 @@ function worldRectForBounds(b, margin = 0) {
 
 function updateView() { clampTransform(); zoomValue.textContent = `${Math.round(state.scale / state.fitScale * 100)}%`; scheduleRender(); }
 function clampTransform() {
-  const viewW = window.innerWidth, viewH = window.innerHeight;
-  const scaledW = CHART_W * state.scale, scaledH = CHART_H * state.scale;
-  const margin = 80;
-  if (scaledW <= viewW - margin*2) state.tx = (viewW - scaledW) / 2; else state.tx = Math.min(margin, Math.max(viewW - scaledW - margin, state.tx));
-  if (scaledH <= viewH - margin*2) state.ty = (viewH - scaledH) / 2; else state.ty = Math.min(margin, Math.max(viewH - scaledH - margin, state.ty));
+  const view = viewportGeometry();
+  const inset = viewportInsets();
+  const scaledW = CHART_W * state.scale;
+  const scaledH = CHART_H * state.scale;
+  const minTx = view.left + view.width - inset.right - scaledW;
+  const maxTx = view.left + inset.left;
+  const minTy = view.top + view.height - inset.bottom - scaledH;
+  const maxTy = view.top + inset.top;
+  state.tx = scaledW <= view.width - inset.left - inset.right
+    ? view.left + inset.left + (view.width - inset.left - inset.right - scaledW) / 2
+    : Math.min(maxTx, Math.max(minTx, state.tx));
+  state.ty = scaledH <= view.height - inset.top - inset.bottom
+    ? view.top + inset.top + (view.height - inset.top - inset.bottom - scaledH) / 2
+    : Math.min(maxTy, Math.max(minTy, state.ty));
 }
 function zoomAt(clientX, clientY, factor) {
   const old = state.scale;
@@ -767,7 +861,11 @@ function bindEvents() {
   document.getElementById('exportCardButton').addEventListener('click', exportSelectedCardPng);
   document.getElementById('clearCompareButton').addEventListener('click', () => { state.compare = []; renderCompare(); });
   atomCanvas.addEventListener('click', e => { e.stopPropagation(); state.animationEnabled = !state.animationEnabled; atomCanvas.classList.toggle('paused', !state.animationEnabled); drawAtom(performance.now()); });
-  window.addEventListener('resize', resizeViewPreservingPosition);
+  window.addEventListener('resize', requestViewportResize, { passive: true });
+  window.addEventListener('orientationchange', requestViewportResize, { passive: true });
+  window.visualViewport?.addEventListener('resize', requestViewportResize, { passive: true });
+  window.visualViewport?.addEventListener('scroll', requestViewportResize, { passive: true });
+  if (window.ResizeObserver) new ResizeObserver(requestViewportResize).observe(viewport);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeNuclideCard(); closeLegendPopover(); closeDataPopover(); closeSearchTool(); } });
 }
 
@@ -1376,5 +1474,13 @@ function hexToRgb(hex) {
   const n = parseInt(m[1], 16);
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
+
+window.NucleidosNativeViewport = {
+  version: '33.3.0',
+  mode: 'cover',
+  fit: () => fitToScreen(true),
+  refresh: requestViewportResize,
+  geometry: viewportGeometry
+};
 
 init();
