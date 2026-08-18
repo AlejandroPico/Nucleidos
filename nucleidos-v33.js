@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '33.9.0';
+  const VERSION = '34.0.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -743,6 +743,15 @@
       return { r, rw, rh, width, height, inset, usableW, usableH };
     }
 
+    function adaptiveMaximumScale() {
+      const { width, height } = viewportSizeV33();
+      const inset = viewportInsetsV33();
+      const usableW = Math.max(120, width - inset.left - inset.right);
+      const usableH = Math.max(160, height - inset.top - inset.bottom);
+      const inspectScale = Math.min(usableW * .78 / CELL_W, usableH * .78 / CELL_H);
+      return Math.max(state.fitScale * 12, inspectScale);
+    }
+
     function adaptiveClampTransform() {
       const { width, height } = viewportSizeV33();
       const inset = viewportInsetsV33();
@@ -771,7 +780,7 @@
     function adaptiveZoomAt(clientX, clientY, factor) {
       const old = Math.max(1e-9, state.scale || 1);
       adaptiveFitMetrics();
-      const maxScale = state.fitScale * 2;
+      const maxScale = adaptiveMaximumScale();
       const next = Math.max(state.fitScale, Math.min(maxScale, old * factor));
       const chartX = (clientX - state.tx) / old;
       const chartY = (clientY - state.ty) / old;
@@ -852,7 +861,7 @@
       const zoomRatio = oldScale / Math.max(1e-9, previousFit);
       resizeCanvases();
       const metrics = adaptiveFitMetrics();
-      const maxScale = state.fitScale * 2;
+      const maxScale = adaptiveMaximumScale();
       state.scale = Math.max(state.fitScale, Math.min(maxScale, state.fitScale * zoomRatio));
       state.tx = metrics.inset.left + metrics.usableW / 2 - oldCenterX * state.scale;
       state.ty = metrics.inset.top + metrics.usableH / 2 - oldCenterY * state.scale;
@@ -1054,6 +1063,27 @@
     });
   }
 
+  async function settleInitialViewport() {
+    const ready = await waitFor(() => {
+      try {
+        return Boolean(state.evaluatedBounds)
+          && typeof fitToScreen === 'function'
+          && typeof resizeCanvases === 'function';
+      } catch (_) {
+        return false;
+      }
+    }, 18000);
+    if (!ready) return;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try { resizeCanvases(); } catch (_) {}
+    try {
+      const controller = window.NucleidosResponsiveViewport || window.NucleidosNativeViewport;
+      if (typeof controller?.fit === 'function') controller.fit();
+      else fitToScreen(true);
+      document.documentElement.dataset.initialViewSettled = VERSION;
+    } catch (_) {}
+  }
+
   function ensureMinimapStartsClosed() {
     try { state.layers.minimap = false; } catch (_) {}
     const button = $('#minimapButton');
@@ -1133,6 +1163,7 @@
     void installMobileInlinePanels();
     void installAdaptiveMinimap();
     installDetailPanelRedesign();
+    await settleInitialViewport();
     document.documentElement.dataset.nucleidosRuntime = VERSION;
     document.documentElement.dataset.nucleidosExperience = VERSION;
   }
