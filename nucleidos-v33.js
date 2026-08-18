@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '34.1.0';
+  const VERSION = '34.2.0';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -1187,11 +1187,23 @@
       head.innerHTML = '<span>Registro técnico</span><p>Campos normalizados disponibles para este estado nuclear.</p>';
       rawPanel.prepend(head);
     }
+    annotateShellConfiguration(template);
+  }
+
+  function annotateShellConfiguration(root) {
+    const shell = root?.querySelector?.('[data-v32-source-id="shellText"], #shellText, .shell-text');
+    if (!shell) return;
+    const explanation = 'Distribución electrónica por capas: indica cuántos electrones ocupa cada nivel principal, desde la capa más interna hasta la más externa.';
+    shell.dataset.tip = explanation;
+    shell.title = explanation;
+    shell.setAttribute('aria-label', `${explanation} Valor actual: ${shell.textContent?.trim() || 'sin dato'}`);
+    shell.setAttribute('tabindex', '0');
   }
 
   function polishDetailCard(card) {
     if (!card || card.dataset.v38DetailPanels === '1') return;
     card.dataset.v38DetailPanels = '1';
+    annotateShellConfiguration(card);
     card.querySelector('.tab-panel[data-panel="apps"] .action-row')?.remove();
     card.querySelector('.tab-panel[data-panel="apps"] .info-block')?.classList.add('detail-uses-v38');
 
