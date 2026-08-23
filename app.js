@@ -1040,9 +1040,9 @@ function bindEvents() {
     document.getElementById(id)?.addEventListener('click', () => { state.layers[key] = !state.layers[key]; syncLayerButtons(); scheduleRender(); if (state.selected) fillDetail(state.selected); });
   }
   document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
-  document.getElementById('addCompareButton').addEventListener('click', () => addSelectedToCompare());
-  document.getElementById('exportCardButton').addEventListener('click', exportSelectedCardPng);
-  document.getElementById('clearCompareButton').addEventListener('click', () => { state.compare = []; renderCompare(); });
+  document.getElementById('addCompareButton')?.addEventListener('click', () => addSelectedToCompare());
+  document.getElementById('exportCardButton')?.addEventListener('click', exportSelectedCardPng);
+  document.getElementById('clearCompareButton')?.addEventListener('click', () => { state.compare = []; renderCompare(); });
   atomCanvas.addEventListener('click', e => { e.stopPropagation(); state.animationEnabled = !state.animationEnabled; atomCanvas.classList.toggle('paused', !state.animationEnabled); drawAtom(performance.now()); });
   window.addEventListener('resize', requestViewportResize, { passive: true });
   window.addEventListener('orientationchange', handleOrientationChange, { passive: true });
@@ -1661,7 +1661,7 @@ function hexToRgb(hex) {
 }
 
 window.NucleidosNativeViewport = {
-  version: '34.3.0',
+  version: '34.3.1',
   mode: 'contain',
   fit: () => fitToScreen(true),
   refresh: requestViewportResize,
