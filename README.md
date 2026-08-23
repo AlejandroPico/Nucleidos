@@ -1,6 +1,6 @@
 # Nucleidos
 
-**Versión estable 34.3.0**
+**Versión estable 34.3.1**
 
 Visor científico e interactivo de la carta de nucleidos, desarrollado como proyecto personal, educativo y sin ánimo de lucro. Representa los estados nucleares evaluados sobre coordenadas **N–Z**, incorpora herramientas de análisis y ofrece una enciclopedia integrada para interpretar los datos.
 
@@ -9,7 +9,7 @@ Visor científico e interactivo de la carta de nucleidos, desarrollado como proy
 
 ## Estado del proyecto
 
-La versión 34.3.0 constituye la edición estable y visualmente consolidada del proyecto. Incluye el encuadre adaptable definitivo, navegación móvil en vertical y horizontal, información progresiva en las celdas, fichas técnicas multiventana, modelo atómico 3D, análisis gráfico y documentación científica unificada.
+La versión 34.3.1 constituye la edición estable y visualmente consolidada del proyecto. Incluye el encuadre adaptable definitivo, navegación móvil en vertical y horizontal, información progresiva en las celdas, fichas técnicas multiventana, modelo atómico 3D, análisis gráfico y documentación científica unificada.
 
 ## Funciones principales
 
@@ -23,6 +23,7 @@ La versión 34.3.0 constituye la edición estable y visualmente consolidada del 
   - nombre del elemento bajo el símbolo;
   - vida media, espín/paridad, masa atómica y clase del dato en los laterales durante la inspección.
 - Mapas por desintegración, estabilidad, vida media, calidad, abundancia, energía de enlace, Qα y Qβ−.
+- Panel científico completo en orden Mapa → Capas → Filtros → Filtros avanzados, con controles Z/N/A, paridad Z/N y rango por propiedad.
 - Capas independientes para datos evaluados, isómeros, extensión teórica, cuadrícula, números mágicos, frontera nuclear, marco evaluado y minimapa.
 - Búsqueda de nucleidos, comparación múltiple, perfiles por `Z` y `N`, histogramas, dispersión y trayectorias de decaimiento.
 
