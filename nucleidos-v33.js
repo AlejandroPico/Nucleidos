@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '34.3.0';
+  const VERSION = '34.3.1';
   const MOBILE_LAYOUT_QUERY = '(max-width: 820px), (orientation: landscape) and (max-width: 1100px) and (max-height: 600px)';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
