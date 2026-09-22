@@ -1,4 +1,4 @@
-/* Nucleidos v34.3.1 · restauración de mapas y filtros */
+/* Nucleidos v34.4.0 · PWA y estabilización del lienzo móvil */
 
 body.evening {
   --bg: #2f252a;
@@ -986,8 +986,9 @@ body.dark .top-tools { background: color-mix(in srgb, var(--panel-solid) 92%, tr
   }
 }
 
-@media (max-width: 1100px) and (max-height: 900px) {
-  html.viewport-rotating-v343 #chartCanvas { opacity: 0 !important; transition: none !important; }
+@media (display-mode: standalone) {
+  html, body, #app { height: 100dvh; }
+  body { overscroll-behavior: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

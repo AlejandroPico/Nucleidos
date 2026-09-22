@@ -37,6 +37,9 @@ jobs:
           set -euo pipefail
           required=(
             index.html
+            manifest.webmanifest
+            pwa.js
+            service-worker.js
             styles.css
             app.js
             nuclides.csv
@@ -56,6 +59,9 @@ jobs:
             nucleidos-v32-core.js
             nucleidos-v32-cards.js
             nucleidos-v32-init.js
+            icons/icon-192.png
+            icons/icon-512.png
+            icons/icon-maskable-512.png
           )
           for path in "${required[@]}"; do
             test -s "$path" || { echo "Missing or empty required file: $path" >&2; exit 1; }
@@ -71,6 +77,8 @@ jobs:
           grep -q 'nucleidos-v30.css' nucleidos-v31.css
           grep -q 'nucleidos-v30.js' nucleidos-v31.js
           node --check app.js
+          node --check pwa.js
+          node --check service-worker.js
           node --check nucleidos-v28.js
           node --check nucleidos-v29.js
           node --check nucleidos-v30.js

@@ -1,6 +1,6 @@
 # Nucleidos
 
-**Versión estable 34.3.1**
+**Versión estable 34.4.0**
 
 Visor científico e interactivo de la carta de nucleidos, desarrollado como proyecto personal, educativo y sin ánimo de lucro. Representa los estados nucleares evaluados sobre coordenadas **N–Z**, incorpora herramientas de análisis y ofrece una enciclopedia integrada para interpretar los datos.
 
@@ -9,7 +9,7 @@ Visor científico e interactivo de la carta de nucleidos, desarrollado como proy
 
 ## Estado del proyecto
 
-La versión 34.3.1 constituye la edición estable y visualmente consolidada del proyecto. Incluye el encuadre adaptable definitivo, navegación móvil en vertical y horizontal, información progresiva en las celdas, fichas técnicas multiventana, modelo atómico 3D, análisis gráfico y documentación científica unificada.
+La versión 34.4.0 constituye la edición estable y visualmente consolidada del proyecto. Incluye el encuadre adaptable definitivo, navegación móvil en vertical y horizontal, información progresiva en las celdas, fichas técnicas multiventana, modelo atómico 3D, análisis gráfico y documentación científica unificada. Además, elimina el parpadeo del lienzo durante redimensionados y cambios de orientación en Android y añade instalación PWA con experiencia independiente a pantalla completa y soporte sin conexión.
 
 ## Funciones principales
 

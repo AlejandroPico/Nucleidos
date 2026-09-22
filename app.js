@@ -384,19 +384,21 @@ function canvasViewportSize() {
 function resetCanvasBuffer(context, target, dpr, cssWidth, cssHeight) {
   const backingWidth = Math.max(1, Math.round(cssWidth * dpr));
   const backingHeight = Math.max(1, Math.round(cssHeight * dpr));
+  const resized = target.width !== backingWidth || target.height !== backingHeight;
   if (target.width !== backingWidth) target.width = backingWidth;
   if (target.height !== backingHeight) target.height = backingHeight;
   context.setTransform(1, 0, 0, 1, 0, 0);
-  context.clearRect(0, 0, target.width, target.height);
   context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return resized;
 }
 
 function resizeCanvases() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const size = canvasViewportSize();
-  resetCanvasBuffer(ctx, canvas, dpr, size.width, size.height);
+  const chartResized = resetCanvasBuffer(ctx, canvas, dpr, size.width, size.height);
   const mrect = minimapCanvas.getBoundingClientRect();
-  resetCanvasBuffer(miniCtx, minimapCanvas, dpr, Math.max(5, mrect.width), Math.max(5, mrect.height));
+  const minimapResized = resetCanvasBuffer(miniCtx, minimapCanvas, dpr, Math.max(5, mrect.width), Math.max(5, mrect.height));
+  return chartResized || minimapResized;
 }
 
 function scheduleRender() {
@@ -918,7 +920,7 @@ function resizeViewPreservingPosition() {
   const oldCenterX = (previousViewport.left + previousViewport.width * .5 - state.tx) / oldScale;
   const oldCenterY = (previousViewport.top + previousViewport.height * .5 - state.ty) / oldScale;
   const zoomRatio = oldScale / Math.max(1e-9, previousFitScale);
-  resizeCanvases();
+  const canvasResized = resizeCanvases();
   const metrics = updateFitMetrics();
   const maxScale = maximumZoomScale();
   state.scale = Math.max(state.fitScale, Math.min(maxScale, state.fitScale * zoomRatio));
@@ -934,6 +936,13 @@ function resizeViewPreservingPosition() {
   previousViewport = metrics.view;
   previousFitScale = state.fitScale;
   updateView();
+  // Cambiar width/height vacía el búfer del canvas. Repintamos en el mismo
+  // fotograma para que Android no llegue a presentar un lienzo transparente.
+  if (canvasResized) {
+    state.renderPending = false;
+    drawScene();
+    drawMinimap();
+  }
   if (!card.dataset.v32Template) resizeAtomCanvas();
 }
 
@@ -953,11 +962,8 @@ function handleOrientationChange() {
   state.pinch = null;
   endDrag();
   state.renderPending = false;
-  document.documentElement.classList.add('viewport-rotating-v343');
-
-  // Vacía el búfer inmediatamente para que el navegador no estire el último
-  // fotograma mientras termina de actualizar visualViewport en un giro.
-  resizeCanvases();
+  // Conserva el último fotograma mientras Android termina de actualizar
+  // visualViewport. El redimensionado posterior repinta de forma atómica.
   runViewportResize();
 
   window.clearTimeout(viewportResizeSettleTimer);
@@ -967,9 +973,6 @@ function handleOrientationChange() {
     if (viewportResizeFrame) cancelAnimationFrame(viewportResizeFrame);
     viewportResizeFrame = 0;
     resizeViewPreservingPosition();
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      document.documentElement.classList.remove('viewport-rotating-v343');
-    }));
   }, 380);
 }
 
@@ -1661,7 +1664,7 @@ function hexToRgb(hex) {
 }
 
 window.NucleidosNativeViewport = {
-  version: '34.3.1',
+  version: '34.4.0',
   mode: 'contain',
   fit: () => fitToScreen(true),
   refresh: requestViewportResize,
